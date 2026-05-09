@@ -18,12 +18,99 @@ model User {
 }
 
 model Project {
-  id        String     @id @default(cuid())
-  name      String
-  slug      String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  artifacts Artifact[]
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  /** Evidence vault root folder: `PRD-XXX` or `IDEA-NNNN` (Appendix A / plan). */
+  vaultFolder   String         @default("IDEA-0001")
+  /**
+   * Workspace milestone index 1–14 (aligned with `WORKSPACE_PHASES` in lib/workspacePhases.ts).
+   * See `lib/phaseTransitions.ts` for gate exits.
+   */
+  currentPhase  Int            @default(1)
+  /** Phase 7 applicability toggles: data (ERD), apis (API contract), ui (UXD), modules, blueprint */
+  applicabilityJson Json       @default("{}")
+  /** Confirmed complexity for G4 (align `23. Project Complexity Levels.md`). */
+  complexityLevel   String?
+  /** STD-ENG-001 / Namespace M notes for G6. */
+  namingConformanceNote String?
+  /** Initial test setup evidence for G6. */
+  initialTestSetupNote    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  artifacts     Artifact[]
+  gateDecisions   GateDecision[]
+  requirements  Requirement[]
+  features      Feature[]
+  traceLinks    TraceLink[]
+  evidenceItems   EvidenceItem[]
+  applicabilityRecords ApplicabilityRecord[]
+}
+
+model Requirement {
+  id                  String   @id @default(cuid())
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /** CRS-001, SRS-FR-001, SRS-NFR-001, NFR-001 */
+  localId             String
+  kind                String   // CRS | SRS_FR | SRS_NFR | NFR
+  title               String
+  body                String   @default("")
+  verificationMethod  String?
+  status              String   @default("Draft")
+  version             Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([projectId, localId])
+  @@index([projectId, kind])
+}
+
+model Feature {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  localId     String   // FEAT-001
+  title       String
+  description String   @default("")
+  priority    String?
+  status      String   @default("Draft")
+  scopeStatus String   @default("InScope")
+  createdAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, localId])
+}
+
+model TraceLink {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromKind  String   // requirement | feature | artifact
+  fromId    String
+  toKind    String
+  toId      String
+  relation  String   // informs | derives | validates | implements | tests
+  createdAt DateTime @default(now())
+
+  @@index([projectId, fromKind, fromId])
+  @@index([projectId, toKind, toId])
+}
+
+model GateDecision {
+  id                   String   @id @default(cuid())
+  projectId            String
+  project              Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  gateId               String
+  decision             String
+  authorityName        String
+  authorityRole        String
+  nextAction           String
+  /** Whether `evaluateGate` passed at submit time (advance decisions require true). */
+  evidencePassSnapshot Boolean
+  createdAt            DateTime @default(now())
+
+  @@index([projectId, gateId])
 }
 
 model Artifact {
@@ -38,6 +125,67 @@ model Artifact {
   markdownPath String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  evidenceLinks EvidenceArtifactLink[]
 
   @@unique([projectId, templateId, localId, version])
+}
+
+/** External evidence file or reference attached to a project (Evidence Center). */
+model EvidenceItem {
+  id                  String   @id @default(cuid())
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  evidenceCode        String
+  name                String
+  description         String   @default("")
+  evidenceType        String
+  phaseNumber         Int?
+  gateCode            String?
+  classification      String   @default("internal")
+  status              String   @default("linked")
+  completenessPercent Int      @default(100)
+  fileTypeLabel       String   @default("Document")
+  fileSizeBytes       Int?
+  source              String?
+  retentionPolicyLabel String?
+  checksum            String?
+  tagsJson            Json     @default("[]")
+  notes               String?
+  uploadedByName      String   @default("Local User")
+  previewHref         String?
+  downloadHref        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  artifactLinks       EvidenceArtifactLink[]
+
+  @@unique([projectId, evidenceCode])
+  @@index([projectId, gateCode])
+}
+
+model EvidenceArtifactLink {
+  evidenceId String
+  evidence   EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  artifactId String
+  artifact   Artifact     @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@id([evidenceId, artifactId])
+  @@index([artifactId])
+}
+
+/**
+ * Structured applicability dimension or standard reference (dual-read with applicabilityJson).
+ * Keys: data | apis | ui | modules | blueprint | or STD-* code.
+ */
+model ApplicabilityRecord {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  key        String
+  applies    Boolean  @default(true)
+  rationale  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([projectId, key])
+  @@index([projectId])
 }

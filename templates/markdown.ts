@@ -28,8 +28,6 @@ function formatValue(value: unknown): string {
     }[];
     data: Record<string, unknown>;
   }): string {
-    const generatedAt = new Date().toISOString();
-  
     const body = args.sections
       .map((section) => {
         const fields = section.fields
@@ -48,13 +46,7 @@ function formatValue(value: unknown): string {
       })
       .join("\n\n---\n\n");
   
-    return `---
-  templateId: ${args.templateId}
-  title: ${args.title}
-  generatedAt: ${generatedAt}
-  ---
-  
-  # ${args.title}
+    return `# ${args.title}
   
   ${body}
   `;

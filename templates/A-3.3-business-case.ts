@@ -2,7 +2,15 @@ import { z } from "zod";
 import type { LifecycleTemplate } from "./types";
 import { renderTemplateMarkdown } from "./markdown";
 
-const businessRecommendation = z.enum([
+const requiredText = (fieldName: string, min = 3) =>
+  z.string().trim().min(min, `${fieldName} is required.`);
+
+const dateString = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format.");
+
+const businessRecommendationEnum = z.enum([
   "Proceed to Requirements",
   "Proceed to Requirements with Conditions",
   "Pivot",
@@ -11,41 +19,59 @@ const businessRecommendation = z.enum([
 ]);
 
 export const businessCaseSchema = z.object({
-  executiveSummary: z.string().min(10, "Executive summary is required."),
-  strategicAlignment: z.string().min(10, "Strategic alignment is required."),
-  expectedBenefits: z.string().min(10, "Expected benefits are required."),
-  expectedCostsInvestment: z.string().min(10, "Expected costs / investment are required."),
-  roiPaybackScenarioSummary: z.string().min(5, "ROI / payback / scenario summary is required."),
-  forecastReferenceA5: z.string().min(1, "Forecast reference — Template A-5 if used (or N/A) is required."),
-  majorRisks: z.string().min(3, "Major risks are required."),
-  riskMitigations: z.string().min(3, "Risk mitigations are required."),
-  constraints: z.string().min(3, "Constraints are required."),
-  dependencies: z.string().min(3, "Dependencies are required."),
-  prcsExistingProductId: z.string().min(1, "Existing Product ID (or N/A) is required."),
-  prcsCandidateApprovedProductId: z.string().min(1, "Candidate / Approved Product ID (or N/A) is required."),
-  prcsPclCode: z.string().min(1, "Candidate PCL Code (or N/A) is required."),
-  prcsCriticalityTier: z.string().min(1, "PCL criticality tier (or N/A) is required."),
-  prcsDomainTags: z.string().min(1, "Domain tags are required."),
-  prcsFunctionDescriptors: z.string().min(1, "Function descriptors (or N/A) are required."),
-  prcsWorkTypeTags: z.string().min(1, "Work Type Tag(s) (or N/A) are required."),
-  prcsNonApplicabilityRationale: z.string().min(1, "PRCS non-applicability rationale (or N/A) is required."),
-  prcsDownstreamStandardsTieringImpact: z
-    .string()
-    .min(1, "Downstream standards tiering impact (or N/A) is required."),
-  businessRecommendation: businessRecommendation,
-  businessRecommendationRationale: z.string().min(10, "Recommendation rationale is required."),
-  conditionsIfAny: z.string().min(1, "Conditions (or None) are required."),
-  conditionOwners: z.string().min(1, "Condition owner(s) (or N/A) are required."),
-  conditionDueDates: z.string().min(1, "Due date(s) (or N/A) are required."),
-  approvedBy: z.string().min(2, "Approved by is required."),
-  approverRoleAuthority: z.string().min(2, "Role / authority is required."),
-  approvalDate: z.string().min(2, "Approval date is required."),
-  approvalDecisionNotes: z.string().min(3, "Decision notes are required."),
+  executiveSummary: requiredText("Executive Summary", 10),
+  strategicAlignment: requiredText("Strategic Alignment", 10),
+  expectedBenefits: requiredText("Expected Benefits", 10),
+  expectedCostsInvestment: requiredText("Expected Costs / Investment", 10),
+  roiPaybackScenarioSummary: requiredText(
+    "ROI / Payback / Scenario Summary",
+    5,
+  ),
+  forecastReferenceA5: requiredText(
+    "Forecast Reference — Template A-5 if used (or N/A)",
+    1,
+  ),
+  majorRisks: requiredText("Major Risks", 3),
+  riskMitigations: requiredText("Risk Mitigations", 3),
+  constraints: requiredText("Constraints", 3),
+  dependencies: requiredText("Dependencies", 3),
+  prcsExistingProductId: requiredText("Existing Product ID (or N/A)", 1),
+  prcsCandidateApprovedProductId: requiredText(
+    "Candidate / Approved Product ID (or N/A)",
+    1,
+  ),
+  prcsPclCode: requiredText("Candidate PCL Code (or N/A)", 1),
+  prcsCriticalityTier: requiredText("PCL Criticality Tier (or N/A)", 1),
+  prcsDomainTags: requiredText("Domain Tags", 2),
+  prcsFunctionDescriptors: requiredText("Function Descriptors (or N/A)", 1),
+  prcsWorkTypeTags: requiredText("Work Type Tag(s) (or N/A)", 1),
+  prcsNonApplicabilityRationale: requiredText(
+    "PRCS Non-Applicability Rationale (or N/A)",
+    1,
+  ),
+  prcsDownstreamStandardsTieringImpact: requiredText(
+    "Downstream Standards Tiering Impact (or N/A)",
+    1,
+  ),
+  businessRecommendation: businessRecommendationEnum,
+  businessRecommendationRationale: requiredText(
+    "Recommendation Rationale",
+    10,
+  ),
+  conditionsIfAny: requiredText("Conditions (or None)", 1),
+  conditionOwners: requiredText("Condition Owner(s) (or N/A)", 1),
+  conditionDueDates: requiredText("Due Date(s) (or N/A)", 1),
+  approvedBy: requiredText("Approved By", 2),
+  approverRoleAuthority: requiredText("Role / Authority", 2),
+  approvalDate: dateString,
+  approvalDecisionNotes: requiredText("Decision Notes", 3),
 });
 
 export type BusinessCaseData = z.infer<typeof businessCaseSchema>;
 
-export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> = {
+export const businessCaseTemplate: LifecycleTemplate<
+  typeof businessCaseSchema
+> = {
   templateId: "A-3.3",
   title: "Business Case",
   phase: 4,
@@ -56,6 +82,8 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "1",
       title: "Executive Summary",
+      description:
+        "State the funding recommendation in one paragraph (per Appendix A).",
       fields: [
         {
           name: "executiveSummary",
@@ -68,6 +96,8 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "2",
       title: "Strategic Alignment",
+      description:
+        "How the initiative supports portfolio, product, customer, compliance, or operational priorities.",
       fields: [
         {
           name: "strategicAlignment",
@@ -80,6 +110,8 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "3",
       title: "Expected Benefits",
+      description:
+        "Quantify where possible: revenue, savings, risk reduction, productivity, customer experience, compliance posture.",
       fields: [
         {
           name: "expectedBenefits",
@@ -92,6 +124,8 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "4",
       title: "Expected Costs / Investment",
+      description:
+        "Delivery effort, infrastructure, vendors, licenses, operational support, maintenance, and change-management costs where known.",
       fields: [
         {
           name: "expectedCostsInvestment",
@@ -104,6 +138,8 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "5",
       title: "ROI, Payback, or Scenario Summary",
+      description:
+        "Use Template A-5 when economic viability depends on modeled revenue, expense, cash, or market assumptions.",
       fields: [
         {
           name: "roiPaybackScenarioSummary",
@@ -122,28 +158,55 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "6",
       title: "Major Risks and Mitigations",
+      description:
+        "Align with the Feasibility Assessment; name owners when mitigation is required before proceeding.",
       fields: [
-        { name: "majorRisks", label: "Major Risks", type: "textarea", required: true },
-        { name: "riskMitigations", label: "Risk Mitigations", type: "textarea", required: true },
+        {
+          name: "majorRisks",
+          label: "Major Risks",
+          type: "textarea",
+          required: true,
+        },
+        {
+          name: "riskMitigations",
+          label: "Risk Mitigations",
+          type: "textarea",
+          required: true,
+        },
       ],
     },
     {
       id: "7",
       title: "Constraints and Dependencies",
+      description:
+        "Funding, capacity, vendor, security/privacy/compliance, integration, timeline, or operational constraints.",
       fields: [
-        { name: "constraints", label: "Constraints", type: "textarea", required: true },
-        { name: "dependencies", label: "Dependencies", type: "textarea", required: true },
+        {
+          name: "constraints",
+          label: "Constraints",
+          type: "textarea",
+          required: true,
+        },
+        {
+          name: "dependencies",
+          label: "Dependencies",
+          type: "textarea",
+          required: true,
+        },
       ],
     },
     {
       id: "8",
       title: "PRCS Product Classification Summary",
+      description:
+        "Preserves the G3 PRCS candidate decision; final production registration is confirmed at G8.",
       fields: [
         {
           name: "prcsExistingProductId",
           label: "Existing Product ID (PRD-XXX), if any",
           type: "text",
           required: true,
+          placeholder: "PRD-XXX or N/A",
         },
         {
           name: "prcsCandidateApprovedProductId",
@@ -229,6 +292,8 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
     {
       id: "10",
       title: "Conditions",
+      description:
+        "Required when recommending conditional proceed; owners and due dates must be explicit.",
       fields: [
         {
           name: "conditionsIfAny",
@@ -247,6 +312,7 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
           label: "Due Date(s)",
           type: "textarea",
           required: true,
+          description: "Free text or ISO dates per condition.",
         },
       ],
     },
@@ -254,14 +320,24 @@ export const businessCaseTemplate: LifecycleTemplate<typeof businessCaseSchema> 
       id: "11",
       title: "Approval Record",
       fields: [
-        { name: "approvedBy", label: "Approved By", type: "text", required: true },
+        {
+          name: "approvedBy",
+          label: "Approved By",
+          type: "text",
+          required: true,
+        },
         {
           name: "approverRoleAuthority",
           label: "Role / Authority",
           type: "text",
           required: true,
         },
-        { name: "approvalDate", label: "Date", type: "text", required: true },
+        {
+          name: "approvalDate",
+          label: "Date (YYYY-MM-DD)",
+          type: "date",
+          required: true,
+        },
         {
           name: "approvalDecisionNotes",
           label: "Decision Notes",

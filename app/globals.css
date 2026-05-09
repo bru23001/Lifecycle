@@ -128,3 +128,418 @@
     @apply font-sans;
   }
 }
+
+/* Lifecycle Workspace — three-column grid (see workspace UI spec) */
+@layer components {
+  .lifecycle-workspace {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 330px;
+    gap: 14px;
+    padding: 14px 18px 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 74px);
+  }
+
+  .dark .lifecycle-workspace {
+    background: oklch(0.205 0 0);
+  }
+
+  .phase-navigator-panel,
+  .current-phase-panel,
+  .review-status-panel,
+  .current-phase-workspace,
+  .required-templates,
+  .evidence-attachments,
+  .completion-checklist,
+  .validation-warnings,
+  .submit-for-gate-review {
+    min-width: 0;
+  }
+
+  .current-phase-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .review-status-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  @media (max-width: 1280px) {
+    .lifecycle-workspace {
+      grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .review-status-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .lifecycle-workspace {
+      grid-template-columns: 1fr;
+      padding: 14px;
+    }
+
+    .phase-navigator-panel,
+    .review-status-panel {
+      display: block;
+    }
+
+    .review-status-panel > * + * {
+      margin-top: 20px;
+    }
+  }
+
+  /* Artifact Library — three-column grid (UI-UX.md Artifact Library spec) */
+  .artifact-library {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr) 340px;
+    gap: 20px;
+    padding: 24px 32px 32px;
+    background: #f8fafc;
+    min-height: calc(100vh - 76px);
+  }
+
+  .dark .artifact-library {
+    background: oklch(0.205 0 0);
+  }
+
+  .artifact-list-panel,
+  .artifact-detail-panel,
+  .artifact-context-panel {
+    min-width: 0;
+  }
+
+  .artifact-list-panel,
+  .artifact-context-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .artifact-detail-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  @media (max-width: 1280px) {
+    .artifact-library {
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .artifact-context-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .artifact-library {
+      grid-template-columns: 1fr;
+      padding: 20px;
+    }
+
+    .artifact-context-panel {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  /* Template Wizard — three-column grid (UI-UX.md Template Wizard spec) */
+  .template-wizard-grid {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 420px;
+    gap: 16px;
+    padding: 24px 32px 96px;
+    background: #f8fafc;
+    min-height: calc(100vh - 74px);
+  }
+
+  .dark .template-wizard-grid {
+    background: oklch(0.205 0 0);
+  }
+
+  .template-selection-panel,
+  .section-editor-panel,
+  .validation-preview-panel {
+    min-width: 0;
+  }
+
+  .section-editor-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .template-selection-panel > *,
+  .validation-preview-panel > * {
+    border-radius: 14px;
+  }
+
+  .validation-preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  @media (max-width: 1280px) {
+    .template-wizard-grid {
+      grid-template-columns: 280px minmax(0, 1fr);
+    }
+
+    .validation-preview-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .template-wizard-grid {
+      grid-template-columns: 1fr;
+      padding: 20px 20px 112px;
+    }
+
+    .validation-preview-panel {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .wizard-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .dark .wizard-action-bar {
+    background: oklch(0.205 0 0);
+    border-top-color: oklch(0.371 0 0);
+  }
+
+  @media (max-width: 900px) {
+    .wizard-action-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  /* Traceability Matrix — six-card governance dashboard */
+  .traceability-matrix {
+    gap: 20px;
+    padding: 0;
+    min-height: calc(100vh - 76px);
+  }
+
+  .traceability-filter-bar {
+    align-items: end;
+  }
+
+  .traceability-grid {
+    align-items: start;
+  }
+
+  .traceability-card {
+    min-width: 0;
+  }
+
+  .traceability-action-bar {
+    justify-content: space-between;
+  }
+
+  @media (max-width: 1280px) {
+    .traceability-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 900px) {
+    .traceability-action-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+  }
+
+  /* Approval Center — three-column review workspace */
+  .approval-center {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr) 380px;
+    gap: 20px;
+    padding: 24px 0 96px;
+    min-height: calc(100vh - 76px);
+  }
+
+  .pending-approvals-panel,
+  .approval-detail-panel,
+  .approval-review-panel {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .approval-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  @media (max-width: 1280px) {
+    .approval-center {
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .approval-review-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .approval-center {
+      grid-template-columns: 1fr;
+      padding: 20px 0 112px;
+    }
+
+    .approval-review-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .approval-action-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+  }
+
+  /* Evidence Center — three-column evidence registry workspace */
+  .evidence-center {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr) 420px;
+    gap: 20px;
+    padding: 24px 0 96px;
+    min-height: calc(100vh - 76px);
+  }
+
+  .evidence-items-panel,
+  .evidence-detail-panel,
+  .evidence-coverage-panel {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .evidence-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  @media (max-width: 1280px) {
+    .evidence-center {
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .evidence-coverage-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .evidence-center {
+      grid-template-columns: 1fr;
+      padding: 20px 0 112px;
+    }
+
+    .evidence-coverage-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .evidence-action-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+  }
+
+  /* Reports — dashboard grid with filters and action bar */
+  .reports-page {
+    gap: 20px;
+    min-height: calc(100vh - 76px);
+  }
+
+  .reports-filter-bar {
+    align-items: end;
+  }
+
+  .reports-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .report-card {
+    min-width: 0;
+  }
+
+  .reports-action-bar {
+    justify-content: space-between;
+  }
+
+  @media (max-width: 1280px) {
+    .reports-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reports-filter-bar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 900px) {
+    .reports-page {
+      padding: 20px;
+    }
+
+    .reports-grid,
+    .reports-filter-bar {
+      grid-template-columns: 1fr;
+    }
+
+    .reports-action-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+  }
+}

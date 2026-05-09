@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Artifact markdown exports (vault/ layout stays in repo via .gitkeep)
 vault/**/*.md
+
+# Local release snapshots (npm run pre-release / release-snapshot)
+vault/releases/

@@ -7,6 +7,14 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { writeVaultMarkdown } from "@/lib/vault";
 import { getTemplate } from "@/templates/registry";
+import {
+  buildMetadataFromArtifactContext,
+  buildVaultExportRelativePath,
+  composeVaultMarkdownDocument,
+  defaultVaultFolderForSlug,
+  inferArtifactExportName,
+} from "@/lib/markdownExporter";
+import { syncArtifactRelations } from "@/lib/syncArtifactRelations";
 
 export type SaveArtifactResult =
   | {
@@ -32,6 +40,8 @@ export async function saveArtifact(input: {
   templateId: string;
   data: unknown;
   projectSlug?: string;
+  /** When set, artifact is tied to this project and relational templates sync Requirement/Feature rows. */
+  projectId?: string;
 }): Promise<SaveArtifactResult> {
   let template;
   try {
@@ -51,29 +61,64 @@ export async function saveArtifact(input: {
   }
 
   const projectSlug = input.projectSlug ?? DEFAULT_PROJECT_SLUG;
-  const project = await prisma.project.upsert({
-    where: { slug: projectSlug },
-    create: {
-      name:
-        projectSlug === DEFAULT_PROJECT_SLUG
-          ? "Default Project"
-          : projectSlug,
-      slug: projectSlug,
-    },
-    update: {},
-  });
+
+  const project = input.projectId
+    ? await prisma.project.findUnique({ where: { id: input.projectId } })
+    : await prisma.project.upsert({
+        where: { slug: projectSlug },
+        create: {
+          name:
+            projectSlug === DEFAULT_PROJECT_SLUG
+              ? "Default Project"
+              : projectSlug,
+          slug: projectSlug,
+          vaultFolder: defaultVaultFolderForSlug(projectSlug),
+        },
+        update: {},
+      });
+
+  if (!project) {
+    return { ok: false, error: "Project not found." };
+  }
 
   const localId = shortId();
   const version = 1;
-  const markdownRelative = pathPosixJoin(
-    project.slug,
-    template.templateId,
-    `${localId}_v${version}.md`,
-  );
+  const data = parsed.data as Record<string, unknown>;
 
-  const markdownBody = template.toMarkdown(parsed.data);
+  const nameSlug = inferArtifactExportName(
+    template.templateId,
+    data,
+    template.title,
+  );
+  const markdownRelative = buildVaultExportRelativePath({
+    vaultFolder: project.vaultFolder,
+    templateId: template.templateId,
+    nameSlug,
+    localId,
+  });
+
+  const body = template.toMarkdown(parsed.data);
+
+  const artifactIdForMeta = `${template.templateId}-${localId}-v${version}`;
+  const metadata = buildMetadataFromArtifactContext({
+    artifactId: artifactIdForMeta,
+    template,
+    data,
+    version,
+    status: "Draft",
+    generatedAt: new Date(),
+  });
+
+  const markdownBody = composeVaultMarkdownDocument({
+    metadataBlock: metadata,
+    templateBodyMarkdown: body,
+  });
 
   await writeVaultMarkdown(markdownRelative, markdownBody);
+
+  if (input.projectId) {
+    await syncArtifactRelations(project.id, template.templateId, data);
+  }
 
   const artifact = await prisma.artifact.create({
     data: {
@@ -94,8 +139,4 @@ export async function saveArtifact(input: {
     version,
     markdownPath: markdownRelative,
   };
-}
-
-function pathPosixJoin(...parts: string[]): string {
-  return parts.join("/").replace(/\/+/g, "/");
 }

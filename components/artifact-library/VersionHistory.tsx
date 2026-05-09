@@ -1,0 +1,63 @@
+"use client";
+
+import { Download, GitCompare, RotateCcw } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { compareVersionLabels } from "@/lib/artifact-versioning";
+import type { ArtifactVersion } from "@/types/artifact-library.types";
+
+export function VersionHistory({
+  currentVersion,
+  versions,
+}: {
+  currentVersion: string;
+  versions: ArtifactVersion[];
+}) {
+  return (
+    <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm dark:border-border dark:bg-card">
+      <header className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold text-[#111827] dark:text-foreground">Version History</h3>
+        <Button type="button" variant="outline" size="xs">
+          <GitCompare className="size-3.5" />
+          Compare Versions
+        </Button>
+      </header>
+
+      {versions.length === 0 ? (
+        <p className="text-sm text-[#64748b] dark:text-muted-foreground">No prior versions recorded.</p>
+      ) : (
+        <ul className="space-y-2">
+          {versions.map((version) => (
+            <li key={version.id} className="rounded-xl border border-[#e5e7eb] p-3 dark:border-border">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-[#111827] dark:text-foreground">
+                  {version.version}
+                </p>
+                <p className="text-xs text-[#64748b] dark:text-muted-foreground">{version.createdOnLabel}</p>
+              </div>
+              <p className="mt-1 text-xs text-[#64748b] dark:text-muted-foreground">{version.createdBy}</p>
+              <p className="mt-2 text-sm text-[#475569] dark:text-muted-foreground">{version.changeSummary}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <Button type="button" variant="ghost" size="xs">
+                  {compareVersionLabels(currentVersion, version.version)}
+                </Button>
+                <Button type="button" variant="ghost" size="xs" aria-label={`Download markdown snapshot ${version.version}`}>
+                  <Download className="size-3.5" />
+                  Markdown
+                </Button>
+                <Button type="button" variant="ghost" size="xs" aria-label={`Download JSON snapshot ${version.version}`}>
+                  <Download className="size-3.5" />
+                  JSON
+                </Button>
+                <Button type="button" variant="ghost" size="xs" disabled={!version.canRestore}>
+                  <RotateCcw className="size-3.5" />
+                  Restore
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

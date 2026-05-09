@@ -27,7 +27,8 @@ Open [http://localhost:3001](http://localhost:3001) (`npm run dev` binds port 30
 - `npm run dev` — start app
 - `npm run typecheck` — TypeScript checks
 - `npm run lint` — ESLint
-- `npm run build` — production build
+- `npm run build` — production build (via `scripts/next-build-reliable.ts`: runs `prisma generate && next build`, and on known transient Next chunk/page errors runs `npm run clean` **once** then rebuilds)
+- `npm run build:direct` — single production build **without** retry (debugging or CI isolation)
 - `npm run seed` — run seed script
 - `npm run check-templates` — validate template registry structure (fields, schemas)
 - `npm run phase-model-check` — regression assertions for 14-phase model and gates G1–G10
@@ -57,6 +58,7 @@ Open [http://localhost:3001](http://localhost:3001) (`npm run dev` binds port 30
 | `SKIP_RELEASE_SNAPSHOT=1` | Full pre-release but no `vault/releases/` write |
 | `SMOKE_PORT` | Port for temporary `next start` during route smoke (default **3010**) |
 | `BASE_URL` | Used only by **`npm run route-smoke`** when testing an already-running server |
+| `CI` / `PRE_CI_CLEAN` | When **`CI=true`** (many CI runners) or **`PRE_CI_CLEAN=1`**, `npm run ci` runs **`npm run clean` first** (`scripts/ci-prep.ts`) to reduce intermittent Next.js `.next` chunk drift. |
 
 **Troubleshooting**
 
@@ -65,9 +67,10 @@ Open [http://localhost:3001](http://localhost:3001) (`npm run dev` binds port 30
 | `route-smoke` / `pre-release` fails at HTTP step | Port **3010** in use — set `SMOKE_PORT=3020` or stop the conflicting process. |
 | Child `next start` left running | Use Ctrl+C once — handlers send **SIGTERM** to the smoke server; **`SIGKILL`** (`kill -9`) on the parent cannot run cleanup (OS limitation). |
 | Prisma / seed errors | Run `npx prisma migrate deploy` and `npm run seed` manually; confirm `file:./dev.db` path is writable. |
-| Build failures | Run `npm run validate` alone for a shorter signal (lint + types + build). If Next reports missing chunk/page modules, run `npm run clean && npm run build` once and retry `npm run ci`. |
+| Build failures | Run `npm run validate` alone (lint + types + build). `npm run build` retries once after `npm run clean` when logs match known transient Next signatures (missing `./NNNN.js` chunks, `PageNotFoundError` during page collection). If it still fails, run `npm run build:direct` for a single-shot log, or `npm run clean && npm run build:direct`. |
 | Dev-only chunk/module-not-found errors (`./1331.js`, `vendor-chunks/*`) | Stop dev server and rerun `npm run dev` (the `predev` hook now clears `.next` before startup). |
 | Empty / wrong demo data | Re-run `npm run seed` then `npm run seed-smoke`. |
+| CI build flakes despite retry | Ensure the runner sets **`CI=true`** so `ci-prep` clears `.next`, or set **`PRE_CI_CLEAN=1`** once; confirm Node/npm versions match local. |
 
 ## Notes
 

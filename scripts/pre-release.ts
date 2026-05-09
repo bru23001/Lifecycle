@@ -1,5 +1,6 @@
 /**
  * Solo release gate: validate → templates → migrate → seed → DB checks → HTTP smoke → snapshot.
+ * `validate` runs `npm run build`, which uses `scripts/next-build-reliable.ts` (one clean retry on known transient Next.js chunk/page flakes).
  *
  * Environment:
  * - PRE_RELEASE_FAST=1 — skip migrate, route smoke (no server), release snapshot

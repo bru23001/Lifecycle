@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Project" ADD COLUMN "vaultFolder" TEXT NOT NULL DEFAULT 'IDEA-0001';

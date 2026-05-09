@@ -1,0 +1,486 @@
+{
+  "user": {
+    "name": "Alex Developer",
+    "role": "Solution Architect",
+    "initials": "AD"
+  },
+  "activeSection": "lifecycle_configuration",
+  "navigationItems": [
+    {
+      "id": "lifecycle-configuration",
+      "section": "lifecycle_configuration",
+      "label": "Lifecycle Configuration",
+      "description": "Configure phases, milestones, artifacts, and lifecycle behavior.",
+      "icon": "workflow",
+      "href": "/settings/lifecycle",
+      "active": true
+    },
+    {
+      "id": "template-registry",
+      "section": "template_registry",
+      "label": "Template Registry",
+      "description": "Manage templates for artifacts, forms, and outputs.",
+      "icon": "file-text",
+      "href": "/settings/templates",
+      "active": false
+    },
+    {
+      "id": "gate-rules",
+      "section": "gate_rules",
+      "label": "Gate Rules",
+      "description": "Define gate criteria, required inputs, and decision rules.",
+      "icon": "shield-check",
+      "href": "/settings/gates",
+      "active": false
+    },
+    {
+      "id": "roles-permissions",
+      "section": "roles_permissions",
+      "label": "Roles / Permissions",
+      "description": "Manage users, roles, and fine-grained access controls.",
+      "icon": "users-lock",
+      "href": "/settings/roles",
+      "active": false
+    },
+    {
+      "id": "export-settings",
+      "section": "export_settings",
+      "label": "Export Settings",
+      "description": "Configure export formats, package rules, and redaction behavior.",
+      "icon": "upload",
+      "href": "/settings/exports",
+      "active": false
+    },
+    {
+      "id": "local-storage-settings",
+      "section": "local_storage_settings",
+      "label": "Local Storage Settings",
+      "description": "Manage local storage size, retention, and sync behavior.",
+      "icon": "database",
+      "href": "/settings/storage",
+      "active": false
+    }
+  ],
+  "systemNavigationItems": [
+    {
+      "id": "general",
+      "label": "General",
+      "href": "/settings/general"
+    },
+    {
+      "id": "notifications",
+      "label": "Notifications",
+      "href": "/settings/notifications"
+    },
+    {
+      "id": "integrations",
+      "label": "Integrations",
+      "href": "/settings/integrations"
+    },
+    {
+      "id": "security",
+      "label": "Security",
+      "href": "/settings/security"
+    },
+    {
+      "id": "audit-compliance",
+      "label": "Audit & Compliance",
+      "href": "/settings/audit-compliance"
+    }
+  ],
+  "lifecycleConfiguration": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "phaseNumber": 1,
+        "name": "Idea Capture",
+        "description": "Capture and document initial idea, problem, and opportunity.",
+        "keyDeliverables": [
+          "Idea Brief",
+          "Initial Problem Statement"
+        ],
+        "requiredArtifactIds": [
+          "a-0",
+          "a-0-1"
+        ],
+        "status": "active",
+        "canEdit": true,
+        "canReorder": true
+      },
+      {
+        "id": "phase-2",
+        "phaseNumber": 2,
+        "name": "Problem Definition",
+        "description": "Define and validate the core problem and objectives.",
+        "keyDeliverables": [
+          "Problem Statement",
+          "Objectives"
+        ],
+        "requiredArtifactIds": [
+          "a-1"
+        ],
+        "status": "active",
+        "canEdit": true,
+        "canReorder": true
+      },
+      {
+        "id": "phase-3",
+        "phaseNumber": 3,
+        "name": "Evaluation & Selection",
+        "description": "Evaluate alternatives and select the best-fit solution.",
+        "keyDeliverables": [
+          "Options Analysis",
+          "Evaluation Matrix"
+        ],
+        "requiredArtifactIds": [
+          "a-3-1",
+          "a-3-2"
+        ],
+        "status": "active",
+        "canEdit": true,
+        "canReorder": true
+      },
+      {
+        "id": "phase-4",
+        "phaseNumber": 4,
+        "name": "Feasibility & Business Case",
+        "description": "Conduct feasibility analysis and build the business case.",
+        "keyDeliverables": [
+          "Feasibility Report",
+          "Business Case"
+        ],
+        "requiredArtifactIds": [
+          "a-4-1"
+        ],
+        "status": "active",
+        "canEdit": true,
+        "canReorder": true
+      },
+      {
+        "id": "phase-5",
+        "phaseNumber": 5,
+        "name": "Solution Design",
+        "description": "Design the solution architecture and approach.",
+        "keyDeliverables": [
+          "Solution Design",
+          "Architecture Overview"
+        ],
+        "requiredArtifactIds": [
+          "a-5-1",
+          "a-5-2"
+        ],
+        "status": "active",
+        "canEdit": true,
+        "canReorder": false
+      },
+      {
+        "id": "phase-6",
+        "phaseNumber": 6,
+        "name": "Architecture",
+        "description": "Define technical architecture and standards.",
+        "keyDeliverables": [
+          "Architecture Document",
+          "Standards"
+        ],
+        "requiredArtifactIds": [
+          "a-6-1"
+        ],
+        "status": "active",
+        "canEdit": true,
+        "canReorder": false
+      }
+    ],
+    "totalPhases": 14,
+    "totalGates": 13,
+    "totalArtifacts": 156,
+    "activeTemplates": 64,
+    "lastUpdatedLabel": "May 12, 2024 10:24 AM"
+  },
+  "templateRegistry": [
+    {
+      "id": "a-3-2",
+      "templateCode": "A-3.2",
+      "name": "Evaluation & Scoring Matrix",
+      "phaseNumber": 3,
+      "phaseName": "Evaluation & Selection",
+      "outputType": "both",
+      "required": true,
+      "schemaVersion": "v1.2",
+      "status": "active",
+      "canEdit": true,
+      "canClone": true,
+      "canArchive": true
+    },
+    {
+      "id": "a-4-1",
+      "templateCode": "A-4.1",
+      "name": "Feasibility Analysis",
+      "phaseNumber": 4,
+      "phaseName": "Feasibility & Business Case",
+      "outputType": "markdown",
+      "required": true,
+      "schemaVersion": "v2.0",
+      "status": "active",
+      "canEdit": true,
+      "canClone": true,
+      "canArchive": true
+    },
+    {
+      "id": "a-6-2",
+      "templateCode": "A-6.2",
+      "name": "Architecture Decision Record",
+      "phaseNumber": 6,
+      "phaseName": "Architecture",
+      "outputType": "json",
+      "required": false,
+      "schemaVersion": "v1.0",
+      "status": "draft",
+      "canEdit": true,
+      "canClone": true,
+      "canArchive": false
+    }
+  ],
+  "gateRules": [
+    {
+      "id": "gate-rule-g2",
+      "gateCode": "G2",
+      "gateName": "Feasibility Approval",
+      "relatedPhaseNumber": 3,
+      "requiredInputIds": [
+        "a-3-1",
+        "a-3-2",
+        "a-3-3"
+      ],
+      "requiredEvidenceCount": 3,
+      "requiredApproverRoles": [
+        "Project Owner",
+        "Finance Reviewer"
+      ],
+      "decisionRule": "role_based",
+      "unlocksPhaseNumber": 4,
+      "status": "active"
+    },
+    {
+      "id": "gate-rule-g3",
+      "gateCode": "G3",
+      "gateName": "Solution Approval",
+      "relatedPhaseNumber": 5,
+      "requiredInputIds": [
+        "a-5-1",
+        "a-5-2"
+      ],
+      "requiredEvidenceCount": 2,
+      "requiredApproverRoles": [
+        "Architecture Lead",
+        "Security Reviewer"
+      ],
+      "decisionRule": "majority",
+      "unlocksPhaseNumber": 6,
+      "status": "active"
+    }
+  ],
+  "rolesPermissions": [
+    {
+      "roleId": "project-owner",
+      "roleName": "Project Owner",
+      "description": "Can manage project lifecycle execution and submit gates.",
+      "assignedUsersCount": 4,
+      "systemRole": true,
+      "permissions": [
+        {
+          "module": "projects",
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "approve": false,
+          "export": true,
+          "admin": false
+        },
+        {
+          "module": "gates",
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "approve": false,
+          "export": true,
+          "admin": false
+        },
+        {
+          "module": "settings",
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "export": false,
+          "admin": false
+        }
+      ]
+    },
+    {
+      "roleId": "governance-admin",
+      "roleName": "Governance Admin",
+      "description": "Can administer settings, templates, and gate model rules.",
+      "assignedUsersCount": 2,
+      "systemRole": true,
+      "permissions": [
+        {
+          "module": "settings",
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "approve": true,
+          "export": true,
+          "admin": true
+        },
+        {
+          "module": "templates",
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "approve": true,
+          "export": true,
+          "admin": false
+        }
+      ]
+    }
+  ],
+  "exportSettings": {
+    "formats": {
+      "markdown": true,
+      "jsonEvidence": true,
+      "pdf": true,
+      "csv": true,
+      "zip": true
+    },
+    "packageRules": {
+      "includeArtifacts": true,
+      "includeEvidenceFiles": true,
+      "includeGateDecisions": true,
+      "includeApprovalRecords": true,
+      "includeTraceabilityLinks": true,
+      "includeAuditManifest": true,
+      "generateChecksums": true,
+      "redactRestrictedFields": false
+    },
+    "namingRules": {
+      "filenamePattern": "{projectCode}_{artifactCode}_{version}_{date}",
+      "dateFormat": "YYYY-MM-DD",
+      "projectCodePrefix": true,
+      "versionSuffix": true
+    }
+  },
+  "localStorageSettings": {
+    "paths": {
+      "projectDataPath": "~/LifecycleManager/projects",
+      "evidenceFilesPath": "~/LifecycleManager/evidence",
+      "exportPackagesPath": "~/LifecycleManager/exports",
+      "cachePath": "~/LifecycleManager/cache"
+    },
+    "usage": {
+      "usedBytes": 512000000,
+      "availableBytes": 2000000000,
+      "cacheBytes": 68000000,
+      "evidenceBytes": 388000000,
+      "quotaBytes": 2000000000
+    },
+    "retention": {
+      "keepDraftsDays": 90,
+      "keepExportPackagesDays": 180,
+      "keepAuditSnapshotsDays": 2555,
+      "cleanupPolicy": "monthly"
+    },
+    "backupSync": {
+      "autoBackupEnabled": true,
+      "backupLocation": "~/LifecycleManager/backups",
+      "syncEnabled": false,
+      "lastBackupLabel": "May 12, 2024 10:24 AM"
+    }
+  },
+  "systemOverview": {
+    "lifecycleModelName": "Standard 14-Phase",
+    "gateCount": 13,
+    "activeTemplateCount": 64,
+    "roleCount": 18,
+    "permissionRuleCount": 312,
+    "exportFormats": [
+      "PDF",
+      "CSV",
+      "JSON",
+      "ZIP"
+    ],
+    "localStorageUsageLabel": "512 MB used / 2 GB limit",
+    "overviewHref": "/settings/overview"
+  },
+  "recentActivity": [
+    {
+      "id": "activity-1",
+      "eventType": "lifecycle_updated",
+      "title": "Lifecycle configuration updated",
+      "actorName": "Alex Developer",
+      "timestampLabel": "May 12, 2024 9:18 AM",
+      "href": "/settings/lifecycle"
+    },
+    {
+      "id": "activity-2",
+      "eventType": "gate_rule_modified",
+      "title": "Gate rules modified",
+      "actorName": "Jordan Avery",
+      "timestampLabel": "May 11, 2024 4:32 PM",
+      "href": "/settings/gates"
+    },
+    {
+      "id": "activity-3",
+      "eventType": "template_added",
+      "title": "Template added",
+      "actorName": "Jordan Blake",
+      "timestampLabel": "May 11, 2024 2:10 PM",
+      "href": "/settings/templates"
+    }
+  ],
+  "quickActions": [
+    {
+      "id": "import-lifecycle-configuration",
+      "label": "Import Lifecycle Configuration",
+      "icon": "upload",
+      "actionType": "import_config"
+    },
+    {
+      "id": "export-current-configuration",
+      "label": "Export Current Configuration",
+      "icon": "download",
+      "actionType": "export_config"
+    },
+    {
+      "id": "reset-to-default",
+      "label": "Reset to Default",
+      "icon": "refresh-ccw",
+      "actionType": "reset_defaults"
+    },
+    {
+      "id": "validate-configuration",
+      "label": "Validate Configuration",
+      "icon": "shield-check",
+      "actionType": "validate_config"
+    },
+    {
+      "id": "documentation-help",
+      "label": "Documentation & Help",
+      "icon": "book-open",
+      "actionType": "open_docs",
+      "href": "/docs/settings"
+    }
+  ],
+  "actionState": {
+    "title": "Configuration drives governance.",
+    "description": "Keep lifecycle, gates, templates, and permissions aligned with your organization's process and policies.",
+    "hasUnsavedChanges": false,
+    "canSave": false,
+    "canReset": false,
+    "blockers": []
+  }
+}
