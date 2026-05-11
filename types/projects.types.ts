@@ -1,4 +1,4 @@
-export type ProjectStatus = "In Progress" | "Blocked" | "Pending";
+export type ProjectStatus = "In Progress" | "Blocked" | "Pending" | "Not Started";
 
 export type ProjectDetailTab =
   | "overview"

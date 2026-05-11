@@ -8,10 +8,14 @@ export function ProjectsPage({
   data,
   selectedProjectId,
   selectedTab,
+  currentPage,
+  totalPages,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
+  currentPage: number;
+  totalPages: number;
 }) {
   return (
     <AuthenticatedAppShell
@@ -26,7 +30,13 @@ export function ProjectsPage({
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4 min-[901px]:px-8">
           <Breadcrumbs items={[{ label: "Home", href: "/dashboard" }, { label: "Projects" }]} />
         </div>
-        <ProjectsContent data={data} selectedProjectId={selectedProjectId} selectedTab={selectedTab} />
+        <ProjectsContent
+          data={data}
+          selectedProjectId={selectedProjectId}
+          selectedTab={selectedTab}
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
       </main>
     </AuthenticatedAppShell>
   );

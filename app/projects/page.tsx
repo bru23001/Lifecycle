@@ -27,11 +27,11 @@ function timeAgoHours(hours: number): string {
 }
 
 type PageProps = {
-  searchParams: Promise<{ selected?: string; tab?: string }>;
+  searchParams: Promise<{ selected?: string; tab?: string; page?: string }>;
 };
 
 export default async function ProjectsRoutePage({ searchParams }: PageProps) {
-  const { selected, tab } = await searchParams;
+  const { selected, tab, page } = await searchParams;
 
   const rows = await prisma.project.findMany({
     orderBy: { updatedAt: "desc" },
@@ -75,10 +75,25 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   });
 
   const projects = dbProjects.length > 0 ? dbProjects : PROJECTS_LIST_FALLBACK;
+  const perPage = 6;
+  const totalPages = Math.max(1, Math.ceil(projects.length / perPage));
+  const parsedPage = Number.parseInt(page ?? "", 10);
+  const selectedIndex =
+    selected ? projects.findIndex((project) => project.id === selected) : -1;
+  const inferredPageFromSelection =
+    selectedIndex >= 0 ? Math.floor(selectedIndex / perPage) + 1 : 1;
+  const currentPage =
+    Number.isFinite(parsedPage) && parsedPage > 0
+      ? Math.min(totalPages, parsedPage)
+      : inferredPageFromSelection;
+
+  const pageStart = (currentPage - 1) * perPage;
+  const pageProjects = projects.slice(pageStart, pageStart + perPage);
+
   const selectedProjectId =
     selected && projects.some((project) => project.id === selected)
       ? selected
-      : projects[0]?.id ?? PROJECTS_LIST_FALLBACK[0]!.id;
+      : pageProjects[0]?.id ?? projects[0]?.id ?? PROJECTS_LIST_FALLBACK[0]!.id;
   const selectedTab = parseDetailTab(tab);
   const selectedDbProject = rows.find((row) => row.id === selectedProjectId);
   const selectedProjectRow =
@@ -142,9 +157,24 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       ],
       quickActions: [
         { id: "qa-profile", label: "Edit Project Profile", href: `/projects?selected=${selectedDbProject.id}&tab=profile` },
+        {
+          id: "qa-lifecycle",
+          label: "View Lifecycle Timeline",
+          href: `/projects?selected=${selectedDbProject.id}&tab=lifecycle-timeline`,
+        },
         { id: "qa-gate", label: "Open Gate Review", href: `/projects/${selectedDbProject.id}/gates/g1/review` },
-        { id: "qa-audit", label: "View Audit Trail", href: `/projects?selected=${selectedDbProject.id}&tab=audit-trail` },
         { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${selectedDbProject.id}/artifacts` },
+        {
+          id: "qa-trace",
+          label: "View Traceability Matrix",
+          href: `/projects/${selectedDbProject.id}/traceability`,
+        },
+        { id: "qa-audit", label: "View Audit Trail", href: `/projects?selected=${selectedDbProject.id}&tab=audit-trail` },
+        {
+          id: "qa-export",
+          label: "Export Project Package",
+          href: `/projects/${selectedDbProject.id}/reports/evidence-package`,
+        },
       ],
       nextRequiredAction: {
         description:
@@ -166,6 +196,8 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       data={screenData}
       selectedProjectId={selectedProjectId}
       selectedTab={selectedTab}
+      currentPage={currentPage}
+      totalPages={totalPages}
     />
   );
 }

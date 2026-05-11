@@ -1,10 +1,13 @@
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowUpDown,
   Check,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   ClipboardList,
+  CircleAlert,
   FileText,
   GitBranch,
   Package,
@@ -12,6 +15,7 @@ import {
   Plus,
   SearchCheck,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 
 import { PROJECT_DETAIL_TABS } from "@/data/projects.mock";
@@ -26,6 +30,7 @@ import type {
 function statusBadgeClass(status: ProjectListItem["status"]): string {
   if (status === "Blocked") return "bg-rose-50 text-rose-700";
   if (status === "Pending") return "bg-amber-50 text-amber-700";
+  if (status === "Not Started") return "bg-slate-100 text-slate-600";
   return "bg-emerald-50 text-emerald-700";
 }
 
@@ -55,13 +60,22 @@ export function ProjectListPanel({
   projects,
   selectedProjectId,
   selectedTab,
+  currentPage,
+  totalPages,
 }: {
   projects: ProjectsScreenData["projects"];
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
+  currentPage: number;
+  totalPages: number;
 }) {
+  const perPage = 6;
+  const start = (currentPage - 1) * perPage;
+  const visibleProjects = projects.slice(start, start + perPage);
+  const previousPage = Math.max(1, currentPage - 1);
+  const nextPage = Math.min(totalPages, currentPage + 1);
   return (
-    <aside className="min-h-0 rounded-2xl border border-[var(--cc-border)] bg-white dark:bg-card">
+    <aside className="flex min-h-0 flex-col rounded-2xl border border-[var(--cc-border)] bg-white dark:bg-card">
       <div className="flex h-[52px] items-center justify-between border-b border-slate-100 px-4">
         <div className="flex items-center gap-2">
           <h2 className="text-[13px] font-bold">Project List</h2>
@@ -69,34 +83,47 @@ export function ProjectListPanel({
             {projects.length}
           </span>
         </div>
-        <Link
-          href="/projects/new"
+        <button
+          type="button"
           className="inline-flex size-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
-          aria-label="Create project"
+          aria-label="Sort project list"
         >
-          <Plus className="size-4" />
-        </Link>
+          <ArrowUpDown className="size-4" />
+        </button>
       </div>
       <div className="border-b border-slate-100 px-4 py-3">
-        <div className="rounded-md border border-slate-200 bg-[var(--app-bg)] px-3 py-2 text-[11px] text-slate-400">
-          Search projects...
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded-md border border-slate-200 bg-[var(--app-bg)] px-3 py-2 text-[11px] text-slate-400">
+            Search projects...
+          </div>
+          <button
+            type="button"
+            className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50"
+            aria-label="Filter projects"
+          >
+            <SearchCheck className="size-4" />
+          </button>
         </div>
       </div>
-      <div className="min-h-0 space-y-2 overflow-y-auto p-3">
-        {projects.map((project) => {
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+        {visibleProjects.map((project) => {
           const active = project.id === selectedProjectId;
           return (
             <Link
               key={project.id}
-              href={`/projects?selected=${project.id}&tab=${selectedTab}`}
+              href={`/projects?selected=${project.id}&tab=${selectedTab}&page=${currentPage}`}
               className={`block rounded-lg border p-3 ${
                 active
-                  ? "border-[#2563eb] border-l-[3px] bg-blue-50/50"
+                  ? "border-[#2563eb] border-l-[3px] bg-blue-50/30 shadow-[0_0_0_1px_rgba(37,99,235,0.08)]"
                   : "border-slate-200 bg-white hover:bg-slate-50/60"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="truncate text-[12px] font-semibold text-slate-800">{project.name}</p>
+                <p className="inline-flex items-center gap-1 truncate text-[12px] font-semibold text-slate-800">
+                  {project.name}
+                  {project.status === "In Progress" ? <Star className="size-3 text-amber-500" /> : null}
+                  {project.status === "Blocked" ? <CircleAlert className="size-3 text-rose-500" /> : null}
+                </p>
                 <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${statusBadgeClass(project.status)}`}>
                   {project.status}
                 </span>
@@ -105,12 +132,42 @@ export function ProjectListPanel({
                 {project.code} · Phase {project.currentPhase}
               </p>
               <p className="mt-1 text-[10px] text-slate-500">Updated {project.updatedLabel}</p>
-              <div className="mt-2 h-1.5 rounded-full bg-slate-100">
-                <div className="h-1.5 rounded-full bg-[#2563eb]" style={{ width: `${project.progressPercent}%` }} />
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                  <div
+                    className="h-1.5 rounded-full bg-[#2563eb]"
+                    style={{ width: `${project.progressPercent}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-semibold text-slate-500">{project.progressPercent}%</span>
               </div>
             </Link>
           );
         })}
+      </div>
+      <div className="flex items-center justify-center gap-3 border-t border-slate-100 px-4 py-3 text-slate-500">
+        <Link
+          href={`/projects?selected=${selectedProjectId}&tab=${selectedTab}&page=${previousPage}`}
+          className={`inline-flex size-6 items-center justify-center rounded-md hover:bg-slate-100 ${
+            currentPage <= 1 ? "pointer-events-none opacity-40" : ""
+          }`}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="size-4" />
+        </Link>
+        <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-[#1d4ed8]">
+          {currentPage}
+        </span>
+        <span className="text-[10px] font-semibold">{totalPages > 1 ? totalPages : 1}</span>
+        <Link
+          href={`/projects?selected=${selectedProjectId}&tab=${selectedTab}&page=${nextPage}`}
+          className={`inline-flex size-6 items-center justify-center rounded-md hover:bg-slate-100 ${
+            currentPage >= totalPages ? "pointer-events-none opacity-40" : ""
+          }`}
+          aria-label="Next page"
+        >
+          <ChevronRight className="size-4" />
+        </Link>
       </div>
     </aside>
   );
@@ -172,31 +229,103 @@ export function ProjectTabs({
 }
 
 function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProject }) {
+  const totalPhases = selectedProject.header.totalPhases;
+  const currentPhase = selectedProject.header.currentPhase;
+  const visualCurrentPhase =
+    currentPhase >= totalPhases ? totalPhases : currentPhase > 5 ? 5 : currentPhase;
+  const earlyPhases = selectedProject.lifecyclePhases.slice(0, 5);
+  const finalPhaseLabel =
+    selectedProject.lifecyclePhases[selectedProject.lifecyclePhases.length - 1]?.label ??
+    "Maintenance / Review";
+  const milestones = [
+    ...earlyPhases.map((phase, index) => ({
+      id: phase.id,
+      label: phase.label,
+      phaseNumber: index + 1,
+    })),
+    {
+      id: "phase-final",
+      label: finalPhaseLabel,
+      phaseNumber: totalPhases,
+    },
+  ];
+
+  function milestoneState(phaseNumber: number): "completed" | "current" | "upcoming" {
+    if (phaseNumber === totalPhases) {
+      if (currentPhase >= totalPhases) return "current";
+      return "upcoming";
+    }
+    if (visualCurrentPhase > phaseNumber) return "completed";
+    if (visualCurrentPhase === phaseNumber) return "current";
+    return "upcoming";
+  }
+
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="text-[13px] font-bold">Lifecycle Timeline</h3>
-        <div className="mt-4 flex items-start gap-3 overflow-x-auto pb-1">
-          {selectedProject.lifecyclePhases.map((phase) => {
-            const done = phase.status === "completed";
-            const current = phase.status === "current";
-            return (
-              <div key={phase.id} className="min-w-[128px] space-y-2">
-                <div
-                  className={`grid size-7 place-items-center rounded-full border text-[11px] font-bold ${
-                    done
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : current
-                      ? "border-[#2563eb] bg-[#2563eb] text-white"
-                      : "border-slate-200 bg-white text-slate-400"
-                  }`}
-                >
-                  {done ? <Check className="size-4" /> : phase.id.replace("phase-", "")}
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[13px] font-bold">Lifecycle Progress</h3>
+          <Link
+            href={`/projects?selected=${selectedProject.header.id}&tab=lifecycle-timeline`}
+            className="inline-flex items-center rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-[#1d4ed8]"
+          >
+            View Full Timeline
+          </Link>
+        </div>
+        <div className="mt-4 overflow-x-auto pb-1">
+          <div className="flex min-w-[780px] items-start">
+            {milestones.map((milestone, idx) => {
+              const state = milestoneState(milestone.phaseNumber);
+              const isCurrent = state === "current";
+              const isCompleted = state === "completed";
+              const isFirst = idx === 0;
+              const hasConnector = idx < milestones.length - 1;
+              const nextPhase = milestones[idx + 1]?.phaseNumber ?? totalPhases;
+              const nextState = milestoneState(nextPhase);
+              const connectorTone =
+                state === "completed" && nextState === "completed"
+                  ? "bg-emerald-500"
+                  : state === "completed" && nextState === "current"
+                    ? "bg-[#2563eb]"
+                    : "bg-slate-200";
+
+              return (
+                <div key={milestone.id} className="flex min-w-0 flex-1 items-start">
+                  <div className="w-[86px] shrink-0">
+                    <div
+                      className={`mx-auto grid size-8 place-items-center rounded-full text-[11px] font-bold ${
+                        isCurrent
+                          ? "bg-[#2563eb] text-white shadow-[0_2px_8px_rgba(37,99,235,0.3)]"
+                          : isCompleted
+                            ? "bg-emerald-500 text-white"
+                            : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {isFirst && isCompleted ? <Check className="size-4" /> : milestone.phaseNumber}
+                    </div>
+                    <p
+                      className={`mt-2 text-center text-[10px] font-semibold leading-4 ${
+                        isCurrent ? "text-[#1d4ed8]" : "text-slate-600"
+                      }`}
+                    >
+                      {milestone.label}
+                    </p>
+                  </div>
+
+                  {hasConnector ? (
+                    <div className="relative mt-4 h-[2px] min-w-[44px] flex-1">
+                      <span className={`block h-[2px] w-full rounded-full ${connectorTone}`} />
+                      {idx === milestones.length - 2 ? (
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[14px] font-semibold leading-none text-slate-400">
+                          ...
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
-                <p className={`text-[10px] font-semibold ${current ? "text-[#1d4ed8]" : "text-slate-600"}`}>{phase.label}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -214,6 +343,91 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
             </article>
           );
         })}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <article className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[13px] font-bold">Recent Activity</h3>
+            <Link
+              href={`/projects?selected=${selectedProject.header.id}&tab=audit-trail`}
+              className="text-[10px] font-semibold text-[#1d4ed8]"
+            >
+              View all activity
+            </Link>
+          </div>
+          <ul className="mt-2 space-y-2">
+            {selectedProject.recentActivity.slice(0, 5).map((activity) => (
+              <li key={activity.id} className="flex items-start gap-2">
+                <div className="mt-0.5 grid size-6 place-items-center rounded-full bg-slate-100">
+                  <Clock3 className="size-3.5 text-slate-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-800">{activity.title}</p>
+                  <p className="text-[10px] text-slate-500">{activity.meta}</p>
+                  <p className="text-[10px] text-slate-500">{activity.timeLabel}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[13px] font-bold">Gate Status Summary</h3>
+            <Link
+              href={`/projects?selected=${selectedProject.header.id}&tab=gates`}
+              className="text-[10px] font-semibold text-[#1d4ed8]"
+            >
+              View all gates
+            </Link>
+          </div>
+          <ul className="mt-2 space-y-2">
+            {selectedProject.gateStatuses.map((gate) => (
+              <li key={gate.gateId} className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="inline-flex min-w-0 items-center gap-2 truncate">
+                  <span className="size-1.5 rounded-full bg-slate-400" />
+                  <span className="truncate">
+                    {gate.gateId}: {gate.title}
+                  </span>
+                </span>
+                <span
+                  className={`shrink-0 font-semibold ${
+                    gate.status === "Approved"
+                      ? "text-emerald-700"
+                      : gate.status === "In Review"
+                        ? "text-amber-700"
+                        : gate.status === "Changes Requested"
+                          ? "text-rose-700"
+                          : "text-slate-500"
+                  }`}
+                >
+                  {gate.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </article>
+      </section>
+
+      <section className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[12px] font-bold text-rose-900">Blockers / Missing Evidence</h3>
+          <Link
+            href={`/projects?selected=${selectedProject.header.id}&tab=artifacts`}
+            className="text-[10px] font-semibold text-[#1d4ed8]"
+          >
+            View all
+          </Link>
+        </div>
+        <ul className="mt-2 space-y-2 text-[10.5px] font-semibold text-rose-800">
+          {selectedProject.blockers.map((blocker) => (
+            <li key={blocker.id} className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              {blocker.message}
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
@@ -315,10 +529,16 @@ export function ProjectContextPanel({ selectedProject }: { selectedProject: Sele
               <span className="inline-flex items-center gap-2">
                 {action.id.includes("profile") ? (
                   <Pencil className="size-3.5" />
+                ) : action.id.includes("lifecycle") ? (
+                  <Clock3 className="size-3.5" />
                 ) : action.id.includes("gate") ? (
                   <ShieldCheck className="size-3.5" />
+                ) : action.id.includes("trace") ? (
+                  <GitBranch className="size-3.5" />
                 ) : action.id.includes("audit") ? (
                   <ClipboardList className="size-3.5" />
+                ) : action.id.includes("export") ? (
+                  <FileText className="size-3.5" />
                 ) : (
                   <Package className="size-3.5" />
                 )}
@@ -329,35 +549,6 @@ export function ProjectContextPanel({ selectedProject }: { selectedProject: Sele
           ))}
         </div>
       </article>
-
-      <article className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
-        <h3 className="text-[12px] font-bold text-rose-900">Blockers</h3>
-        <ul className="mt-2 space-y-2 text-[10.5px] font-semibold text-rose-800">
-          {selectedProject.blockers.map((blocker) => (
-            <li key={blocker.id} className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              {blocker.message}
-            </li>
-          ))}
-        </ul>
-      </article>
-
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="text-[13px] font-bold">Recent Activity</h3>
-        <ul className="mt-2 space-y-2">
-          {selectedProject.recentActivity.slice(0, 3).map((activity) => (
-            <li key={activity.id} className="flex items-start gap-2">
-              <div className="mt-0.5 grid size-6 place-items-center rounded-full bg-slate-100">
-                <Clock3 className="size-3.5 text-slate-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-slate-800">{activity.title}</p>
-                <p className="text-[10px] text-slate-500">{activity.timeLabel}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </article>
     </aside>
   );
 }
@@ -366,10 +557,14 @@ export function ProjectsContent({
   data,
   selectedProjectId,
   selectedTab,
+  currentPage,
+  totalPages,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
+  currentPage: number;
+  totalPages: number;
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col overflow-hidden px-5 pb-5 min-[901px]:px-8">
@@ -378,6 +573,8 @@ export function ProjectsContent({
           projects={data.projects}
           selectedProjectId={selectedProjectId}
           selectedTab={selectedTab}
+          currentPage={currentPage}
+          totalPages={totalPages}
         />
         <ProjectDetailPanel selectedProject={data.selectedProject} selectedTab={selectedTab} />
         <div className="min-h-0 overflow-y-auto">
