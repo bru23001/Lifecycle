@@ -81,6 +81,34 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* CYBERCUBE Lifecycle Platform — standard screen grid (shell, spacing, panels) */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 88px;
+  --header-height: 76px;
+  --page-padding: 32px;
+  --page-padding-tablet: 24px;
+  --page-padding-mobile: 20px;
+  --grid-gap: 20px;
+  --card-radius: 16px;
+  --card-padding: 20px;
+  --left-panel-width: 360px;
+  --left-panel-narrow: 300px;
+  --right-panel-width: 380px;
+  --right-panel-wide: 420px;
+  --action-bar-height: 80px;
+  --app-bg: #f8fafc;
+  --surface: #ffffff;
+  --cc-border: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --cc-blue: #2563eb;
+  --cc-green: #16a34a;
+  --cc-amber: #f59e0b;
+  --cc-red: #dc2626;
+  --cc-purple: #7c3aed;
+  --cc-gray: #94a3b8;
 }
 
 .dark {
@@ -115,6 +143,25 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --app-bg: oklch(0.205 0 0);
+  --surface: oklch(0.269 0 0);
+  --cc-border: oklch(1 0 0 / 12%);
+  --text-primary: oklch(0.985 0 0);
+  --text-secondary: oklch(0.708 0 0);
+  --text-muted: oklch(0.637 0 0);
+}
+
+@media (max-width: 1279px) {
+  :root {
+    --page-padding: var(--page-padding-tablet);
+  }
+}
+
+@media (max-width: 899px) {
+  :root {
+    --page-padding: var(--page-padding-mobile);
+  }
 }
 
 @layer base {
@@ -129,19 +176,191 @@
   }
 }
 
-/* Lifecycle Workspace — three-column grid (see workspace UI spec) */
+/* CYBERCUBE Lifecycle Platform — standard screen grid system */
 @layer components {
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    background: var(--app-bg);
+  }
+
+  .app-shell--collapsed {
+    grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+  }
+
+  .main-area {
+    display: grid;
+    grid-template-rows: var(--header-height) minmax(0, 1fr);
+    min-width: 0;
+    background: var(--app-bg);
+  }
+
+  .page-content {
+    padding: var(--page-padding);
+    min-width: 0;
+  }
+
+  .standard-page {
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    gap: var(--grid-gap);
+    padding: var(--page-padding);
+    min-height: calc(100dvh - var(--header-height));
+    min-width: 0;
+  }
+
+  .command-grid,
+  .card-grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--grid-gap);
+  }
+
+  .split-detail-grid {
+    display: grid;
+    grid-template-columns: var(--left-panel-width) minmax(0, 1fr) var(--right-panel-width);
+    gap: var(--grid-gap);
+  }
+
+  .split-detail-grid-wide {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr) var(--right-panel-wide);
+    gap: var(--grid-gap);
+  }
+
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr) var(--right-panel-wide);
+    gap: var(--grid-gap);
+  }
+
+  .workspace-grid-compact {
+    display: grid;
+    grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr) 360px;
+    gap: var(--grid-gap);
+  }
+
+  .settings-admin-grid {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr) 360px;
+    gap: var(--grid-gap);
+  }
+
+  .span-12 {
+    grid-column: span 12;
+  }
+  .span-8 {
+    grid-column: span 8;
+  }
+  .span-6 {
+    grid-column: span 6;
+  }
+  .span-4 {
+    grid-column: span 4;
+  }
+  .span-3 {
+    grid-column: span 3;
+  }
+  .span-2 {
+    grid-column: span 2;
+  }
+
+  .metric-card {
+    min-height: 120px;
+  }
+  .summary-card {
+    min-height: 260px;
+  }
+  .report-card {
+    min-height: 300px;
+  }
+  .table-card {
+    min-height: 360px;
+  }
+  .editor-card {
+    min-height: 480px;
+  }
+  .preview-card {
+    min-height: 360px;
+  }
+  .context-card {
+    min-height: 180px;
+  }
+  .action-bar {
+    min-height: var(--action-bar-height);
+  }
+
+  .platform-surface-card {
+    border-radius: var(--card-radius);
+    padding: var(--card-padding);
+    background: var(--surface);
+    border: 1px solid var(--cc-border);
+  }
+
+  @media (max-width: 1280px) {
+    .workspace-grid,
+    .workspace-grid-compact,
+    .split-detail-grid,
+    .split-detail-grid-wide,
+    .settings-admin-grid {
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .right-panel,
+    .context-panel,
+    .overview-panel,
+    .artifact-context-panel,
+    .evidence-coverage-panel,
+    .approval-review-panel,
+    .review-status-panel,
+    .validation-preview-panel,
+    .settings-overview-panel,
+    .gate-decision-column {
+      grid-column: 1 / -1;
+    }
+
+    .card-grid-12 > * {
+      grid-column: span 6;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .workspace-grid,
+    .workspace-grid-compact,
+    .split-detail-grid,
+    .split-detail-grid-wide,
+    .settings-admin-grid,
+    .card-grid-12 {
+      grid-template-columns: 1fr;
+    }
+
+    .card-grid-12 > * {
+      grid-column: span 1;
+    }
+  }
+
+  /* Lifecycle Workspace — three-panel workspace (compact) */
   .lifecycle-workspace {
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr) 330px;
-    gap: 14px;
-    padding: 14px 18px 20px;
-    background: #f8fafc;
-    min-height: calc(100vh - 74px);
+    grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr) 360px;
+    gap: var(--grid-gap);
+    padding: var(--page-padding-mobile) var(--page-padding) var(--page-padding);
+    background: var(--app-bg);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .lifecycle-workspace > * {
+    min-height: 0;
   }
 
   .dark .lifecycle-workspace {
-    background: oklch(0.205 0 0);
+    background: var(--app-bg);
   }
 
   .phase-navigator-panel,
@@ -156,35 +375,34 @@
     min-width: 0;
   }
 
-  .current-phase-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
+  .phase-navigator-panel,
+  .current-phase-panel,
   .review-status-panel {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--grid-gap);
+    min-height: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
   }
 
   @media (max-width: 1280px) {
     .lifecycle-workspace {
-      grid-template-columns: 260px minmax(0, 1fr);
+      grid-template-columns: 320px minmax(0, 1fr);
     }
 
     .review-status-panel {
       grid-column: 1 / -1;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 20px;
+      gap: var(--grid-gap);
     }
   }
 
   @media (max-width: 900px) {
     .lifecycle-workspace {
       grid-template-columns: 1fr;
-      padding: 14px;
+      padding: var(--page-padding-mobile);
     }
 
     .phase-navigator-panel,
@@ -197,18 +415,25 @@
     }
   }
 
-  /* Artifact Library — three-column grid (UI-UX.md Artifact Library spec) */
+  /* Artifact Library — split detail (380 / flex / 340) */
   .artifact-library {
     display: grid;
     grid-template-columns: 380px minmax(0, 1fr) 340px;
-    gap: 20px;
-    padding: 24px 32px 32px;
-    background: #f8fafc;
-    min-height: calc(100vh - 76px);
+    gap: var(--grid-gap);
+    padding: var(--page-padding-tablet) var(--page-padding) var(--page-padding-tablet);
+    background: var(--app-bg);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .artifact-library > * {
+    min-height: 0;
   }
 
   .dark .artifact-library {
-    background: oklch(0.205 0 0);
+    background: var(--app-bg);
   }
 
   .artifact-list-panel,
@@ -221,13 +446,25 @@
   .artifact-context-panel {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--grid-gap);
+    min-height: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
   }
 
   .artifact-detail-panel {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--grid-gap);
+    min-height: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
+  }
+
+  .artifact-context-panel {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 16px;
   }
 
   @media (max-width: 1280px) {
@@ -239,46 +476,64 @@
       grid-column: 1 / -1;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
+      grid-template-rows: none;
+      gap: var(--grid-gap);
     }
   }
 
   @media (max-width: 900px) {
     .artifact-library {
       grid-template-columns: 1fr;
-      padding: 20px;
+      padding: var(--page-padding-mobile);
     }
 
     .artifact-context-panel {
       display: flex;
       flex-direction: column;
+      gap: var(--grid-gap);
     }
   }
 
-  /* Template Wizard — three-column grid (UI-UX.md Template Wizard spec) */
+  /* Template Wizard — three-panel workspace (300 / flex / 420) */
   .template-wizard-grid {
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr) 420px;
-    gap: 16px;
-    padding: 24px 32px 96px;
-    background: #f8fafc;
-    min-height: calc(100vh - 74px);
+    grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr) var(--right-panel-wide);
+    gap: var(--grid-gap);
+    padding: var(--page-padding-tablet) var(--page-padding) var(--page-padding-tablet);
+    background: var(--app-bg);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .template-wizard-grid > * {
+    min-height: 0;
   }
 
   .dark .template-wizard-grid {
-    background: oklch(0.205 0 0);
+    background: var(--app-bg);
   }
 
   .template-selection-panel,
   .section-editor-panel,
   .validation-preview-panel {
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
   }
 
   .section-editor-panel {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--grid-gap);
+  }
+
+  .template-selection-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--grid-gap);
   }
 
   .template-selection-panel > *,
@@ -289,26 +544,26 @@
   .validation-preview-panel {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--grid-gap);
   }
 
   @media (max-width: 1280px) {
     .template-wizard-grid {
-      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-columns: 320px minmax(0, 1fr);
     }
 
     .validation-preview-panel {
       grid-column: 1 / -1;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+      gap: var(--grid-gap);
     }
   }
 
   @media (max-width: 900px) {
     .template-wizard-grid {
       grid-template-columns: 1fr;
-      padding: 20px 20px 112px;
+      padding: var(--page-padding-mobile) var(--page-padding-mobile) 112px;
     }
 
     .validation-preview-panel {
@@ -324,16 +579,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 16px 32px;
-    background: #ffffff;
-    border-top: 1px solid #e5e7eb;
+    gap: var(--grid-gap);
+    min-height: var(--action-bar-height);
+    padding: var(--page-padding-tablet) var(--page-padding);
+    background: var(--surface);
+    border-top: 1px solid var(--cc-border);
     box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
   }
 
   .dark .wizard-action-bar {
-    background: oklch(0.205 0 0);
-    border-top-color: oklch(0.371 0 0);
+    background: var(--surface);
+    border-top-color: var(--cc-border);
   }
 
   @media (max-width: 900px) {
@@ -345,17 +601,32 @@
 
   /* Traceability Matrix — six-card governance dashboard */
   .traceability-matrix {
-    gap: 20px;
+    gap: var(--grid-gap);
     padding: 0;
-    min-height: calc(100vh - 76px);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .traceability-report-card-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--grid-gap);
+    align-items: start;
+    margin-top: 16px;
+  }
+
+  .traceability-grid-span-12 {
+    grid-column: span 12;
+  }
+
+  .traceability-grid-span-4 {
+    grid-column: span 4;
+    min-height: 260px;
   }
 
   .traceability-filter-bar {
     align-items: end;
-  }
-
-  .traceability-grid {
-    align-items: start;
   }
 
   .traceability-card {
@@ -367,12 +638,22 @@
   }
 
   @media (max-width: 1280px) {
-    .traceability-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .traceability-grid-span-4 {
+      grid-column: span 6;
     }
   }
 
   @media (max-width: 900px) {
+    .traceability-report-card-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .traceability-grid-span-4,
+    .traceability-grid-span-12 {
+      grid-column: span 1;
+      min-height: 0;
+    }
+
     .traceability-action-bar {
       flex-direction: column;
       align-items: stretch;
@@ -380,13 +661,20 @@
     }
   }
 
-  /* Approval Center — three-column review workspace */
+  /* Approval Center — split detail (360 / flex / 380) */
   .approval-center {
     display: grid;
-    grid-template-columns: 360px minmax(0, 1fr) 380px;
-    gap: 20px;
-    padding: 24px 0 96px;
-    min-height: calc(100vh - 76px);
+    grid-template-columns: var(--left-panel-width) minmax(0, 1fr) var(--right-panel-width);
+    gap: var(--grid-gap);
+    padding: var(--page-padding-tablet) 0 var(--page-padding-tablet);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .approval-center > * {
+    min-height: 0;
   }
 
   .pending-approvals-panel,
@@ -395,7 +683,10 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--grid-gap);
+    min-height: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
   }
 
   .approval-action-bar {
@@ -414,14 +705,14 @@
       grid-column: 1 / -1;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 20px;
+      gap: var(--grid-gap);
     }
   }
 
   @media (max-width: 900px) {
     .approval-center {
       grid-template-columns: 1fr;
-      padding: 20px 0 112px;
+      padding: var(--page-padding-mobile) 0 112px;
     }
 
     .approval-review-panel {
@@ -436,13 +727,20 @@
     }
   }
 
-  /* Evidence Center — three-column evidence registry workspace */
+  /* Evidence Center — split detail wide (380 / flex / 420) */
   .evidence-center {
     display: grid;
-    grid-template-columns: 380px minmax(0, 1fr) 420px;
-    gap: 20px;
-    padding: 24px 0 96px;
-    min-height: calc(100vh - 76px);
+    grid-template-columns: 380px minmax(0, 1fr) var(--right-panel-wide);
+    gap: var(--grid-gap);
+    padding: var(--page-padding-tablet) 0 var(--page-padding-tablet);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .evidence-center > * {
+    min-height: 0;
   }
 
   .evidence-items-panel,
@@ -451,7 +749,10 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--grid-gap);
+    min-height: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
   }
 
   .evidence-action-bar {
@@ -470,14 +771,14 @@
       grid-column: 1 / -1;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 20px;
+      gap: var(--grid-gap);
     }
   }
 
   @media (max-width: 900px) {
     .evidence-center {
       grid-template-columns: 1fr;
-      padding: 20px 0 112px;
+      padding: var(--page-padding-mobile) 0 112px;
     }
 
     .evidence-coverage-panel {
@@ -492,10 +793,12 @@
     }
   }
 
-  /* Reports — dashboard grid with filters and action bar */
+  /* Reports — report card grid + filters */
   .reports-page {
-    gap: 20px;
-    min-height: calc(100vh - 76px);
+    gap: var(--grid-gap);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .reports-filter-bar {
@@ -504,8 +807,12 @@
 
   .reports-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--grid-gap);
+  }
+
+  .reports-grid > * {
+    grid-column: span 4;
   }
 
   .report-card {
@@ -516,9 +823,90 @@
     justify-content: space-between;
   }
 
+  /*
+   * Shell containment hardening:
+   * Keep every major pane/card inside the static app shell and prefer
+   * internal scrollbars over layout overflow.
+   */
+  .lifecycle-workspace,
+  .artifact-library,
+  .template-wizard-grid,
+  .traceability-matrix,
+  .approval-center,
+  .evidence-center,
+  .reports-page,
+  .settings-page,
+  .split-detail-grid,
+  .split-detail-grid-wide,
+  .settings-admin-grid,
+  .workspace-grid,
+  .workspace-grid-compact {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .lifecycle-workspace > *,
+  .artifact-library > *,
+  .template-wizard-grid > *,
+  .traceability-report-card-grid > *,
+  .approval-center > *,
+  .evidence-center > *,
+  .reports-grid > *,
+  .settings-admin-grid > *,
+  .split-detail-grid > *,
+  .split-detail-grid-wide > *,
+  .workspace-grid > *,
+  .workspace-grid-compact > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .phase-navigator-panel,
+  .current-phase-panel,
+  .review-status-panel,
+  .artifact-list-panel,
+  .artifact-detail-panel,
+  .artifact-context-panel,
+  .template-selection-panel,
+  .section-editor-panel,
+  .validation-preview-panel,
+  .pending-approvals-panel,
+  .approval-detail-panel,
+  .approval-review-panel,
+  .evidence-items-panel,
+  .evidence-detail-panel,
+  .evidence-coverage-panel,
+  .settings-navigation-panel,
+  .settings-detail-panel,
+  .settings-overview-panel,
+  .gate-overview-column,
+  .gate-inputs-evidence-column,
+  .gate-decision-column {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .traceability-card,
+  .report-card,
+  .platform-surface-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .traceability-card table,
+  .report-card table,
+  .platform-surface-card table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
   @media (max-width: 1280px) {
-    .reports-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .reports-grid > * {
+      grid-column: span 6;
     }
 
     .reports-filter-bar {
@@ -528,11 +916,18 @@
 
   @media (max-width: 900px) {
     .reports-page {
-      padding: 20px;
+      padding: var(--page-padding-mobile);
     }
 
-    .reports-grid,
+    .reports-grid > * {
+      grid-column: span 1;
+    }
+
     .reports-filter-bar {
+      grid-template-columns: 1fr;
+    }
+
+    .reports-grid {
       grid-template-columns: 1fr;
     }
 
@@ -540,6 +935,48 @@
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
+    }
+  }
+
+  /* Gate review grid — fill viewport row; inner columns scroll via cards */
+  .gate-review {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .gate-review > .gate-overview-column,
+  .gate-review > .gate-inputs-evidence-column,
+  .gate-review > .gate-decision-column {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /**
+   * Mobile: single-pane mode when parent has data-active-pane (see PaneSwitcher).
+   * Hide non-selected top-level columns below 900px.
+   */
+  @media (max-width: 900px) {
+    .evidence-center[data-active-pane="items"] > :not([data-pane="items"]),
+    .evidence-center[data-active-pane="detail"] > :not([data-pane="detail"]),
+    .evidence-center[data-active-pane="coverage"] > :not([data-pane="coverage"]),
+    .artifact-library[data-active-pane="list"] > :not([data-pane="list"]),
+    .artifact-library[data-active-pane="detail"] > :not([data-pane="detail"]),
+    .artifact-library[data-active-pane="context"] > :not([data-pane="context"]),
+    .approval-center[data-active-pane="queue"] > :not([data-pane="queue"]),
+    .approval-center[data-active-pane="detail"] > :not([data-pane="detail"]),
+    .approval-center[data-active-pane="review"] > :not([data-pane="review"]),
+    .lifecycle-workspace[data-active-pane="phase"] > :not([data-pane="phase"]),
+    .lifecycle-workspace[data-active-pane="workspace"] > :not([data-pane="workspace"]),
+    .lifecycle-workspace[data-active-pane="status"] > :not([data-pane="status"]),
+    .template-wizard-grid[data-active-pane="selection"] > :not([data-pane="selection"]),
+    .template-wizard-grid[data-active-pane="editor"] > :not([data-pane="editor"]),
+    .template-wizard-grid[data-active-pane="validation"] > :not([data-pane="validation"]),
+    .gate-review[data-active-pane="overview"] > :not([data-pane="overview"]),
+    .gate-review[data-active-pane="inputs"] > :not([data-pane="inputs"]),
+    .gate-review[data-active-pane="decision"] > :not([data-pane="decision"]) {
+      display: none !important;
     }
   }
 }
