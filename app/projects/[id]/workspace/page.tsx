@@ -26,6 +26,7 @@ import {
 import { mapEvidenceRowsToAttachments } from "@/lib/mapEvidenceAttachments";
 import { mapTemplateRowsToRequiredTemplates } from "@/lib/mapRequiredTemplates";
 import { getTemplatesForPhase } from "@/templates/registry";
+import type { LifecycleWorkspaceScreenData } from "@/types/lifecycle-workspace.types";
 
 export const dynamic = "force-dynamic";
 
@@ -415,22 +416,40 @@ export default async function LifecycleWorkspacePage({
     href: nextHref,
   };
 
+  const screenData: LifecycleWorkspaceScreenData = {
+    user: { name: "Alex Developer", role: "Project Owner", initials: "AD" },
+    project: {
+      id: project.id,
+      name: project.name,
+      code: project.vaultFolder,
+    },
+    phaseHeader,
+    phaseNavigatorItems,
+    workspace: currentPhaseWorkspace,
+    requiredTemplates,
+    evidenceAttachments,
+    checklistItems,
+    validationWarnings,
+    gateSubmissionState,
+    nextRequiredAction,
+  };
+
   return (
     <LifecycleWorkspaceView
-      projectId={project.id}
-      projectName={project.name}
+      projectId={screenData.project.id}
+      projectName={screenData.project.name}
       phaseSummary={phaseSummary}
       phaseProgressPct={headerPct}
-      breadcrumbCode={project.vaultFolder}
-      phaseHeader={phaseHeader}
-      phaseNavigatorItems={phaseNavigatorItems}
-      workspace={currentPhaseWorkspace}
-      requiredTemplates={requiredTemplates}
-      evidenceAttachments={evidenceAttachments}
-      checklistItems={checklistItems}
-      validationWarnings={validationWarnings}
-      gateSubmissionState={gateSubmissionState}
-      nextRequiredAction={nextRequiredAction}
+      breadcrumbCode={screenData.project.code}
+      phaseHeader={screenData.phaseHeader}
+      phaseNavigatorItems={screenData.phaseNavigatorItems}
+      workspace={screenData.workspace}
+      requiredTemplates={screenData.requiredTemplates}
+      evidenceAttachments={screenData.evidenceAttachments}
+      checklistItems={screenData.checklistItems}
+      validationWarnings={screenData.validationWarnings}
+      gateSubmissionState={screenData.gateSubmissionState}
+      nextRequiredAction={screenData.nextRequiredAction}
     />
   );
 }

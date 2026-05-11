@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { recordGateReview } from "@/app/actions/recordGateReview";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
+import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import type {
   DecisionCriterion,
@@ -153,6 +154,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
   const router = useRouter();
   const [submitPending, startSubmitTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [mobilePane, setMobilePane] = useState<"overview" | "inputs" | "decision">("overview");
   const decisionRecordRef = useRef<HTMLDivElement>(null);
   const submitHelperId = "gate-review-submit-helper";
 
@@ -221,6 +223,17 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
     ],
   );
 
+  const immutableDecision =
+    initial.decisionRecord.status === "finalized" || initial.decisionRecord.status === "submitted";
+  const effectiveActionState = immutableDecision
+    ? {
+        ...actionState,
+        canSaveReview: false,
+        canSubmitDecision: false,
+        submitBlockers: ["Decision already finalized. New submissions are disabled."],
+      }
+    : actionState;
+
   const onChangeAssessment = useCallback((id: string, assessment: DecisionCriterion["assessment"]) => {
     setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, assessment } : c)));
   }, []);
@@ -236,6 +249,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
   }, []);
 
   const onSaveReview = useCallback(() => {
+    if (immutableDecision) return;
     // Draft persistence placeholder — wire to API / local draft save.
     console.info("[gate-review] save draft", {
       criteria,
@@ -243,10 +257,11 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
       comments,
       conditions,
     });
-  }, [criteria, draftDecision, comments, conditions]);
+  }, [immutableDecision, criteria, draftDecision, comments, conditions]);
 
   const onSubmitDecision = useCallback(() => {
-    const blockers = actionState.submitBlockers;
+    if (immutableDecision) return;
+    const blockers = effectiveActionState.submitBlockers;
     if (blockers.length > 0) {
       decisionRecordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       decisionRecordRef.current?.focus();
@@ -284,7 +299,8 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
       }
     });
   }, [
-    actionState.submitBlockers,
+    immutableDecision,
+    effectiveActionState.submitBlockers,
     draftDecision,
     comments,
     conditions,
@@ -312,33 +328,46 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
       />
 
       <GateReviewContent>
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mx-auto w-full max-w-[1920px] flex-1 overflow-y-auto">
-            <div className="px-5 pt-4 min-[901px]:px-8">
-              <Breadcrumbs
-                items={[
-                  { label: "Projects", href: "/projects" },
-                  {
-                    label: initial.project.name,
-                    href: `/projects/${initial.project.id}`,
-                  },
-                  {
-                    label: "Lifecycle Workspace",
-                    href: `/projects/${initial.project.id}/workspace`,
-                  },
-                  {
-                    label: `Phase ${initial.gateReviewHeader.phaseNumber}: ${initial.gateReviewHeader.phaseName}`,
-                    href: `/projects/${initial.project.id}/workspace?phase=${initial.gateReviewHeader.phaseNumber}`,
-                  },
-                  { label: "Gate Review" },
-                ]}
-              />
-              <div className="mt-4">
-                <GateReviewHeader data={headerData} checklist={checklist} />
-              </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4 min-[901px]:px-8">
+            <Breadcrumbs
+              items={[
+                { label: "Projects", href: "/projects" },
+                {
+                  label: initial.project.name,
+                  href: `/projects/${initial.project.id}`,
+                },
+                {
+                  label: "Lifecycle Workspace",
+                  href: `/projects/${initial.project.id}/workspace`,
+                },
+                {
+                  label: `Phase ${initial.gateReviewHeader.phaseNumber}: ${initial.gateReviewHeader.phaseName}`,
+                  href: `/projects/${initial.project.id}/workspace?phase=${initial.gateReviewHeader.phaseNumber}`,
+                },
+                { label: "Gate Review" },
+              ]}
+            />
+            <div className="mt-4">
+              <GateReviewHeader data={headerData} checklist={checklist} />
             </div>
+          </div>
 
+          <PaneSwitcher
+            panes={[
+              { id: "overview", label: "Overview" },
+              { id: "inputs", label: "Inputs" },
+              { id: "decision", label: "Decision" },
+            ]}
+            active={mobilePane}
+            onChange={(id) => setMobilePane(id as typeof mobilePane)}
+            className="mx-auto w-full max-w-[1920px]"
+          />
+
+          <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col overflow-hidden px-5 min-[901px]:px-8">
             <GateReviewGrid
+              activePane={mobilePane}
+              className="min-h-0 flex-1"
               overviewColumn={
                 <>
                   <GateOverview data={initial.gateOverview} />
@@ -390,14 +419,14 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
           </div>
 
           {submitError ? (
-            <div className="mx-auto w-full max-w-[1920px] px-5 pb-2 min-[901px]:px-8" role="alert">
+            <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-2 min-[901px]:px-8" role="alert">
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100">
                 {submitError}
               </div>
             </div>
           ) : null}
           <GateReviewActionBar
-            actionState={actionState}
+            actionState={effectiveActionState}
             onSaveReview={onSaveReview}
             onSubmitDecision={onSubmitDecision}
             submitHelperId={submitHelperId}
