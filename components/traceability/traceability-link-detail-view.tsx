@@ -10,6 +10,8 @@ export function TraceabilityLinkDetailView({
   projectName,
   projectCode,
   userInitials,
+  userName,
+  userRole,
   phaseProgressPct,
   detail,
 }: {
@@ -17,6 +19,8 @@ export function TraceabilityLinkDetailView({
   projectName: string;
   projectCode: string;
   userInitials: string;
+  userName?: string;
+  userRole?: string;
   phaseProgressPct: number;
   detail: TraceabilityLinkDetail;
 }) {
@@ -31,7 +35,13 @@ export function TraceabilityLinkDetailView({
       phaseProgressPct={phaseProgressPct}
       navActive="traceability"
     >
-      <TopHeader title="Traceability Detail" userInitials={userInitials} notificationCount={6} />
+      <TopHeader
+        title="Traceability Detail"
+        userInitials={userInitials}
+        userName={userName}
+        userRole={userRole}
+        notificationCount={6}
+      />
       <main className="flex min-h-0 flex-1 flex-col bg-[var(--app-bg)] px-5 pb-10 pt-4 min-[901px]:px-8">
         <div className="mx-auto w-full max-w-[880px]">
           <Breadcrumbs

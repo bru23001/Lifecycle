@@ -28,16 +28,22 @@ export function ReportChrome({
       phaseProgressPct={pct}
       navActive={navActive}
     >
-      <TopHeader title={title} userInitials={data.user.initials} notificationCount={6} />
+      <TopHeader
+        title={title}
+        userInitials={data.user.initials}
+        userName={data.user.name}
+        userRole={data.user.role}
+        notificationCount={6}
+      />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--app-bg)] px-5 pb-10 pt-4 min-[901px]:px-8">
         <div className="mx-auto w-full max-w-[1100px]">
           <Breadcrumbs
             items={[
-              { label: "Home", href: "/dashboard" },
+              { label: "Home", href: "/" },
               { label: "Projects", href: "/projects" },
               {
                 label: `${data.project.name} (${data.project.code})`,
-                href: `/projects/${data.project.id}`,
+                href: `/projects/${data.project.id}/workspace`,
               },
               { label: "Reports", href: `/projects/${data.project.id}/reports` },
               { label: title },

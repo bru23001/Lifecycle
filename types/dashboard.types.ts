@@ -54,6 +54,10 @@ export type DashboardContinueWorking = {
   projectName: string;
   phaseSummary: string;
   progressPercent: number;
+  /** Workspace phase 1–14 for shell nav (e.g. default Gates link). */
+  currentPhase: number | null;
+  /** Server-resolved default Gates review URL (uses gate decisions when loaded). */
+  gatesHref: string | null;
 };
 
 export type DashboardTip = {

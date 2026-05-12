@@ -324,6 +324,8 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
       <TopHeader
         title="Gate Review"
         userInitials={initial.user.initials}
+        userName={initial.user.name}
+        userRole={initial.user.role}
         notificationCount={6}
         onDownloadReviewPackage={() =>
           triggerReviewPackageDownload(initial.project.id, initial.gateReviewHeader.gateId)

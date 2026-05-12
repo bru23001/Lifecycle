@@ -6,6 +6,8 @@ import "dotenv/config";
 
 import { PrismaClient } from "@prisma/client";
 
+import { SOLO_WORKSPACE_USER_EMAIL } from "@/lib/server/current-user";
+
 const prisma = new PrismaClient();
 
 async function fetchText(url: string): Promise<{ status: number; text: string }> {
@@ -45,8 +47,17 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
   }
   const id = project.id;
 
+  const soloUser = await prisma.user.findUnique({
+    where: { email: SOLO_WORKSPACE_USER_EMAIL },
+    select: { name: true },
+  });
+  const welcomeNeedle =
+    soloUser?.name?.trim() != null && soloUser.name.trim().length > 0
+      ? `Welcome back, ${soloUser.name.trim()}`
+      : "Welcome back,";
+
   const checks: { path: string; needle: string }[] = [
-    { path: "/", needle: "Welcome back, Alex" },
+    { path: "/", needle: welcomeNeedle },
     { path: "/projects", needle: "Project List" },
     { path: `/projects/${id}`, needle: "Lifecycle Workspace" },
     { path: `/projects/${id}/requirements`, needle: "Requirements" },
@@ -54,8 +65,8 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: `/projects/${id}/trace`, needle: "Trace links" },
     { path: `/projects/${id}/workspace`, needle: "Lifecycle Workspace" },
     { path: `/projects/${id}/templates/a-3-2`, needle: "Template Wizard" },
-    { path: `/projects/${id}/gates/g1/review`, needle: "Gate G1" },
-    { path: `/projects/${id}/gates/g2/review`, needle: "Gate G2" },
+    { path: `/projects/${id}/gates/g1/review`, needle: "Gate Review" },
+    { path: `/projects/${id}/gates/g2/review`, needle: "Gate Review" },
     { path: `/projects/${id}/artifacts`, needle: "Artifact Library" },
     { path: `/projects/${id}/reports`, needle: "Reports" },
     { path: `/projects/${id}/reports/lifecycle-status`, needle: "Lifecycle Status Report" },

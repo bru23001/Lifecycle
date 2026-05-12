@@ -1,10 +1,11 @@
 import { ProjectsPage as ProjectsScreenPage } from "@/components/projects/projects-page";
 import {
-  DEFAULT_PROJECTS_SCREEN_USER,
   PROJECT_DETAIL_TABS,
   emptyPlaceholderSelectedProject,
 } from "@/data/projects.constants";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserDisplay } from "@/lib/server/current-user";
+import { indexLatestGateDecisions, nextOpenGateForPhase } from "@/lib/gateStatus";
 import { getProjectAuditScreenEntries } from "@/lib/server/project-audit-screen";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
 import type { ProjectDetailTab, ProjectListItem, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
@@ -34,10 +35,13 @@ type PageProps = {
 export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const { selected, tab, page } = await searchParams;
 
+  const screenUser = await getCurrentUserDisplay();
+
   const rows = await prisma.project.findMany({
     orderBy: { updatedAt: "desc" },
     take: 50,
     include: {
+      owner: { select: { name: true } },
       _count: {
         select: { artifacts: true, traceLinks: true },
       },
@@ -49,6 +53,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
           gateId: true,
           decision: true,
           createdAt: true,
+          evidencePassSnapshot: true,
           authorityName: true,
           authorityRole: true,
         },
@@ -64,7 +69,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       id: project.id,
       name: project.name,
       code: formatProjectCode(project.slug, project.vaultFolder),
-      owner: "Alex Developer",
+      owner: project.owner?.name?.trim() || screenUser.name,
       currentPhase: phase,
       progressPercent: Math.min(100, Math.max(8, Math.round((phase / 14) * 100))),
       status,
@@ -118,6 +123,19 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     const traceTotal = selectedDbProject._count.traceLinks;
     const recentGate = selectedDbProject.gateDecisions.slice(0, 3);
     const workspaceHref = `/projects/${selectedDbProject.id}/workspace`;
+
+    const latestByGateForNav = indexLatestGateDecisions(
+      selectedDbProject.gateDecisions.map((d) => ({
+        gateId: d.gateId,
+        decision: d.decision,
+        evidencePassSnapshot: d.evidencePassSnapshot,
+        createdAt: d.createdAt,
+      })),
+    );
+    const gateReviewSlug = nextOpenGateForPhase(
+      selectedDbProject.currentPhase,
+      latestByGateForNav,
+    ).toLowerCase();
 
     selectedProject = {
       ...selectedProject,
@@ -174,7 +192,11 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
           label: "View Lifecycle Timeline",
           href: `/projects?selected=${selectedDbProject.id}&tab=lifecycle-timeline`,
         },
-        { id: "qa-gate", label: "Open Gate Review", href: `/projects/${selectedDbProject.id}/gates/g1/review` },
+        {
+          id: "qa-gate",
+          label: "Open Gate Review",
+          href: `/projects/${selectedDbProject.id}/gates/${gateReviewSlug}/review`,
+        },
         { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${selectedDbProject.id}/artifacts` },
         {
           id: "qa-trace",
@@ -194,11 +216,12 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
         ctaLabel: "Go to Lifecycle Workspace",
         href: workspaceHref,
       },
+      gatesNavHref: `/projects/${selectedDbProject.id}/gates/${gateReviewSlug}/review`,
     };
   }
 
   const screenData: ProjectsScreenData = {
-    user: DEFAULT_PROJECTS_SCREEN_USER,
+    user: screenUser,
     projects,
     selectedProject,
   };

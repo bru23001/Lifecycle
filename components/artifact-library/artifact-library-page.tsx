@@ -63,7 +63,12 @@ export function ArtifactLibraryPage({
       navActive="artifacts"
       gatesHref={data.selectedArtifact.linkedGate.reviewHref}
     >
-      <TopHeader title="Artifact Library" userInitials={data.user.initials} />
+      <TopHeader
+        title="Artifact Library"
+        userInitials={data.user.initials}
+        userName={data.user.name}
+        userRole={data.user.role}
+      />
       <ArtifactLibraryContent>
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4 min-[901px]:px-8">
           <Breadcrumbs

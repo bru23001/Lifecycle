@@ -365,6 +365,8 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
       <TopHeader
         title="Reports"
         userInitials={data.user.initials}
+        userName={data.user.name}
+        userRole={data.user.role}
         notificationCount={6}
         actionButtonLabel={`Export All Reports (${exportFormatLabel[allExportFormat]})`}
         actionButtonAriaLabel="Export all report outputs"
@@ -375,7 +377,7 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-5 min-[901px]:px-8">
           <Breadcrumbs
             items={[
-              { label: "Home", href: "/dashboard" },
+              { label: "Home", href: "/" },
               { label: "Projects", href: "/projects" },
               {
                 label: `${data.project.name} (${data.project.code})`,

@@ -26,7 +26,11 @@ export function LifecycleWorkspaceView({
   phaseSummary,
   phaseProgressPct,
   projectCurrentPhase,
+  gatesHref,
   breadcrumbCode,
+  userInitials,
+  userName,
+  userRole,
   phaseHeader,
   phaseNavigatorItems,
   workspace,
@@ -43,7 +47,12 @@ export function LifecycleWorkspaceView({
   phaseProgressPct: number;
   /** Workspace phase index 1–14 for shell deep-links. */
   projectCurrentPhase: number;
+  /** Optional; default Gates nav uses DB-backed readiness when set. */
+  gatesHref?: string;
   breadcrumbCode: string;
+  userInitials: string;
+  userName: string;
+  userRole: string;
   phaseHeader: PhaseHeaderData;
   phaseNavigatorItems: PhaseNavItem[];
   workspace: CurrentPhaseWorkspaceData;
@@ -63,8 +72,14 @@ export function LifecycleWorkspaceView({
       phaseSummary={phaseSummary}
       phaseProgressPct={phaseProgressPct}
       projectCurrentPhase={projectCurrentPhase}
+      gatesHref={gatesHref}
     >
-      <TopHeader title="Lifecycle Workspace" />
+      <TopHeader
+        title="Lifecycle Workspace"
+        userInitials={userInitials}
+        userName={userName}
+        userRole={userRole}
+      />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4">
           <Breadcrumbs

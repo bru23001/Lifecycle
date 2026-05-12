@@ -253,13 +253,19 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
       phaseProgressPct={selectedPackage ? 65 : undefined}
       navActive="approvals"
     >
-      <TopHeader title="Approval Center" userInitials={initial.user.initials} notificationCount={6} />
+      <TopHeader
+        title="Approval Center"
+        userInitials={initial.user.initials}
+        userName={initial.user.name}
+        userRole={initial.user.role}
+        notificationCount={6}
+      />
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-3 pt-4 min-[901px]:px-8">
           <Breadcrumbs
             items={[
-              { label: "Home", href: "/dashboard" },
+              { label: "Home", href: "/" },
               { label: "Approval Center", href: "/approvals" },
               {
                 label: "Gate Review",

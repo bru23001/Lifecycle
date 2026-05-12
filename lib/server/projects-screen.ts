@@ -3,6 +3,7 @@ import type {
   SelectedProject,
   SelectedProjectLifecyclePhase,
 } from "@/types/projects.types";
+import { nextOpenGateForPhase } from "@/lib/gateStatus";
 
 function fallbackLifecyclePhases(currentPhase: number): SelectedProjectLifecyclePhase[] {
   return [
@@ -41,40 +42,14 @@ export function buildSelectedProjectFromListItem(project: ProjectListItem): Sele
     },
     lifecyclePhases: fallbackLifecyclePhases(project.currentPhase),
     metrics: [
-      { id: "artifacts", label: "Artifacts", value: "12", note: "8 complete", tone: "blue" },
-      { id: "gates", label: "Gates", value: "3 / 6", note: "In flight", tone: "green" },
-      { id: "evidence", label: "Evidence", value: "18", note: "12 complete", tone: "amber" },
-      { id: "trace", label: "Trace Links", value: "46", note: "78% coverage", tone: "purple" },
+      { id: "artifacts", label: "Artifacts", value: "—", note: "Select a project", tone: "blue" },
+      { id: "gates", label: "Gates", value: "—", note: "—", tone: "green" },
+      { id: "evidence", label: "Evidence", value: "—", note: "—", tone: "amber" },
+      { id: "trace", label: "Trace Links", value: "—", note: "—", tone: "purple" },
     ],
-    recentActivity: [
-      {
-        id: "activity-1",
-        title: "Artifact A-3.1 scorecard approved",
-        meta: "Morgan Reviewer · Gate Authority",
-        timeLabel: "2h ago",
-      },
-      {
-        id: "activity-2",
-        title: "Evidence package updated for G2",
-        meta: "Alex Developer · Project Owner",
-        timeLabel: "5h ago",
-      },
-      {
-        id: "activity-3",
-        title: "Trace link added: CRS -> SRS-FR-001",
-        meta: "System",
-        timeLabel: "1d ago",
-      },
-    ],
-    gateStatuses: [
-      { gateId: "G1", title: "Concept Approval", status: "Approved", timeLabel: "2d ago" },
-      { gateId: "G2", title: "Feasibility Approval", status: "In Review", timeLabel: "4h ago" },
-      { gateId: "G3", title: "Solution Approval", status: "Pending", timeLabel: "—" },
-    ],
-    blockers: [
-      { id: "blocker-1", message: "2 artifacts have missing required sections", severity: "warning" },
-      { id: "blocker-2", message: "1 gate is awaiting required approvals", severity: "warning" },
-    ],
+    recentActivity: [],
+    gateStatuses: [],
+    blockers: [],
     snapshot: [
       { key: "Project Code", value: project.code },
       { key: "Type", value: "Platform" },
@@ -98,5 +73,6 @@ export function buildSelectedProjectFromListItem(project: ProjectListItem): Sele
       ctaLabel: "Go to Lifecycle Workspace",
       href: "/projects/new",
     },
+    gatesNavHref: `/projects/${project.id}/gates/${nextOpenGateForPhase(project.currentPhase).toLowerCase()}/review`,
   };
 }

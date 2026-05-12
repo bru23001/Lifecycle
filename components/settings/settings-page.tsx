@@ -401,7 +401,13 @@ export function SettingsPage({
 
   return (
     <AuthenticatedAppShell projectId={null} navActive="settings">
-      <TopHeader title="Settings" userInitials={data.user.initials} notificationCount={1} />
+      <TopHeader
+        title="Settings"
+        userInitials={data.user.initials}
+        userName={data.user.name}
+        userRole={data.user.role}
+        notificationCount={1}
+      />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <SettingsContent
           data={data}

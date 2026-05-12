@@ -24,8 +24,10 @@ export function AuthenticatedAppShell(props: {
   phaseProgressPct?: number;
   /** Highlight current sidebar section. */
   navActive?: AppSidebarActive;
-  /** Optional destination for the Gates nav item (defaults to project root). */
+  /** Optional destination for the Gates nav item (defaults from phase via `nextOpenGateForPhase`). */
   gatesHref?: string;
+  /** Workspace phase 1–14 for default Gates link when `gatesHref` is omitted. */
+  projectCurrentPhase?: number | null;
   children: React.ReactNode;
 }) {
   const {
@@ -35,6 +37,7 @@ export function AuthenticatedAppShell(props: {
     phaseProgressPct,
     navActive = "lifecycle",
     gatesHref,
+    projectCurrentPhase,
     children,
   } = props;
   const [collapsed, setCollapsed] = useState(false);
@@ -66,6 +69,7 @@ export function AuthenticatedAppShell(props: {
           phaseSummary={phaseSummary}
           phaseProgressPct={phaseProgressPct}
           gatesHref={gatesHref}
+          projectCurrentPhase={projectCurrentPhase}
           collapsed={collapsed}
           onCollapsedChange={setCollapsed}
           className="sticky top-0 h-dvh min-h-0 max-h-dvh min-w-0"

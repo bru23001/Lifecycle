@@ -23,7 +23,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import lifecycleLogoCollapsed from "@/lifecycle-logo-blanco.png";
 import lifecycleLogo from "@/lifecycle-logo-largo-blanco.png";
+import {
+  WORKSPACE_PHASE_MIN,
+} from "@/lib/workspacePhases";
 import { cn } from "@/lib/utils";
+import { nextOpenGateForPhase } from "@/lib/gateStatus";
 
 export type AppSidebarActive =
   | "dashboard"
@@ -52,6 +56,7 @@ export function AppSidebar({
   phaseProgressPct,
   workspaceHref,
   gatesHref,
+  projectCurrentPhase,
   className,
   id = "app-sidebar",
   collapsed: controlledCollapsed,
@@ -64,6 +69,8 @@ export function AppSidebar({
   phaseProgressPct?: number;
   workspaceHref?: string;
   gatesHref?: string;
+  /** Workspace phase 1–14; drives default Gates link when `gatesHref` is not set. */
+  projectCurrentPhase?: number | null;
   className?: string;
   id?: string;
   collapsed?: boolean;
@@ -73,6 +80,12 @@ export function AppSidebar({
   const collapsed = controlledCollapsed ?? uncontrolledCollapsed;
   const hasProject = Boolean(projectId);
   const resolvedWorkspaceHref = workspaceHref ?? (hasProject ? `/projects/${projectId}/workspace` : "/projects");
+  const phaseForGatesNav = projectCurrentPhase ?? WORKSPACE_PHASE_MIN;
+  const resolvedGatesHref =
+    gatesHref ??
+    (hasProject
+      ? `/projects/${projectId}/gates/${nextOpenGateForPhase(phaseForGatesNav).toLowerCase()}/review`
+      : "/projects");
 
   const toggleCollapsed = () => {
     const nextValue = !collapsed;
@@ -83,7 +96,7 @@ export function AppSidebar({
   };
 
   const navItems: AppSidebarItem[] = [
-    { label: "Dashboard", href: "/dashboard", icon: Home, active: active === "dashboard" },
+    { label: "Dashboard", href: "/", icon: Home, active: active === "dashboard" },
     { label: "Projects", href: "/projects", icon: FolderOpen, active: active === "projects" },
     {
       label: "Lifecycle Workspace",
@@ -93,7 +106,7 @@ export function AppSidebar({
     },
     {
       label: "Gates",
-      href: gatesHref ?? (hasProject ? `/projects/${projectId}/gates/g2/review` : "/projects"),
+      href: resolvedGatesHref,
       icon: ShieldCheck,
       active: active === "gates",
     },

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { recordAudit } from "@/lib/server/audit";
 import { prisma } from "@/lib/prisma";
+import { requireCurrentUser } from "@/lib/server/current-user";
 
 function slugify(input: string): string {
   return input
@@ -66,6 +67,7 @@ export async function createProject(
         vaultFolder,
         currentPhase: 1,
         applicabilityJson,
+        ownerId: (await requireCurrentUser()).id,
       },
     });
   } catch (e: unknown) {

@@ -256,6 +256,8 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
       <TopHeader
         title="Template Wizard"
         userInitials={initial.user.initials}
+        userName={initial.user.name}
+        userRole={initial.user.role}
         autosaveLabel={autosaveLabel}
         notificationCount={6}
       />

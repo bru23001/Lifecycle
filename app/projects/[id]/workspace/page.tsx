@@ -13,7 +13,7 @@ import { phaseLabel } from "@/lib/phaseLabels";
 import { buildPhaseNavigatorItems } from "@/lib/phaseNavigatorItems";
 import { prisma } from "@/lib/prisma";
 import { parseApplicability } from "@/lib/applicability";
-import { indexLatestGateDecisions } from "@/lib/gateStatus";
+import { indexLatestGateDecisions, nextOpenGateForPhase } from "@/lib/gateStatus";
 import {
   domainPhaseForWorkspaceIndex,
   gateHeaderDisplayName,
@@ -235,6 +235,7 @@ export default async function LifecycleWorkspacePage({
 
   const meta = workspacePhaseMeta(activeWsPhase);
   const latestByGate = indexLatestGateDecisions(project.gateDecisions);
+  const shellGatesHref = `/projects/${project.id}/gates/${nextOpenGateForPhase(project.currentPhase, latestByGate).toLowerCase()}/review`;
   let gateId = meta.gate;
   if (activeWsPhase === 14) {
     const g9 = latestByGate.get("G9");
@@ -444,7 +445,11 @@ export default async function LifecycleWorkspacePage({
       phaseSummary={phaseSummary}
       phaseProgressPct={headerPct}
       projectCurrentPhase={navFromDb}
+      gatesHref={shellGatesHref}
       breadcrumbCode={screenData.project.code}
+      userInitials={screenData.user.initials}
+      userName={screenData.user.name}
+      userRole={screenData.user.role}
       phaseHeader={screenData.phaseHeader}
       phaseNavigatorItems={screenData.phaseNavigatorItems}
       workspace={screenData.workspace}

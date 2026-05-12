@@ -1,5 +1,9 @@
-import { redirect } from "next/navigation";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { getDashboardData } from "@/lib/server/dashboard";
 
-export default function HomePage() {
-  redirect("/dashboard");
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const data = await getDashboardData();
+  return <DashboardPage data={data} />;
 }

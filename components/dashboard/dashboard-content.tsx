@@ -18,7 +18,7 @@ export function DashboardContent({ data }: { data: DashboardData }) {
     <div className="mx-auto w-full max-w-[1920px] flex-1 px-5 pb-6 pt-2 min-[901px]:px-8">
       <div className="flex flex-col gap-5">
         <section className="command-grid card-grid-12">
-          <DashboardPageHeader />
+          <DashboardPageHeader userName={data.user.name} />
         </section>
 
         {!hasProjects ? (

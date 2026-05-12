@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-export function DashboardPageHeader() {
+export function DashboardPageHeader({ userName }: { userName: string }) {
+  const displayName = userName.trim() || "there";
   return (
     <section className="span-12 flex flex-col gap-4 min-[901px]:flex-row min-[901px]:items-center min-[901px]:justify-between">
       <div>
-        <h1 className="text-[24px] font-bold tracking-[-0.02em]">Welcome back, Alex</h1>
+        <h1 className="text-[24px] font-bold tracking-[-0.02em]">Welcome back, {displayName}</h1>
         <p className="mt-[5px] text-[13px] text-slate-500">
           Here&apos;s what&apos;s happening with your lifecycle projects.
         </p>

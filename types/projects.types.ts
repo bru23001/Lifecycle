@@ -109,6 +109,8 @@ export type SelectedProject = {
     ctaLabel: string;
     href: string;
   };
+  /** Default sidebar "Gates" link for the selected project (DB-backed when decisions are loaded). */
+  gatesNavHref?: string | null;
 };
 
 export type ProjectsScreenData = {

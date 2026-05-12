@@ -84,7 +84,7 @@ export function SettingsContent({
       <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-4 pt-4 min-[901px]:px-8">
         <Breadcrumbs
           items={[
-            { label: "Home", href: "/dashboard" },
+            { label: "Home", href: "/" },
             { label: "Settings", href: "/settings" },
             { label: activeSectionLabel },
           ]}

@@ -149,15 +149,15 @@ async function main() {
     where: { email: SOLO_WORKSPACE_USER_EMAIL },
     create: {
       email: SOLO_WORKSPACE_USER_EMAIL,
-      name: "Alex Developer",
+      name: "Solo User",
       role: "Project Owner",
-      initials: "AD",
+      initials: "SU",
       active: true,
     },
     update: {
-      name: "Alex Developer",
+      name: "Solo User",
       role: "Project Owner",
-      initials: "AD",
+      initials: "SU",
       active: true,
     },
   });

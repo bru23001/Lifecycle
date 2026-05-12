@@ -23,9 +23,9 @@ export type CurrentUserDisplay = {
  * Keeps server modules free of `helpers.ts` coupling.
  */
 const SOLO_WORKSPACE_USER_DISPLAY_FALLBACK: CurrentUserDisplay = {
-  name: "Alex Developer",
-  role: "Project Owner",
-  initials: "AD",
+  name: "Signed-in user",
+  role: "Member",
+  initials: "?",
 };
 
 /** Map a loaded user (or null) to UI display fields using the same fallback as `getCurrentUserDisplay`. */

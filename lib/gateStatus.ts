@@ -1,5 +1,5 @@
 import type { GateId } from "@/lib/gateRules";
-import { clampWorkspacePhase } from "@/lib/workspacePhases";
+import { clampWorkspacePhase, workspacePhaseMeta } from "@/lib/workspacePhases";
 
 /** Visual gate status for dashboards (phase + recorded decisions). */
 export type GateVisualState = "done" | "ready" | "upcoming";
@@ -82,6 +82,36 @@ export function indexLatestGateDecisions(
     if (!m.has(d.gateId)) m.set(d.gateId, d);
   }
   return m;
+}
+
+/** Linear gate order for default review navigation. */
+const GATE_NAV_ORDER: GateId[] = [
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+  "G6",
+  "G7",
+  "G8",
+  "G9",
+  "G10",
+];
+
+/**
+ * Default gate review target: first gate in G1…G10 order that is `ready` for `getGateVisualState`.
+ * Pass `latestByGate` when project gate decisions are loaded so G7–G10 match recorded outcomes.
+ * Falls back to the workspace milestone gate when none are ready.
+ */
+export function nextOpenGateForPhase(
+  phase: number,
+  latestByGate?: Map<string, GateDecisionRow>,
+): GateId {
+  const p = clampWorkspacePhase(phase);
+  for (const gate of GATE_NAV_ORDER) {
+    if (getGateVisualState(p, gate, latestByGate) === "ready") return gate;
+  }
+  return workspacePhaseMeta(p).gate ?? "G1";
 }
 
 export function gateAuditTooltip(

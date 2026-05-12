@@ -83,7 +83,16 @@ function Help() {
   );
 }
 
-function UserMenu({ initials }: { initials: string }) {
+function UserMenu({
+  initials,
+  name,
+  role,
+}: {
+  initials: string;
+  name?: string;
+  role?: string;
+}) {
+  const showLabel = Boolean(name?.trim() || role?.trim());
   return (
     <div className="flex items-center gap-2">
       <button
@@ -94,10 +103,16 @@ function UserMenu({ initials }: { initials: string }) {
       >
         {initials}
       </button>
-      <div className="hidden leading-tight xl:block">
-        <p className="text-[12px] font-semibold text-foreground">Alex Developer</p>
-        <p className="text-[10px] text-muted-foreground">Solution Architect</p>
-      </div>
+      {showLabel ? (
+        <div className="hidden leading-tight xl:block">
+          {name?.trim() ? (
+            <p className="text-[12px] font-semibold text-foreground">{name.trim()}</p>
+          ) : null}
+          {role?.trim() ? (
+            <p className="text-[10px] text-muted-foreground">{role.trim()}</p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -128,12 +143,16 @@ function HeaderActionButton({
 
 function GlobalActions({
   userInitials,
+  userName,
+  userRole,
   notificationCount,
   actionButtonLabel,
   actionButtonAriaLabel,
   onActionButtonClick,
 }: {
   userInitials: string;
+  userName?: string;
+  userRole?: string;
   notificationCount?: number;
   actionButtonLabel?: string;
   actionButtonAriaLabel?: string;
@@ -152,7 +171,7 @@ function GlobalActions({
       <WorkspaceThemeToggle />
       <Notifications count={notificationCount} />
       <Help />
-      <UserMenu initials={userInitials} />
+      <UserMenu initials={userInitials} name={userName} role={userRole} />
     </div>
   );
 }
@@ -160,6 +179,9 @@ function GlobalActions({
 export type TopHeaderProps = {
   title: string;
   userInitials?: string;
+  /** Optional; shown next to avatar when provided. */
+  userName?: string;
+  userRole?: string;
   /** Shown between title and global actions (e.g. Template Wizard autosave). */
   autosaveLabel?: string | null;
   notificationCount?: number;
@@ -173,7 +195,9 @@ export type TopHeaderProps = {
 
 export function TopHeader({
   title,
-  userInitials = "AD",
+  userInitials = "?",
+  userName,
+  userRole,
   autosaveLabel,
   notificationCount = 1,
   actionButtonLabel,
@@ -199,6 +223,8 @@ export function TopHeader({
         ) : null}
         <GlobalActions
           userInitials={userInitials}
+          userName={userName}
+          userRole={userRole}
           notificationCount={notificationCount}
           actionButtonLabel={resolvedActionLabel}
           actionButtonAriaLabel={resolvedActionAriaLabel}

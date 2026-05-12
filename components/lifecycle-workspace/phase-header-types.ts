@@ -37,7 +37,7 @@ export const EXAMPLE_PHASE_HEADER_DATA: PhaseHeaderData = {
   status: "in_progress",
   purpose:
     "Evaluate alternative solutions and select the best option that meets requirements, delivers value, and aligns with strategic objectives.",
-  ownerName: "Alex Developer",
+  ownerName: "Example Owner",
   startedOnLabel: "May 10, 2024",
   targetCompletionLabel: "May 24, 2024",
   gateCode: "G2",

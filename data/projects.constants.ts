@@ -14,11 +14,11 @@ export const PROJECT_DETAIL_TABS: Array<{ id: ProjectDetailTab; label: string }>
   { id: "audit-trail", label: "Audit Trail" },
 ];
 
-/** Shown until real session / profile data is wired in. */
+/** Default shell user when the DB is unavailable; production uses `getCurrentUserDisplay()`. */
 export const DEFAULT_PROJECTS_SCREEN_USER: ProjectsScreenData["user"] = {
-  name: "Alex Developer",
-  role: "Project Owner",
-  initials: "AD",
+  name: "Signed-in user",
+  role: "Member",
+  initials: "?",
 };
 
 /** Satisfies `ProjectsScreenData` when there are no projects; detail UI is not rendered. */
@@ -48,5 +48,6 @@ export function emptyPlaceholderSelectedProject(): SelectedProject {
       ctaLabel: "New project",
       href: "/projects/new",
     },
+    gatesNavHref: null,
   };
 }
