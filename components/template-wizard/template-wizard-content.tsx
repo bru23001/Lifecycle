@@ -91,7 +91,7 @@ export function TemplateWizardContent({
             { label: "Projects", href: "/projects" },
             {
               label: `${project.name} (${project.code})`,
-              href: `/projects/${project.id}`,
+              href: `/projects/${project.id}/workspace`,
             },
             { label: "Lifecycle Workspace", href: `/projects/${project.id}/workspace` },
             { label: "Template Wizard" },

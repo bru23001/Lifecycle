@@ -379,7 +379,7 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
               { label: "Projects", href: "/projects" },
               {
                 label: `${data.project.name} (${data.project.code})`,
-                href: `/projects/${data.project.id}`,
+                href: `/projects/${data.project.id}/workspace`,
               },
               { label: "Reports" },
             ]}

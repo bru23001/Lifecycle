@@ -25,6 +25,7 @@ export function LifecycleWorkspaceView({
   projectName,
   phaseSummary,
   phaseProgressPct,
+  projectCurrentPhase,
   breadcrumbCode,
   phaseHeader,
   phaseNavigatorItems,
@@ -40,6 +41,8 @@ export function LifecycleWorkspaceView({
   projectName: string;
   phaseSummary: string;
   phaseProgressPct: number;
+  /** Workspace phase index 1–14 for shell deep-links. */
+  projectCurrentPhase: number;
   breadcrumbCode: string;
   phaseHeader: PhaseHeaderData;
   phaseNavigatorItems: PhaseNavItem[];
@@ -59,6 +62,7 @@ export function LifecycleWorkspaceView({
       projectName={projectName}
       phaseSummary={phaseSummary}
       phaseProgressPct={phaseProgressPct}
+      projectCurrentPhase={projectCurrentPhase}
     >
       <TopHeader title="Lifecycle Workspace" />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
@@ -68,7 +72,7 @@ export function LifecycleWorkspaceView({
               { label: "Projects", href: "/projects" },
               {
                 label: `${projectName} (${breadcrumbCode})`,
-                href: `/projects/${projectId}`,
+                href: `/projects/${projectId}/workspace`,
               },
               { label: "Lifecycle Workspace" },
             ]}

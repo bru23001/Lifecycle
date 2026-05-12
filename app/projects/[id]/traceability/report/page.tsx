@@ -27,7 +27,7 @@ export default async function TraceabilityReportPage({
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: `${data.project.name} (${data.project.code})`, href: `/projects/${data.project.id}` },
+              { label: `${data.project.name} (${data.project.code})`, href: `/projects/${data.project.id}/workspace` },
               { label: "Traceability Matrix", href: `/projects/${data.project.id}/traceability` },
               { label: "Report" },
             ]}

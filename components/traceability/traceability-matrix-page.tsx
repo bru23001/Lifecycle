@@ -30,7 +30,7 @@ export function TraceabilityMatrixPage({ initial }: { initial: TraceabilityMatri
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: `${initial.project.name} (${initial.project.code})`, href: `/projects/${initial.project.id}` },
+              { label: `${initial.project.name} (${initial.project.code})`, href: `/projects/${initial.project.id}/workspace` },
               { label: "Traceability Matrix" },
             ]}
           />

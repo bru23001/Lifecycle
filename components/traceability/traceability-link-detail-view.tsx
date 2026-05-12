@@ -37,7 +37,7 @@ export function TraceabilityLinkDetailView({
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: `${projectName} (${projectCode})`, href: `/projects/${projectId}` },
+              { label: `${projectName} (${projectCode})`, href: `/projects/${projectId}/workspace` },
               { label: "Traceability Matrix", href: `/projects/${projectId}/traceability` },
               { label: detail.id },
             ]}

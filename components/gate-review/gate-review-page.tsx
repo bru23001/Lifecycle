@@ -319,7 +319,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
       phaseSummary={`Phase ${initial.gateReviewHeader.phaseNumber}: ${initial.gateReviewHeader.phaseName}`}
       phaseProgressPct={initial.gateOverview.phaseProgressPercent}
       navActive="gates"
-      gatesHref={`/projects/${initial.project.id}/gates/${initial.gateReviewHeader.gateId}/review`}
+      gatesHref={`/projects/${initial.project.id}/gates/${initial.gateReviewHeader.gateId.toLowerCase()}/review`}
     >
       <TopHeader
         title="Gate Review"
@@ -338,7 +338,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
                 { label: "Projects", href: "/projects" },
                 {
                   label: initial.project.name,
-                  href: `/projects/${initial.project.id}`,
+                  href: `/projects/${initial.project.id}/workspace`,
                 },
                 {
                   label: "Lifecycle Workspace",

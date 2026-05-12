@@ -46,7 +46,11 @@ export function ProjectsSnapshot({
             {projectSnapshots.map((project) => (
               <tr key={project.name} className="border-t border-slate-100 text-base">
                 <td className="py-6 font-semibold text-slate-950 dark:text-slate-100">
-                  {project.projectId ? <Link href={`/projects/${project.projectId}`}>{project.name}</Link> : project.name}
+                  {project.projectId ? (
+                    <Link href={`/projects/${project.projectId}/workspace`}>{project.name}</Link>
+                  ) : (
+                    project.name
+                  )}
                 </td>
                 <td className="py-6 text-slate-700 dark:text-slate-300">
                   {project.phase}/{WORKSPACE_PHASE_MAX}

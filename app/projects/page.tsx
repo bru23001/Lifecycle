@@ -59,7 +59,6 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const dbProjects: ProjectListItem[] = rows.map((project) => {
     const phase = project.currentPhase;
     let status: ProjectListItem["status"] = "In Progress";
-    if (phase <= 2 && project.slug.includes("threat")) status = "Blocked";
     if (phase <= 1 && project._count.artifacts === 0) status = "Pending";
     return {
       id: project.id,
@@ -175,7 +174,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
           label: "View Lifecycle Timeline",
           href: `/projects?selected=${selectedDbProject.id}&tab=lifecycle-timeline`,
         },
-        { id: "qa-gate", label: "Open Gate Review", href: `/projects/${selectedDbProject.id}/gate/g1` },
+        { id: "qa-gate", label: "Open Gate Review", href: `/projects/${selectedDbProject.id}/gates/g1/review` },
         { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${selectedDbProject.id}/artifacts` },
         {
           id: "qa-trace",

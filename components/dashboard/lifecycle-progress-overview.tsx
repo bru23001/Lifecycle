@@ -99,7 +99,7 @@ export function LifecycleProgressOverview({
         {lifecycleProgress.map((project) => (
           <Link
             key={project.projectName}
-            href={project.projectId ? `/projects/${project.projectId}` : "/projects"}
+            href={project.projectId ? `/projects/${project.projectId}/workspace` : "/projects"}
             className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_56px] lg:items-center"
           >
             <p className="truncate text-base font-medium text-slate-700 dark:text-slate-200">

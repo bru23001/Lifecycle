@@ -393,7 +393,7 @@ export default async function LifecycleWorkspacePage({
       evidenceRows.length,
       validationWarnings,
     ),
-    submitHref: `/projects/${project.id}/gate/${gateBannerId}`,
+    submitHref: `/projects/${project.id}/gates/${gateBannerId.toLowerCase()}/review`,
   };
 
   const firstIncompleteTemplate = templateRows.find((t) => t.status !== "Completed");
@@ -443,6 +443,7 @@ export default async function LifecycleWorkspacePage({
       projectName={screenData.project.name}
       phaseSummary={phaseSummary}
       phaseProgressPct={headerPct}
+      projectCurrentPhase={navFromDb}
       breadcrumbCode={screenData.project.code}
       phaseHeader={screenData.phaseHeader}
       phaseNavigatorItems={screenData.phaseNavigatorItems}

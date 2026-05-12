@@ -69,7 +69,7 @@ export function ArtifactLibraryPage({
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: data.project.name, href: `/projects/${data.project.id}` },
+              { label: data.project.name, href: `/projects/${data.project.id}/workspace` },
               { label: "Artifacts", href: `/projects/${data.project.id}/artifacts` },
               {
                 label: `${data.selectedArtifact.detail.artifactCode} ${data.selectedArtifact.detail.name}`,
