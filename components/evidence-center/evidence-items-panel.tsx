@@ -33,7 +33,7 @@ function CountBadge({ filteredCount, totalCount }: { filteredCount: number; tota
   const display = filteredCount === totalCount ? String(totalCount) : `${filteredCount} / ${totalCount}`;
   return (
     <span
-      className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-100 px-2.5 text-sm font-semibold text-slate-700"
+      className="inline-flex h-8 min-w-12 items-center justify-center rounded-full bg-blue-50 px-3 text-sm font-semibold text-blue-700"
       aria-label={
         filteredCount === totalCount
           ? `${totalCount} total evidence items`
@@ -63,8 +63,8 @@ function FilterSelect({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className={cn(
-          "h-12 w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white pl-4 pr-10 text-base font-semibold text-slate-700 outline-none",
-          "hover:bg-slate-50 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100",
+          "h-12 w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white pl-4 pr-10 text-base font-semibold text-slate-700 shadow-sm outline-none",
+          "hover:bg-slate-50 focus:border-blue-500 focus:ring-4 focus:ring-blue-50",
         )}
       >
         {options.map((opt) => (
@@ -97,7 +97,7 @@ function EvidenceFileIcon({
     blue: "text-blue-600",
   };
 
-  const className = ["h-9 w-9 stroke-[2.1]", toneClasses[tone]].join(" ");
+  const className = ["h-6 w-6 stroke-[2]", toneClasses[tone]].join(" ");
 
   if (type === "spreadsheet") {
     return <FileSpreadsheet className={className} aria-hidden />;
@@ -118,7 +118,7 @@ function EvidenceStatusBadge({ status }: { status: EvidenceItem["status"] }) {
   return (
     <span
       className={[
-        "inline-flex min-w-[88px] justify-center rounded-full px-3 py-1.5 text-xs font-semibold",
+        "inline-flex min-w-0 justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
         statusClasses[status],
       ].join(" ")}
     >
@@ -163,33 +163,39 @@ function EvidenceRow({
         }
       }}
       className={cn(
-        "relative grid min-h-[176px] cursor-pointer grid-cols-[42px_1fr_auto] gap-5 px-6 py-6 outline-none transition",
+        "relative grid min-h-[70px] cursor-pointer grid-cols-[28px_1fr_auto] gap-2 px-3 py-2 outline-none transition",
         "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-        selected ? "border border-blue-500 bg-blue-50" : "border-b border-slate-100 bg-white last:border-b-0",
+        selected
+          ? "rounded-lg border border-blue-500 bg-blue-50/60"
+          : "border-b border-slate-100 bg-white last:border-b-0 hover:bg-slate-50",
       )}
     >
-      <EvidenceFileIcon type={item.evidenceType} tone={tone} />
-
-      <div className="min-w-0">
-        <h3 className="text-lg font-semibold leading-7 text-slate-950">{item.name}</h3>
-
-        <p className="mt-3 text-sm font-medium text-slate-500">{phaseLabel}</p>
-
-        <p className="mt-2 text-sm font-medium text-slate-500">{gateLabel}</p>
-
-        <p className="mt-5 text-sm font-medium text-slate-500">Uploaded by {item.uploadedBy}</p>
-
-        <p className="mt-2 text-sm font-medium text-slate-500">{item.uploadedOnLabel}</p>
+      <div className="flex items-start pt-0.5">
+        <EvidenceFileIcon type={item.evidenceType} tone={tone} />
       </div>
 
-      <div className="flex flex-col items-end justify-between">
+      <div className="min-w-0">
+        <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-slate-950">{item.name}</h3>
+
+        <p className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-snug text-slate-600">{phaseLabel}</p>
+
+        <p className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-snug text-slate-600">{gateLabel}</p>
+
+        <p className="mt-1 line-clamp-1 text-[11px] font-medium text-slate-500">
+          Uploaded by {item.uploadedBy}
+        </p>
+
+        <p className="mt-0 line-clamp-1 text-[11px] font-semibold text-slate-600">{item.uploadedOnLabel}</p>
+      </div>
+
+      <div className="flex flex-col items-end justify-between gap-1">
         <button
           type="button"
           aria-pressed={exportSelected}
           aria-label={`${exportSelected ? "Remove" : "Add"} ${item.name} from export selection`}
           className={cn(
-            "rounded-md p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-            exportSelected ? "text-yellow-500" : "text-slate-400 hover:text-slate-500",
+            "rounded p-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+            exportSelected ? "text-amber-400" : "text-slate-400 hover:text-amber-400",
           )}
           onClick={(event) => {
             event.stopPropagation();
@@ -198,7 +204,7 @@ function EvidenceRow({
         >
           <Star
             className={cn(
-              "h-6 w-6 stroke-[1.75]",
+              "h-4 w-4 stroke-[1.75]",
               exportSelected ? "fill-yellow-400 text-yellow-500" : "fill-none text-slate-400",
             )}
             aria-hidden
@@ -228,7 +234,7 @@ function PaginationButton({
       disabled={disabled}
       aria-label={ariaLabel}
       className={[
-        "flex size-10 min-w-10 items-center justify-center rounded-md border text-sm font-semibold",
+        "flex h-10 min-w-10 items-center justify-center rounded-lg border text-sm font-semibold",
         active
           ? "border-blue-600 bg-blue-600 text-white"
           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
@@ -268,7 +274,7 @@ export function EvidenceItemsPanel({
   onFiltersChange: (filters: EvidenceFilters) => void;
 }) {
   return (
-    <section className="flex h-full min-h-0 w-full max-w-[620px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section className="flex h-full min-h-0 w-full max-w-[372px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <header className="shrink-0 px-6 py-7">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-wrap items-center gap-4">
@@ -321,11 +327,11 @@ export function EvidenceItemsPanel({
             onChange={(event) => onFiltersChange({ ...filters, search: event.target.value })}
             placeholder="Search evidence..."
             aria-label="Search evidence"
-            className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-700 outline-none placeholder:text-slate-500 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
+            className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-700 outline-none placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
           />
         </label>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-[1fr_1fr_1fr_1.05fr]">
+        <div className="grid grid-cols-2 gap-3">
           <FilterSelect
             aria-label="Filter evidence type"
             value={filters.type}
@@ -347,7 +353,7 @@ export function EvidenceItemsPanel({
             value={filters.phase}
             onChange={(phase) => onFiltersChange({ ...filters, phase })}
             options={[
-              { value: "all", label: "All Phases" },
+              { value: "all", label: "All Phase" },
               { value: "1", label: "Phase 1" },
               { value: "2", label: "Phase 2" },
               { value: "3", label: "Phase 3" },
@@ -369,17 +375,17 @@ export function EvidenceItemsPanel({
 
           <button
             type="button"
-            className="flex h-12 items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-base font-semibold text-blue-600 hover:bg-slate-50"
+            className="flex h-12 items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-base font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
           >
             <Filter className="h-5 w-5" aria-hidden />
             More Filters
           </button>
         </div>
 
-        <div className="relative inline-flex min-h-10 min-w-[12rem] items-center">
+        <div className="relative inline-flex min-h-10 min-w-[11rem] items-center">
           <div className="pointer-events-none flex items-center gap-1.5 text-base">
             <span className="font-medium text-slate-600">Sort:</span>
-            <span className="font-semibold text-slate-800">{SORT_LABELS[filters.sort]}</span>
+            <span className="font-semibold text-slate-700">{SORT_LABELS[filters.sort]}</span>
             <ChevronDown className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
           </div>
           <select
@@ -388,7 +394,7 @@ export function EvidenceItemsPanel({
             onChange={(event) =>
               onFiltersChange({ ...filters, sort: event.target.value as EvidenceFilters["sort"] })
             }
-            className="absolute inset-0 h-full w-full min-w-[12rem] cursor-pointer opacity-0"
+            className="absolute inset-0 h-full w-full min-w-[11rem] cursor-pointer opacity-0"
           >
             {(Object.keys(SORT_LABELS) as EvidenceFilters["sort"][]).map((key) => (
               <option key={key} value={key}>
@@ -401,10 +407,10 @@ export function EvidenceItemsPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto border-y border-slate-100">
         {isLoading ? (
-          <div className="space-y-0 px-6 py-4">
-            <div className="h-40 animate-pulse rounded-lg bg-slate-100" />
-            <div className="mt-2 h-40 animate-pulse rounded-lg bg-slate-100" />
-            <div className="mt-2 h-40 animate-pulse rounded-lg bg-slate-100" />
+          <div className="space-y-0 px-3 py-2">
+            <div className="h-20 animate-pulse rounded-lg bg-slate-100" />
+            <div className="mt-1 h-20 animate-pulse rounded-lg bg-slate-100" />
+            <div className="mt-1 h-20 animate-pulse rounded-lg bg-slate-100" />
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="mx-6 my-6 rounded-xl border border-slate-200 bg-slate-50 p-6 text-base text-slate-600">
@@ -433,7 +439,7 @@ export function EvidenceItemsPanel({
         )}
       </div>
 
-      <footer className="flex shrink-0 flex-wrap items-center justify-center gap-2 px-6 py-7 sm:gap-3">
+      <footer className="flex shrink-0 flex-wrap items-center justify-center gap-1.5 px-4 py-5">
         <PaginationButton disabled={pagination.page <= 1} aria-label="Previous page">
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </PaginationButton>
@@ -441,10 +447,8 @@ export function EvidenceItemsPanel({
         <PaginationButton active>{pagination.page}</PaginationButton>
         <PaginationButton>2</PaginationButton>
         <PaginationButton>3</PaginationButton>
-        <PaginationButton>4</PaginationButton>
-        <PaginationButton>5</PaginationButton>
 
-        <span className="px-2 text-base font-semibold text-slate-500">...</span>
+        <span className="px-1 text-sm font-semibold text-slate-500">...</span>
 
         <PaginationButton>{pagination.totalPages}</PaginationButton>
 

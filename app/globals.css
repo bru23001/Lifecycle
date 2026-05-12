@@ -860,10 +860,10 @@
     }
   }
 
-  /* Evidence Center — items column 620px (flex detail / wide coverage) */
+  /* Evidence Center — items column 372px (flex detail / wide coverage) */
   .evidence-center {
     display: grid;
-    grid-template-columns: minmax(0, 620px) minmax(0, 1fr) var(--right-panel-wide);
+    grid-template-columns: minmax(0, 372px) minmax(0, 1fr) var(--right-panel-wide);
     gap: var(--grid-gap);
     padding: var(--page-padding-tablet) 0 var(--page-padding-tablet);
     height: 100%;
@@ -897,7 +897,7 @@
 
   @media (max-width: 1280px) {
     .evidence-center {
-      grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
     }
 
     .evidence-coverage-panel {

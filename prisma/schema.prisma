@@ -13,14 +13,24 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  role      String   @default("Project Owner")
+  initials  String   @default("AD")
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  ownedProjects       Project[]         @relation("ProjectOwner")
+  submittedApprovals Approval[]       @relation("ApprovalSubmitter")
+  approvalComments   ApprovalComment[] @relation("ApprovalCommentAuthor")
+  auditEntries       AuditEntry[]      @relation("AuditActor")
 }
 
 model Project {
   id            String         @id @default(cuid())
   name          String
   slug          String         @unique
+  ownerId       String?
+  owner         User?          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   /** Evidence vault root folder: `PRD-XXX` or `IDEA-NNNN` (Appendix A / plan). */
   vaultFolder   String         @default("IDEA-0001")
   /**
@@ -45,6 +55,10 @@ model Project {
   traceLinks    TraceLink[]
   evidenceItems   EvidenceItem[]
   applicabilityRecords ApplicabilityRecord[]
+  approvals       Approval[]
+  auditEntries    AuditEntry[]
+
+  @@index([ownerId])
 }
 
 model Requirement {
@@ -126,8 +140,117 @@ model Artifact {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   evidenceLinks EvidenceArtifactLink[]
+  approvals    Approval[]
 
   @@unique([projectId, templateId, localId, version])
+}
+
+/** Gate or artifact review queue item (distinct from immutable `GateDecision` record). */
+model Approval {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  approvalType   String // gate_review | artifact_review
+  gateId         String?
+  artifactId     String?
+  artifact       Artifact? @relation(fields: [artifactId], references: [id], onDelete: SetNull)
+  status         String   @default("pending") // pending | in_review | approved | changes_requested
+  priority       String   @default("medium")
+  submittedById  String?
+  submittedBy    User?    @relation("ApprovalSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  dueAt          DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  comments       ApprovalComment[]
+
+  @@index([projectId, status])
+  @@index([artifactId])
+}
+
+model ApprovalComment {
+  id         String   @id @default(cuid())
+  approvalId String
+  approval   Approval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?    @relation("ApprovalCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([approvalId, createdAt])
+}
+
+model AuditEntry {
+  id          String   @id @default(cuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actorId     String?
+  actor       User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action      String
+  subjectKind String
+  subjectId   String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([subjectKind, subjectId])
+}
+
+/** One row per workspace milestone (1–14); drives Settings → Lifecycle Configuration. */
+model LifecyclePhaseConfig {
+  id                   String   @id @default(cuid())
+  phaseNumber          Int      @unique
+  name                 String
+  description          String   @default("")
+  keyDeliverablesJson  Json     @default("[]")
+  requiredArtifactIdsJson Json @default("[]")
+  status               String   @default("active") // active | inactive | draft
+  updatedAt            DateTime @updatedAt
+}
+
+/** Template catalog row; drives Settings → Template Registry. */
+model TemplateRegistryEntry {
+  id             String   @id @default(cuid())
+  templateCode   String   @unique
+  name           String
+  phaseNumber    Int
+  outputType      String   @default("both") // markdown | json | both
+  required        Boolean  @default(true)
+  schemaVersion   String   @default("1.0")
+  status          String   @default("active") // active | draft | deprecated | archived
+  updatedAt       DateTime @updatedAt
+}
+
+/** Gate rule row; drives Settings → Gate Rules. */
+model GateRuleConfig {
+  id                        String   @id @default(cuid())
+  gateCode                  String   @unique
+  gateName                  String
+  relatedPhaseNumber        Int
+  requiredInputIdsJson     Json     @default("[]")
+  requiredEvidenceCount    Int      @default(0)
+  requiredApproverRolesJson Json    @default("[]")
+  decisionRule             String   @default("single_approver") // single_approver | majority | unanimous | role_based
+  unlocksPhaseNumber      Int?
+  status                   String   @default("active") // active | draft | inactive
+  updatedAt                DateTime @updatedAt
+}
+
+/** RBAC matrix row; drives Settings → Roles / Permissions. */
+model RoleConfig {
+  id           String   @id @default(cuid())
+  roleId       String   @unique
+  roleName     String
+  description  String   @default("")
+  permissionsJson Json  @default("[]")
+  systemRole   Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
+
+/** Key-value app settings (export package rules, local storage prefs, etc.). */
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }
 
 /** External evidence file or reference attached to a project (Evidence Center). */
