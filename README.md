@@ -17,10 +17,14 @@ Open [http://localhost:3001](http://localhost:3001) (`npm run dev` binds port 30
 
 ## Seed Data
 
-`npm run seed` creates or updates one demo project:
-- `slug=demo`
-- `vaultFolder=IDEA-0002`
-- baseline relational sample rows for requirements/features/trace links
+`npm run seed` ensures a solo user (`solo@local.test`), upserts the **`demo`** project (`slug=demo`, `vaultFolder=IDEA-0002`), then replaces **demo-only** relational rows (requirements, features, trace links, evidence, applicability). Platform-wide tables (`LifecyclePhaseConfig`, `TemplateRegistryEntry`, `GateRuleConfig`, `RoleConfig`, `AppSetting`, plus `Approval` / `ApprovalComment` / `AuditEntry` when doing a full reset) follow **`SEED_FULL_GLOBAL_RESET`**:
+
+| Value | Behavior |
+|-------|----------|
+| unset or anything except `0` / `false` / `no` | **Full global reset** — delete those platform rows, then `createMany` fresh rows. |
+| `0`, `false`, or `no` | **Safe re-seed** — skip the wipe; upsert keyed rows so local approvals and audit history stay intact. |
+
+Copy `.env.example` to `.env` and set `SEED_FULL_GLOBAL_RESET=0` when you want repeatable seed runs without clearing approvals.
 
 ## Useful Scripts
 
@@ -59,6 +63,7 @@ Open [http://localhost:3001](http://localhost:3001) (`npm run dev` binds port 30
 | `SMOKE_PORT` | Port for temporary `next start` during route smoke (default **3010**) |
 | `BASE_URL` | Used only by **`npm run route-smoke`** when testing an already-running server |
 | `CI` / `PRE_CI_CLEAN` | When **`CI=true`** (many CI runners) or **`PRE_CI_CLEAN=1`**, `npm run ci` runs **`npm run clean` first** (`scripts/ci-prep.ts`) to reduce intermittent Next.js `.next` chunk drift. |
+| `SEED_FULL_GLOBAL_RESET` | `0` / `false` / `no` = seed without wiping approvals, audit entries, or platform config tables (upsert by key). Omit or any other value = full platform wipe then recreate (CI default). |
 
 **Troubleshooting**
 

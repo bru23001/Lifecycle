@@ -3,6 +3,9 @@
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/server/audit";
+import { appendGateReviewOutcome } from "@/lib/server/approval-writes";
+import { getCurrentUser } from "@/lib/server/current-user";
 import { evaluateGateForProject } from "@/lib/gateRules";
 import {
   canOpenGateReview,
@@ -108,8 +111,10 @@ export async function recordGateReview(
     ),
   );
 
-  await prisma.$transaction([
-    prisma.gateDecision.create({
+  const currentUser = await getCurrentUser();
+
+  const gateDecisionId = await prisma.$transaction(async (tx) => {
+    const created = await tx.gateDecision.create({
       data: {
         projectId,
         gateId,
@@ -119,12 +124,35 @@ export async function recordGateReview(
         nextAction,
         evidencePassSnapshot: evidencePass,
       },
-    }),
-    prisma.project.update({
+    });
+    await tx.project.update({
       where: { id: projectId },
       data: { currentPhase: newPhase },
-    }),
-  ]);
+    });
+    await appendGateReviewOutcome(tx, {
+      projectId,
+      gateId,
+      decision,
+      nextAction,
+      authorityName,
+      authorityRole,
+      submittedById: currentUser?.id ?? null,
+    });
+    return created.id;
+  });
+
+  await recordAudit({
+    action: "gate_review.recorded",
+    subjectKind: "gate_decision",
+    subjectId: gateDecisionId,
+    projectId,
+    metadata: {
+      gateId,
+      decision,
+      newPhase,
+      evidencePass,
+    },
+  });
 
   return { ok: true, newPhase };
 }

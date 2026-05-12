@@ -1,8 +1,167 @@
-import { PrismaClient } from "@prisma/client";
+/**
+ * Prisma seed — idempotent for local / CI (`npm run seed`, `prisma migrate reset`).
+ *
+ * **Global reset (default):** When `SEED_FULL_GLOBAL_RESET` is unset or any value other than
+ * `0` / `false` / `no`, the script deletes platform-wide rows then recreates them:
+ * `ApprovalComment` → `Approval` → `AuditEntry`, then all `LifecyclePhaseConfig`,
+ * `TemplateRegistryEntry`, `GateRuleConfig`, `RoleConfig`, and `AppSetting`.
+ *
+ * **Safe mode:** `SEED_FULL_GLOBAL_RESET=0` skips that wipe and upserts lifecycle, templates,
+ * gates, roles, and app settings by natural keys so approvals, audit entries, and any manual
+ * platform edits outside those keyed rows are preserved.
+ *
+ * **Demo project only (always):** trace links, requirements, features, evidence, applicability
+ * for `slug === "demo"` are replaced after the solo user + owner are ensured.
+ *
+ * FK order (full reset): children before parents where Prisma `deleteMany` does not cascade.
+ */
+import "dotenv/config";
+
+import { Prisma, PrismaClient } from "@prisma/client";
+
+import { SOLO_WORKSPACE_USER_EMAIL } from "../lib/server/current-user";
+import {
+  buildGateSeedRows,
+  buildLifecycleSeedRows,
+  buildRoleSeedRows,
+  buildTemplateSeedRows,
+  defaultExportSettings,
+  defaultLocalStorageSettings,
+} from "../lib/server/settings-seed-builders";
 
 const prisma = new PrismaClient();
 
+function isFullGlobalReset(): boolean {
+  const v = process.env.SEED_FULL_GLOBAL_RESET?.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "no") return false;
+  return true;
+}
+
+async function wipeGlobalTables(): Promise<void> {
+  await prisma.approvalComment.deleteMany();
+  await prisma.approval.deleteMany();
+  await prisma.auditEntry.deleteMany();
+  await prisma.lifecyclePhaseConfig.deleteMany();
+  await prisma.templateRegistryEntry.deleteMany();
+  await prisma.gateRuleConfig.deleteMany();
+  await prisma.roleConfig.deleteMany();
+  await prisma.appSetting.deleteMany();
+}
+
+type LifecycleRow = ReturnType<typeof buildLifecycleSeedRows>[number];
+
+async function upsertLifecycleRows(rows: LifecycleRow[]): Promise<void> {
+  for (const row of rows) {
+    await prisma.lifecyclePhaseConfig.upsert({
+      where: { phaseNumber: row.phaseNumber },
+      create: row,
+      update: {
+        name: row.name,
+        description: row.description,
+        keyDeliverablesJson: row.keyDeliverablesJson,
+        requiredArtifactIdsJson: row.requiredArtifactIdsJson,
+        status: row.status,
+      },
+    });
+  }
+}
+
+type TemplateRow = ReturnType<typeof buildTemplateSeedRows>[number];
+
+async function upsertTemplateRows(rows: TemplateRow[]): Promise<void> {
+  for (const row of rows) {
+    await prisma.templateRegistryEntry.upsert({
+      where: { templateCode: row.templateCode },
+      create: row,
+      update: {
+        name: row.name,
+        phaseNumber: row.phaseNumber,
+        outputType: row.outputType,
+        required: row.required,
+        schemaVersion: row.schemaVersion,
+        status: row.status,
+      },
+    });
+  }
+}
+
+type GateRow = ReturnType<typeof buildGateSeedRows>[number];
+
+async function upsertGateRows(rows: GateRow[]): Promise<void> {
+  for (const row of rows) {
+    await prisma.gateRuleConfig.upsert({
+      where: { gateCode: row.gateCode },
+      create: row,
+      update: {
+        gateName: row.gateName,
+        relatedPhaseNumber: row.relatedPhaseNumber,
+        requiredInputIdsJson: row.requiredInputIdsJson,
+        requiredEvidenceCount: row.requiredEvidenceCount,
+        requiredApproverRolesJson: row.requiredApproverRolesJson,
+        decisionRule: row.decisionRule,
+        unlocksPhaseNumber: row.unlocksPhaseNumber,
+        status: row.status,
+      },
+    });
+  }
+}
+
+type RoleRow = ReturnType<typeof buildRoleSeedRows>[number];
+
+async function upsertRoleRows(rows: RoleRow[]): Promise<void> {
+  for (const row of rows) {
+    await prisma.roleConfig.upsert({
+      where: { roleId: row.roleId },
+      create: row,
+      update: {
+        roleName: row.roleName,
+        description: row.description,
+        permissionsJson: row.permissionsJson,
+        systemRole: row.systemRole,
+      },
+    });
+  }
+}
+
+type AppSettingRow = { key: string; value: Prisma.InputJsonValue };
+
+async function upsertAppSettingRows(rows: AppSettingRow[]): Promise<void> {
+  for (const row of rows) {
+    await prisma.appSetting.upsert({
+      where: { key: row.key },
+      create: row,
+      update: { value: row.value },
+    });
+  }
+}
+
 async function main() {
+  const fullGlobal = isFullGlobalReset();
+  if (fullGlobal) {
+    await wipeGlobalTables();
+  } else {
+    console.log(
+      "[seed] SEED_FULL_GLOBAL_RESET=0 — preserving approvals/audit; upserting keyed platform rows only.",
+    );
+  }
+
+  const user = await prisma.user.upsert({
+    where: { email: SOLO_WORKSPACE_USER_EMAIL },
+    create: {
+      email: SOLO_WORKSPACE_USER_EMAIL,
+      name: "Alex Developer",
+      role: "Project Owner",
+      initials: "AD",
+      active: true,
+    },
+    update: {
+      name: "Alex Developer",
+      role: "Project Owner",
+      initials: "AD",
+      active: true,
+    },
+  });
+
   const applicabilityJson = {
     data: true,
     apis: true,
@@ -16,6 +175,7 @@ async function main() {
     create: {
       name: "Demo project",
       slug: "demo",
+      ownerId: user.id,
       vaultFolder: "IDEA-0002",
       currentPhase: 6,
       applicabilityJson,
@@ -27,12 +187,39 @@ async function main() {
     },
     update: {
       name: "Demo project",
+      ownerId: user.id,
       vaultFolder: "IDEA-0002",
       currentPhase: 6,
       applicabilityJson,
       complexityLevel: "Medium",
     },
   });
+
+  const lifecycleRows = buildLifecycleSeedRows();
+  const templateRows = buildTemplateSeedRows();
+  const gateRows = buildGateSeedRows();
+  const roleSeedRows = buildRoleSeedRows();
+
+  const exportPayload = defaultExportSettings();
+  const storagePayload = defaultLocalStorageSettings();
+  const appSettingRows: AppSettingRow[] = [
+    { key: "export_settings", value: exportPayload as Prisma.InputJsonValue },
+    { key: "local_storage_settings", value: storagePayload as Prisma.InputJsonValue },
+  ];
+
+  if (fullGlobal) {
+    await prisma.lifecyclePhaseConfig.createMany({ data: lifecycleRows });
+    await prisma.templateRegistryEntry.createMany({ data: templateRows });
+    await prisma.gateRuleConfig.createMany({ data: gateRows });
+    await prisma.roleConfig.createMany({ data: roleSeedRows });
+    await prisma.appSetting.createMany({ data: appSettingRows });
+  } else {
+    await upsertLifecycleRows(lifecycleRows);
+    await upsertTemplateRows(templateRows);
+    await upsertGateRows(gateRows);
+    await upsertRoleRows(roleSeedRows);
+    await upsertAppSettingRows(appSettingRows);
+  }
 
   await prisma.traceLink.deleteMany({ where: { projectId: project.id } });
   await prisma.requirement.deleteMany({ where: { projectId: project.id } });
@@ -123,8 +310,17 @@ async function main() {
     },
   });
 
+  const templateCount = templateRows.length;
+  const mode = fullGlobal ? "full-global-reset" : "demo-plus-upserts";
   console.log(
-    `Seed OK: project "${project.name}" (slug=${project.slug}, vault=${project.vaultFolder}, phase=${project.currentPhase}, id=${project.id}) — sample CRS/SRS/Feature + trace links.`,
+    [
+      "Seed OK",
+      `mode=${mode}`,
+      `user=${user.email} id=${user.id}`,
+      `project="${project.name}" slug=${project.slug} id=${project.id} ownerId=${project.ownerId}`,
+      `lifecyclePhases=${lifecycleRows.length} templateRegistry=${templateCount} gateRules=${gateRows.length} roles=${roleSeedRows.length} appSettings=${appSettingRows.length}`,
+      "demo: applicability + evidence + CRS/SRS/FEAT + trace links",
+    ].join(" | "),
   );
 }
 

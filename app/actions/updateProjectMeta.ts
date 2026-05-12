@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/server/audit";
 import { applicabilityJsonFromForm, type Applicability } from "@/lib/applicability";
 
 const inputSchema = z.object({
@@ -61,6 +62,14 @@ export async function updateProjectMeta(
   await prisma.project.update({
     where: { id: projectId },
     data,
+  });
+
+  await recordAudit({
+    action: "project.meta_updated",
+    subjectKind: "project",
+    subjectId: projectId,
+    projectId,
+    metadata: { fields: Object.keys(data) },
   });
 
   return { ok: true };

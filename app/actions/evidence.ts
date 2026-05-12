@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/server/audit";
 
 const createSchema = z.object({
   projectId: z.string().min(1),
@@ -61,6 +62,19 @@ export async function createEvidenceItem(
     },
   });
 
+  await recordAudit({
+    action: "evidence.item_created",
+    subjectKind: "evidence_item",
+    subjectId: row.id,
+    projectId,
+    metadata: {
+      evidenceCode,
+      evidenceType,
+      phaseNumber: phaseNumber ?? null,
+      gateCode: gateCode ?? null,
+    },
+  });
+
   return { ok: true, evidenceId: row.id };
 }
 
@@ -87,12 +101,24 @@ export async function linkEvidenceToArtifact(
     return { ok: false, error: "Evidence or artifact not found for this project." };
   }
 
+  let createdLink = false;
   try {
     await prisma.evidenceArtifactLink.create({
       data: { evidenceId: ev.id, artifactId: art.id },
     });
+    createdLink = true;
   } catch {
     /* duplicate composite link */
+  }
+
+  if (createdLink) {
+    await recordAudit({
+      action: "evidence.linked_to_artifact",
+      subjectKind: "evidence_item",
+      subjectId: ev.id,
+      projectId: ev.projectId,
+      metadata: { artifactId: art.id },
+    });
   }
 
   return { ok: true };

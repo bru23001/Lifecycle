@@ -25,6 +25,7 @@ import {
 } from "@/lib/workspacePhases";
 import { mapEvidenceRowsToAttachments } from "@/lib/mapEvidenceAttachments";
 import { mapTemplateRowsToRequiredTemplates } from "@/lib/mapRequiredTemplates";
+import { displayFromCurrentUser, getCurrentUser } from "@/lib/server/current-user";
 import { getTemplatesForPhase } from "@/templates/registry";
 import type { LifecycleWorkspaceScreenData } from "@/types/lifecycle-workspace.types";
 
@@ -181,6 +182,8 @@ export default async function LifecycleWorkspacePage({
     notFound();
   }
 
+  const userDisplay = displayFromCurrentUser(await getCurrentUser());
+
   const rawPhase = sp.phase?.trim();
   const parsedPhase = rawPhase ? Number.parseInt(rawPhase, 10) : NaN;
   const hasPhaseParam =
@@ -225,7 +228,7 @@ export default async function LifecycleWorkspacePage({
       name: `${a.templateId} — saved artifact v${a.version}`,
       type: a.markdownPath.endsWith(".md") ? "Markdown export" : "Registered artifact",
       linkedTemplateId: a.templateId,
-      addedBy: "Alex Developer",
+      addedBy: userDisplay.name,
       addedOn: formatDate(a.updatedAt),
       kind: evidenceKind(i),
     }));
@@ -343,7 +346,7 @@ export default async function LifecycleWorkspacePage({
     phaseName: meta.title,
     status: phaseStatus,
     purpose: workspacePhasePurpose(activeWsPhase),
-    ownerName: "Alex Developer",
+    ownerName: userDisplay.name,
     startedOnLabel: startedOn,
     targetCompletionLabel: targetCompletion,
     gateCode: gateId ?? "—",
@@ -417,7 +420,7 @@ export default async function LifecycleWorkspacePage({
   };
 
   const screenData: LifecycleWorkspaceScreenData = {
-    user: { name: "Alex Developer", role: "Project Owner", initials: "AD" },
+    user: { name: userDisplay.name, role: userDisplay.role, initials: userDisplay.initials },
     project: {
       id: project.id,
       name: project.name,

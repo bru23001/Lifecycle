@@ -9,6 +9,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// SQLite stores Prisma `Json` as TEXT at rest. Hand-edited migrations must use quoted
+// defaults (`'{}'`, `'[]'`) — not `DEFAULT {}` / raw JSONB defaults — or apply will fail.
+// Do not edit a migration folder after deploy (checksum recorded in `_prisma_migrations`).
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -19,10 +23,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ownedProjects       Project[]         @relation("ProjectOwner")
-  submittedApprovals Approval[]       @relation("ApprovalSubmitter")
-  approvalComments   ApprovalComment[] @relation("ApprovalCommentAuthor")
-  auditEntries       AuditEntry[]      @relation("AuditActor")
+  ownedProjects        Project[]         @relation("ProjectOwner")
+  submittedApprovals   Approval[]        @relation("ApprovalSubmitter")
+  approvalComments     ApprovalComment[] @relation("ApprovalCommentAuthor")
+  auditEntries         AuditEntry[]      @relation("AuditActor")
 }
 
 model Project {
@@ -201,8 +205,8 @@ model LifecyclePhaseConfig {
   phaseNumber          Int      @unique
   name                 String
   description          String   @default("")
-  keyDeliverablesJson  Json     @default("[]")
-  requiredArtifactIdsJson Json @default("[]")
+  keyDeliverablesJson       Json     @default("[]")
+  requiredArtifactIdsJson   Json     @default("[]")
   status               String   @default("active") // active | inactive | draft
   updatedAt            DateTime @updatedAt
 }
@@ -213,37 +217,37 @@ model TemplateRegistryEntry {
   templateCode   String   @unique
   name           String
   phaseNumber    Int
-  outputType      String   @default("both") // markdown | json | both
-  required        Boolean  @default(true)
-  schemaVersion   String   @default("1.0")
-  status          String   @default("active") // active | draft | deprecated | archived
-  updatedAt       DateTime @updatedAt
+  outputType     String   @default("both") // markdown | json | both
+  required       Boolean  @default(true)
+  schemaVersion  String   @default("1.0")
+  status         String   @default("active") // active | draft | deprecated | archived
+  updatedAt      DateTime @updatedAt
 }
 
 /** Gate rule row; drives Settings → Gate Rules. */
 model GateRuleConfig {
-  id                        String   @id @default(cuid())
-  gateCode                  String   @unique
-  gateName                  String
-  relatedPhaseNumber        Int
-  requiredInputIdsJson     Json     @default("[]")
-  requiredEvidenceCount    Int      @default(0)
-  requiredApproverRolesJson Json    @default("[]")
-  decisionRule             String   @default("single_approver") // single_approver | majority | unanimous | role_based
-  unlocksPhaseNumber      Int?
-  status                   String   @default("active") // active | draft | inactive
-  updatedAt                DateTime @updatedAt
+  id                          String   @id @default(cuid())
+  gateCode                    String   @unique
+  gateName                    String
+  relatedPhaseNumber          Int
+  requiredInputIdsJson        Json     @default("[]")
+  requiredEvidenceCount       Int      @default(0)
+  requiredApproverRolesJson   Json     @default("[]")
+  decisionRule                String   @default("single_approver") // single_approver | majority | unanimous | role_based
+  unlocksPhaseNumber          Int?
+  status                      String   @default("active") // active | draft | inactive
+  updatedAt                   DateTime @updatedAt
 }
 
 /** RBAC matrix row; drives Settings → Roles / Permissions. */
 model RoleConfig {
-  id           String   @id @default(cuid())
-  roleId       String   @unique
-  roleName     String
-  description  String   @default("")
-  permissionsJson Json  @default("[]")
-  systemRole   Boolean  @default(false)
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  roleId          String   @unique
+  roleName        String
+  description     String   @default("")
+  permissionsJson Json     @default("[]")
+  systemRole      Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
 }
 
 /** Key-value app settings (export package rules, local storage prefs, etc.). */

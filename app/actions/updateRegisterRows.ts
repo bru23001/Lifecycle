@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/server/audit";
 
 const reqStatusSchema = z.enum(["Draft", "Baselined", "Deferred", "Withdrawn"]);
 
@@ -38,6 +39,14 @@ export async function updateRequirementStatus(input: {
     data: { status: status.data },
   });
 
+  await recordAudit({
+    action: "register.requirement_status_updated",
+    subjectKind: "requirement",
+    subjectId: row.id,
+    projectId: input.projectId,
+    metadata: { status: status.data },
+  });
+
   return { ok: true };
 }
 
@@ -65,6 +74,17 @@ export async function updateFeatureRow(
   await prisma.feature.update({
     where: { id: row.id },
     data: {
+      ...(status !== undefined ? { status } : {}),
+      ...(scopeStatus !== undefined ? { scopeStatus } : {}),
+    },
+  });
+
+  await recordAudit({
+    action: "register.feature_row_updated",
+    subjectKind: "feature",
+    subjectId: row.id,
+    projectId,
+    metadata: {
       ...(status !== undefined ? { status } : {}),
       ...(scopeStatus !== undefined ? { scopeStatus } : {}),
     },

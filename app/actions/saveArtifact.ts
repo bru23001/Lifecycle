@@ -5,6 +5,12 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  closeSupersededArtifactApprovals,
+  createArtifactApproval,
+} from "@/lib/server/approval-writes";
+import { recordAudit } from "@/lib/server/audit";
+import { getCurrentUser } from "@/lib/server/current-user";
 import { writeVaultMarkdown } from "@/lib/vault";
 import { getTemplate } from "@/templates/registry";
 import {
@@ -120,14 +126,49 @@ export async function saveArtifact(input: {
     await syncArtifactRelations(project.id, template.templateId, data);
   }
 
-  const artifact = await prisma.artifact.create({
-    data: {
+  const currentUser = await getCurrentUser();
+
+  const artifact = await prisma.$transaction(async (tx) => {
+    const created = await tx.artifact.create({
+      data: {
+        projectId: project.id,
+        templateId: template.templateId,
+        localId,
+        version,
+        status: "Draft",
+        dataJson: parsed.data as Prisma.InputJsonValue,
+        markdownPath: markdownRelative,
+      },
+    });
+    await closeSupersededArtifactApprovals(tx, {
       projectId: project.id,
       templateId: template.templateId,
-      localId,
+      keepArtifactId: created.id,
+    });
+    const approval = await createArtifactApproval(tx, {
+      projectId: project.id,
+      artifactId: created.id,
+      submittedById: currentUser?.id ?? null,
+    });
+    await tx.approvalComment.create({
+      data: {
+        approvalId: approval.id,
+        authorId: currentUser?.id ?? null,
+        body: "Draft saved for review.",
+      },
+    });
+    return created;
+  });
+
+  await recordAudit({
+    action: "artifact.saved",
+    subjectKind: "artifact",
+    subjectId: artifact.id,
+    projectId: project.id,
+    metadata: {
+      templateId: template.templateId,
       version,
-      status: "Draft",
-      dataJson: parsed.data as Prisma.InputJsonValue,
+      localId,
       markdownPath: markdownRelative,
     },
   });

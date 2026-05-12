@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { recordAudit } from "@/lib/server/audit";
 import { prisma } from "@/lib/prisma";
 
 function slugify(input: string): string {
@@ -74,6 +75,14 @@ export async function createProject(
     }
     return { error: msg };
   }
+
+  await recordAudit({
+    action: "project.created",
+    subjectKind: "project",
+    subjectId: project.id,
+    projectId: project.id,
+    metadata: { slug: project.slug, vaultFolder: project.vaultFolder },
+  });
 
   redirect(`/projects/${project.id}/workspace`);
 }

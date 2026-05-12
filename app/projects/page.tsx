@@ -1,11 +1,12 @@
 import { ProjectsPage as ProjectsScreenPage } from "@/components/projects/projects-page";
 import {
+  DEFAULT_PROJECTS_SCREEN_USER,
   PROJECT_DETAIL_TABS,
-  PROJECTS_LIST_FALLBACK,
-  PROJECTS_USER_FALLBACK,
-  buildFallbackSelectedProject,
-} from "@/data/projects.mock";
+  emptyPlaceholderSelectedProject,
+} from "@/data/projects.constants";
 import { prisma } from "@/lib/prisma";
+import { getProjectAuditScreenEntries } from "@/lib/server/project-audit-screen";
+import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
 import type { ProjectDetailTab, ProjectListItem, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
 
 export const dynamic = "force-dynamic";
@@ -74,34 +75,45 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     };
   });
 
-  const projects = dbProjects.length > 0 ? dbProjects : PROJECTS_LIST_FALLBACK;
+  const projects = dbProjects;
   const perPage = 6;
-  const totalPages = Math.max(1, Math.ceil(projects.length / perPage));
+  const totalPages = projects.length === 0 ? 1 : Math.max(1, Math.ceil(projects.length / perPage));
   const parsedPage = Number.parseInt(page ?? "", 10);
   const selectedIndex =
-    selected ? projects.findIndex((project) => project.id === selected) : -1;
+    projects.length > 0 && selected ? projects.findIndex((project) => project.id === selected) : -1;
   const inferredPageFromSelection =
     selectedIndex >= 0 ? Math.floor(selectedIndex / perPage) + 1 : 1;
   const currentPage =
-    Number.isFinite(parsedPage) && parsedPage > 0
-      ? Math.min(totalPages, parsedPage)
-      : inferredPageFromSelection;
+    projects.length === 0
+      ? 1
+      : Number.isFinite(parsedPage) && parsedPage > 0
+        ? Math.min(totalPages, parsedPage)
+        : inferredPageFromSelection;
 
   const pageStart = (currentPage - 1) * perPage;
   const pageProjects = projects.slice(pageStart, pageStart + perPage);
 
   const selectedProjectId =
-    selected && projects.some((project) => project.id === selected)
-      ? selected
-      : pageProjects[0]?.id ?? projects[0]?.id ?? PROJECTS_LIST_FALLBACK[0]!.id;
+    projects.length === 0
+      ? ""
+      : selected && projects.some((project) => project.id === selected)
+        ? selected
+        : (pageProjects[0]?.id ?? projects[0]!.id);
+
   const selectedTab = parseDetailTab(tab);
   const selectedDbProject = rows.find((row) => row.id === selectedProjectId);
   const selectedProjectRow =
-    projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? PROJECTS_LIST_FALLBACK[0]!;
+    projects.length === 0
+      ? null
+      : (projects.find((project) => project.id === selectedProjectId) ?? projects[0]!);
 
-  let selectedProject: SelectedProject = buildFallbackSelectedProject(selectedProjectRow);
+  let selectedProject: SelectedProject =
+    selectedProjectRow != null
+      ? buildSelectedProjectFromListItem(selectedProjectRow)
+      : emptyPlaceholderSelectedProject();
 
-  if (selectedDbProject) {
+  if (selectedDbProject && selectedProjectRow) {
+    const auditTrailEntries = await getProjectAuditScreenEntries(selectedDbProject.id);
     const artifactTotal = selectedDbProject._count.artifacts;
     const artifactComplete = selectedDbProject.artifacts.filter((artifact) => artifact.status !== "Draft").length;
     const traceTotal = selectedDbProject._count.traceLinks;
@@ -110,6 +122,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
 
     selectedProject = {
       ...selectedProject,
+      auditTrailEntries,
       header: {
         ...selectedProject.header,
         id: selectedDbProject.id,
@@ -162,7 +175,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
           label: "View Lifecycle Timeline",
           href: `/projects?selected=${selectedDbProject.id}&tab=lifecycle-timeline`,
         },
-        { id: "qa-gate", label: "Open Gate Review", href: `/projects/${selectedDbProject.id}/gates/g1/review` },
+        { id: "qa-gate", label: "Open Gate Review", href: `/projects/${selectedDbProject.id}/gate/g1` },
         { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${selectedDbProject.id}/artifacts` },
         {
           id: "qa-trace",
@@ -186,7 +199,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   }
 
   const screenData: ProjectsScreenData = {
-    user: PROJECTS_USER_FALLBACK,
+    user: DEFAULT_PROJECTS_SCREEN_USER,
     projects,
     selectedProject,
   };
@@ -198,6 +211,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       selectedTab={selectedTab}
       currentPage={currentPage}
       totalPages={totalPages}
+      hasProjects={projects.length > 0}
     />
   );
 }
