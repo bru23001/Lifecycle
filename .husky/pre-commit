@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+if git diff --cached --name-only | grep -q '^lifecycle-platform/'; then
+  (cd lifecycle-platform && npx lint-staged)
+fi

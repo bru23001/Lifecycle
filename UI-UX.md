@@ -4189,14 +4189,14 @@ Final visual hierarchy:
 │ │       ├── a-3-2.evaluation-scoring.ts                                       │
 │ │       └── a-3-3.recommended-solution.ts                                     │
 │ │                                                                            │
-│ ├── data/                                                                     │
-│ │   └── template-wizard.mock.ts                                               │
-│ │                                                                            │
 │ ├── types/                                                                    │
 │ │   └── template-wizard.types.ts                                              │
 │ │                                                                            │
 │ └── lib/                                                                      │
-│     ├── template-validation.ts                                                │
+│     ├── server/                                                               │
+│     │   ├── artifact-library.ts                                               │
+│     │   └── template-wizard.ts                                                │
+│     ├── template-wizard-computed.ts                                           │
 │     ├── artifact-versioning.ts                                                │
 │     ├── markdown-export.ts                                                    │
 │     ├── json-export.ts                                                        │
