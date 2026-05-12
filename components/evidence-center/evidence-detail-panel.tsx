@@ -21,7 +21,7 @@ import {
   WorkspaceCardBody,
   WorkspaceCardHeader,
 } from "@/components/lifecycle-workspace/workspace-card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { evidenceClassificationBadgeMap, evidenceStatusBadgeMap } from "@/lib/evidence-status";
 import { cn } from "@/lib/utils";
 import type { EvidenceCenterSelectedEvidence } from "@/types/evidence-center.types";
@@ -240,9 +240,12 @@ export function EvidencePreview({ selectedEvidence }: { selectedEvidence: Eviden
     <div className="overflow-hidden rounded-lg border border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
       <p>Preview is not available for this evidence type.</p>
       {selectedEvidence.detail.downloadHref ? (
-        <Button type="button" variant="outline" size="sm" className="mt-3" asChild>
-          <a href={selectedEvidence.detail.downloadHref}>Download File</a>
-        </Button>
+        <a
+          href={selectedEvidence.detail.downloadHref}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 inline-flex")}
+        >
+          Download File
+        </a>
       ) : null}
     </div>
   );
