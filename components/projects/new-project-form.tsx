@@ -1,170 +1,250 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 
+import {
+  NEW_PROJECT_LIFECYCLE_MODELS,
+  NEW_PROJECT_WORKFLOW_STATUSES,
+} from "@/data/new-project.constants";
 import { createProject, type CreateProjectState } from "@/app/projects/new/actions";
-import { Button } from "@/components/ui/button";
+import { WORKSPACE_PHASES } from "@/lib/workspacePhases";
 
-const initialState: CreateProjectState = {};
+function fieldClass(hasError: boolean): string {
+  return [
+    "mt-1 w-full rounded-md border bg-white px-3 py-2 text-[12px] text-slate-900 shadow-sm outline-none",
+    hasError ? "border-rose-400 focus:border-rose-500" : "border-slate-200 focus:border-[#2563eb]",
+  ].join(" ");
+}
 
-export function NewProjectForm() {
-  const [state, formAction, pending] = useActionState(createProject, initialState);
+export function NewProjectForm({
+  defaultOwnerName,
+  intent,
+}: {
+  defaultOwnerName: string;
+  intent: string | null;
+}) {
+  const [state, formAction, isPending] = useActionState<CreateProjectState, FormData>(
+    createProject,
+    {},
+  );
 
   return (
-    <form action={formAction} className="mt-8 space-y-6">
-      {state.error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-          {state.error}
-        </div>
+    <form action={formAction} className="space-y-8">
+      {intent === "create-template" ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-950">
+          You opened this screen from template settings. Create the project here, then return to
+          Settings to register or edit templates for this workspace.
+        </p>
       ) : null}
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-slate-800">
-            Project name <span className="text-red-600">*</span>
-          </span>
-          <input
-            name="name"
+      {state.error ? (
+        <p
+          className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-[12px] text-rose-900"
+          role="alert"
+        >
+          {state.error}
+        </p>
+      ) : null}
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold tracking-tight text-slate-900">Project identity</h2>
+        <div className="grid gap-4 min-[640px]:grid-cols-2">
+          <div>
+            <label htmlFor="new-project-name" className="text-[11px] font-semibold text-slate-600">
+              Project name <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="new-project-name"
+              name="name"
+              type="text"
+              required
+              autoComplete="off"
+              className={fieldClass(Boolean(state.fieldErrors?.name))}
+              placeholder="e.g. Northwind modernization"
+            />
+            {state.fieldErrors?.name ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.name}</p>
+            ) : null}
+          </div>
+          <div>
+            <label
+              htmlFor="new-project-code"
+              className="text-[11px] font-semibold text-slate-600"
+            >
+              Project code / URL slug <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="new-project-code"
+              name="codeSlug"
+              type="text"
+              required
+              autoComplete="off"
+              className={fieldClass(Boolean(state.fieldErrors?.codeSlug))}
+              placeholder="e.g. northwind-mod"
+            />
+            {state.fieldErrors?.codeSlug ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.codeSlug}</p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold tracking-tight text-slate-900">Lifecycle & ownership</h2>
+        <div className="grid gap-4 min-[640px]:grid-cols-2">
+          <div>
+            <label
+              htmlFor="new-project-lifecycle"
+              className="text-[11px] font-semibold text-slate-600"
+            >
+              Lifecycle model <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="new-project-lifecycle"
+              name="lifecycleModel"
+              required
+              defaultValue=""
+              className={fieldClass(Boolean(state.fieldErrors?.lifecycleModel))}
+            >
+              <option value="" disabled>
+                Select a model…
+              </option>
+              {NEW_PROJECT_LIFECYCLE_MODELS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            {state.fieldErrors?.lifecycleModel ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.lifecycleModel}</p>
+            ) : null}
+          </div>
+          <div>
+            <label htmlFor="new-project-owner" className="text-[11px] font-semibold text-slate-600">
+              Owner (display name) <span className="text-rose-600">*</span>
+            </label>
+            <input
+              id="new-project-owner"
+              name="owner"
+              type="text"
+              required
+              defaultValue={defaultOwnerName}
+              autoComplete="name"
+              className={fieldClass(Boolean(state.fieldErrors?.owner))}
+            />
+            {state.fieldErrors?.owner ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.owner}</p>
+            ) : null}
+          </div>
+        </div>
+        <div className="grid gap-4 min-[640px]:grid-cols-2">
+          <div>
+            <label htmlFor="new-project-status" className="text-[11px] font-semibold text-slate-600">
+              Status <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="new-project-status"
+              name="workflowStatus"
+              required
+              defaultValue="Not Started"
+              className={fieldClass(Boolean(state.fieldErrors?.workflowStatus))}
+            >
+              {NEW_PROJECT_WORKFLOW_STATUSES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            {state.fieldErrors?.workflowStatus ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.workflowStatus}</p>
+            ) : null}
+          </div>
+          <div>
+            <label
+              htmlFor="new-project-phase"
+              className="text-[11px] font-semibold text-slate-600"
+            >
+              Initial workspace phase <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="new-project-phase"
+              name="initialPhase"
+              required
+              defaultValue="1"
+              className={fieldClass(Boolean(state.fieldErrors?.initialPhase))}
+            >
+              {WORKSPACE_PHASES.map((phase) => (
+                <option key={phase.index} value={String(phase.index)}>
+                  {phase.index}. {phase.title}
+                </option>
+              ))}
+            </select>
+            {state.fieldErrors?.initialPhase ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.initialPhase}</p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold tracking-tight text-slate-900">Scope</h2>
+        <div>
+          <label htmlFor="new-project-scope" className="text-[11px] font-semibold text-slate-600">
+            Scope summary <span className="text-rose-600">*</span>
+          </label>
+          <textarea
+            id="new-project-scope"
+            name="scope"
             required
-            autoComplete="organization"
-            className="h-10 rounded-lg border border-slate-200 px-3 text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-            placeholder="e.g. Secure Identity Platform"
-            aria-invalid={Boolean(state.fieldErrors?.name)}
-            aria-describedby={state.fieldErrors?.name ? "err-name" : undefined}
+            rows={4}
+            className={fieldClass(Boolean(state.fieldErrors?.scope))}
+            placeholder="Outcomes, boundaries, and key deliverables for this lifecycle."
           />
-          {state.fieldErrors?.name ? (
-            <span id="err-name" className="text-xs text-red-600">
-              {state.fieldErrors.name}
-            </span>
+          {state.fieldErrors?.scope ? (
+            <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.scope}</p>
           ) : null}
-        </label>
-
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-slate-800">
-            Project code / slug <span className="text-red-600">*</span>
-          </span>
-          <input
-            name="codeSlug"
-            required
-            className="h-10 rounded-lg border border-slate-200 px-3 font-mono text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-            placeholder="e.g. sip-001"
-            aria-invalid={Boolean(state.fieldErrors?.codeSlug)}
-            aria-describedby={state.fieldErrors?.codeSlug ? "err-slug" : undefined}
-          />
-          {state.fieldErrors?.codeSlug ? (
-            <span id="err-slug" className="text-xs text-red-600">
-              {state.fieldErrors.codeSlug}
-            </span>
-          ) : (
-            <span className="text-xs text-slate-500">Used for URLs and uniqueness.</span>
-          )}
-        </label>
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-slate-800">Project type</span>
-          <select
-            name="projectType"
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-            defaultValue="platform"
+        </div>
+        <div>
+          <label
+            htmlFor="new-project-description"
+            className="text-[11px] font-semibold text-slate-600"
           >
-            <option value="platform">Platform</option>
-            <option value="product">Product</option>
-            <option value="program">Program</option>
-            <option value="initiative">Initiative</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-slate-800">
-            Owner <span className="text-red-600">*</span>
-          </span>
-          <input
-            name="owner"
-            required
-            className="h-10 rounded-lg border border-slate-200 px-3 text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-            placeholder="Name or role"
-            aria-invalid={Boolean(state.fieldErrors?.owner)}
+            Description <span className="text-slate-400">(optional)</span>
+          </label>
+          <textarea
+            id="new-project-description"
+            name="description"
+            rows={3}
+            className={fieldClass(false)}
+            placeholder="Additional context for reviewers."
           />
-          {state.fieldErrors?.owner ? (
-            <span className="text-xs text-red-600">{state.fieldErrors.owner}</span>
-          ) : null}
-        </label>
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-slate-800">Business area</span>
-          <input
-            name="businessArea"
-            className="h-10 rounded-lg border border-slate-200 px-3 text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-            placeholder="e.g. Security, Finance"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-slate-800">
-            Lifecycle model <span className="text-red-600">*</span>
-          </span>
-          <select
-            name="lifecycleModel"
-            required
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-            defaultValue="standard_14"
-            aria-invalid={Boolean(state.fieldErrors?.lifecycleModel)}
+        </div>
+        <div>
+          <label
+            htmlFor="new-project-storage"
+            className="text-[11px] font-semibold text-slate-600"
           >
-            <option value="standard_14">Standard 14-Phase</option>
-            <option value="lightweight_9">Lightweight 9-Phase</option>
-            <option value="regulated">Regulated / Extended</option>
-          </select>
-          {state.fieldErrors?.lifecycleModel ? (
-            <span className="text-xs text-red-600">{state.fieldErrors.lifecycleModel}</span>
-          ) : null}
-        </label>
-      </div>
-
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-semibold text-slate-800">
-          Storage location <span className="text-red-600">*</span>
-        </span>
-        <input
-          name="storageLocation"
-          required
-          className="h-10 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-          placeholder="e.g. IDEA-0042 or vault root folder ID"
-          defaultValue="IDEA-0001"
-          aria-invalid={Boolean(state.fieldErrors?.storageLocation)}
-        />
-        {state.fieldErrors?.storageLocation ? (
-          <span className="text-xs text-red-600">{state.fieldErrors.storageLocation}</span>
-        ) : (
-          <span className="text-xs text-slate-500">Maps to evidence vault folder on the project record.</span>
-        )}
-      </label>
-
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-semibold text-slate-800">Initial description</span>
-        <textarea
-          name="description"
-          rows={4}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-blue-600"
-          placeholder="Goals, scope, and constraints for this lifecycle container."
-        />
-      </label>
+            Evidence vault folder label <span className="text-slate-400">(optional)</span>
+          </label>
+          <input
+            id="new-project-storage"
+            name="storageLocation"
+            type="text"
+            autoComplete="off"
+            className={fieldClass(false)}
+            placeholder="Defaults to IDEA-0001 when empty"
+          />
+        </div>
+      </section>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-6">
-        <Button type="submit" disabled={pending} className="min-w-[140px]">
-          {pending ? "Creating…" : "Create project"}
-        </Button>
-        <Link
-          href="/projects"
-          className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
+        <button
+          type="submit"
+          disabled={isPending}
+          className="inline-flex h-10 items-center justify-center rounded-md bg-[#2563eb] px-5 text-[12px] font-semibold text-white disabled:opacity-60"
         >
-          Cancel
-        </Link>
+          {isPending ? "Creating…" : "Create project"}
+        </button>
       </div>
     </form>
   );

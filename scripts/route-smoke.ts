@@ -60,6 +60,7 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: "/", needle: welcomeNeedle },
     { path: "/dashboard", needle: welcomeNeedle },
     { path: "/projects", needle: "Project List" },
+    { path: "/projects?new=1", needle: "New project modal requested" },
     { path: `/projects/${id}`, needle: "Lifecycle Workspace" },
     { path: `/projects/${id}/requirements`, needle: "Requirements" },
     { path: `/projects/${id}/features`, needle: "Features" },

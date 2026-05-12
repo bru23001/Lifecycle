@@ -261,7 +261,13 @@ export function ProjectListPanel({
   );
 }
 
-export function ProjectDetailHeader({ selectedProject }: { selectedProject: SelectedProject }) {
+export function ProjectDetailHeader({
+  selectedProject,
+  newProjectOpenHref,
+}: {
+  selectedProject: SelectedProject;
+  newProjectOpenHref: string;
+}) {
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -278,7 +284,7 @@ export function ProjectDetailHeader({ selectedProject }: { selectedProject: Sele
         </p>
       </div>
       <Link
-        href="/projects/new"
+        href={newProjectOpenHref}
         className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2563eb] px-4 text-[12px] font-semibold text-white"
       >
         <Plus className="size-4" />
@@ -625,13 +631,15 @@ export function ActiveTabContent({
 export function ProjectDetailPanel({
   selectedProject,
   selectedTab,
+  newProjectOpenHref,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
+  newProjectOpenHref: string;
 }) {
   return (
     <section className="cc-card-standard flex h-full min-h-0 flex-col overflow-hidden bg-[var(--app-bg)] p-6">
-      <ProjectDetailHeader selectedProject={selectedProject} />
+      <ProjectDetailHeader selectedProject={selectedProject} newProjectOpenHref={newProjectOpenHref} />
       <ProjectTabs selectedProjectId={selectedProject.header.id} selectedTab={selectedTab} />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <ActiveTabContent selectedProject={selectedProject} selectedTab={selectedTab} />
@@ -745,6 +753,7 @@ export function ProjectsContent({
   currentPage,
   totalPages,
   hasProjects,
+  newProjectOpenHref,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
@@ -752,6 +761,7 @@ export function ProjectsContent({
   currentPage: number;
   totalPages: number;
   hasProjects: boolean;
+  newProjectOpenHref: string;
 }) {
   if (!hasProjects) {
     return (
@@ -765,7 +775,7 @@ export function ProjectsContent({
             Create a project to manage lifecycle phases, gate reviews, artifacts, and traceability in one workspace.
           </p>
           <Link
-            href="/projects/new"
+            href={newProjectOpenHref}
             className="inline-flex h-10 items-center gap-2 rounded-md bg-[#2563eb] px-4 text-sm font-semibold text-white"
           >
             <Plus className="size-4" />
@@ -786,7 +796,11 @@ export function ProjectsContent({
           currentPage={currentPage}
           totalPages={totalPages}
         />
-        <ProjectDetailPanel selectedProject={data.selectedProject} selectedTab={selectedTab} />
+        <ProjectDetailPanel
+          selectedProject={data.selectedProject}
+          selectedTab={selectedTab}
+          newProjectOpenHref={newProjectOpenHref}
+        />
         <div className="h-full min-h-0">
           <ProjectContextPanel
             selectedProject={data.selectedProject}

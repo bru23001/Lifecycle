@@ -12,7 +12,7 @@ export function DashboardPageHeader({ userName }: { userName: string }) {
         </p>
       </div>
       <Link
-        href="/projects/new"
+        href="/projects?new=1"
         className="inline-flex h-[39px] shrink-0 items-center gap-2 self-start rounded-[6px] bg-[#2563eb] px-[18px] text-[12px] font-semibold text-white shadow-sm min-[901px]:self-auto"
       >
         <Plus className="size-[15px]" aria-hidden />

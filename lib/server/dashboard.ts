@@ -281,7 +281,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       : {
           message: "Start by creating a project. Your dashboard will fill in as artifacts, gates, and decisions accumulate.",
           ctaLabel: "Create project",
-          ctaHref: "/projects/new",
+          ctaHref: "/projects?new=1",
         },
   };
 }

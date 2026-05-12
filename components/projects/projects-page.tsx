@@ -1,6 +1,7 @@
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
+import { NewProjectModal } from "@/components/projects/new-project-modal";
 import { ProjectsContent } from "@/components/projects/projects-content";
 import type { ProjectDetailTab, ProjectsScreenData } from "@/types/projects.types";
 
@@ -11,6 +12,10 @@ export function ProjectsPage({
   currentPage,
   totalPages,
   hasProjects,
+  newProjectModalOpen,
+  newProjectIntent,
+  newProjectOpenHref,
+  newProjectCancelHref,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
@@ -18,6 +23,10 @@ export function ProjectsPage({
   currentPage: number;
   totalPages: number;
   hasProjects: boolean;
+  newProjectModalOpen: boolean;
+  newProjectIntent: string | null;
+  newProjectOpenHref: string;
+  newProjectCancelHref: string;
 }) {
   const activeProject = hasProjects ? data.projects.find((p) => p.id === selectedProjectId) ?? data.projects[0] : null;
 
@@ -48,6 +57,9 @@ export function ProjectsPage({
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4 min-[901px]:px-8">
           <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Projects" }]} />
         </div>
+        {newProjectModalOpen ? (
+          <p className="sr-only">New project modal requested</p>
+        ) : null}
         <ProjectsContent
           data={data}
           selectedProjectId={selectedProjectId}
@@ -55,6 +67,13 @@ export function ProjectsPage({
           currentPage={currentPage}
           totalPages={totalPages}
           hasProjects={hasProjects}
+          newProjectOpenHref={newProjectOpenHref}
+        />
+        <NewProjectModal
+          open={newProjectModalOpen}
+          intent={newProjectIntent}
+          defaultOwnerName={data.user.name}
+          cancelHref={newProjectCancelHref}
         />
       </main>
     </AuthenticatedAppShell>

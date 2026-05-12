@@ -71,7 +71,7 @@ export function buildSelectedProjectFromListItem(project: ProjectListItem): Sele
       description:
         "Complete required artifacts and evidence items before advancing to the next lifecycle gate review.",
       ctaLabel: "Go to Lifecycle Workspace",
-      href: "/projects/new",
+      href: `/projects/${project.id}/workspace`,
     },
     gatesNavHref: `/projects/${project.id}/gates/${nextOpenGateForPhase(project.currentPhase).toLowerCase()}/review`,
   };

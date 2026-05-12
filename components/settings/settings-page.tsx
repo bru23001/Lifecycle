@@ -425,7 +425,7 @@ export function SettingsPage({
           onSectionChange={handleSectionChange}
           onAddPhase={handleAddPhase}
           onEditPhase={handleEditPhase}
-          onCreateTemplate={() => router.push("/projects/new?intent=create-template")}
+          onCreateTemplate={() => router.push("/projects?new=1&intent=create-template")}
           onCreateRule={handleCreateRule}
           onCreateRole={handleCreateRole}
           onTestExport={() => setErrorMessage("Test export queued for backend processing.")}

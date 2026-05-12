@@ -38,7 +38,7 @@ export function DashboardContent({ data }: { data: DashboardData }) {
                   </p>
                 </div>
                 <Link
-                  href="/projects/new"
+                  href="/projects?new=1"
                   className="inline-flex h-10 shrink-0 items-center gap-2 self-center rounded-md bg-[#2563eb] px-4 text-sm font-semibold text-white sm:self-auto"
                 >
                   <Plus className="size-4" />

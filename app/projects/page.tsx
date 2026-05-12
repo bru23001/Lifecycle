@@ -4,13 +4,26 @@ import {
   emptyPlaceholderSelectedProject,
 } from "@/data/projects.constants";
 import { prisma } from "@/lib/prisma";
+import {
+  ownerDisplayFromProjectRow,
+  parseProjectApplicabilityMetadata,
+  resolveProjectListStatus,
+} from "@/lib/project-applicability-metadata";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import { indexLatestGateDecisions, nextOpenGateForPhase } from "@/lib/gateStatus";
 import { getProjectAuditScreenEntries } from "@/lib/server/project-audit-screen";
+import { projectsCloseNewModalHref, projectsListHref } from "@/lib/projects-url";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
 import type { ProjectDetailTab, ProjectListItem, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
 
 export const dynamic = "force-dynamic";
+
+/** Next.js `searchParams` values may be `string | string[]`; use the first string. */
+function searchParamFirst(value: string | string[] | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const v = Array.isArray(value) ? value[0] : value;
+  return typeof v === "string" ? v : undefined;
+}
 
 function formatProjectCode(slug: string, vaultFolder: string): string {
   const tail = vaultFolder.split("-")[1] ?? slug.slice(0, 3);
@@ -29,11 +42,24 @@ function timeAgoHours(hours: number): string {
 }
 
 type PageProps = {
-  searchParams: Promise<{ selected?: string; tab?: string; page?: string }>;
+  searchParams: Promise<{
+    selected?: string | string[];
+    tab?: string | string[];
+    page?: string | string[];
+    new?: string | string[];
+    intent?: string | string[];
+  }>;
 };
 
 export default async function ProjectsRoutePage({ searchParams }: PageProps) {
-  const { selected, tab, page } = await searchParams;
+  const sp = await searchParams;
+  const selected = searchParamFirst(sp.selected);
+  const tab = searchParamFirst(sp.tab);
+  const page = searchParamFirst(sp.page);
+  const newRaw = searchParamFirst(sp.new);
+  const intentRaw = searchParamFirst(sp.intent);
+  const newProjectModalOpen = newRaw === "1" || newRaw === "true";
+  const newProjectIntent = intentRaw?.trim() ? intentRaw.trim() : null;
 
   const screenUser = await getCurrentUserDisplay();
 
@@ -63,13 +89,16 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
 
   const dbProjects: ProjectListItem[] = rows.map((project) => {
     const phase = project.currentPhase;
-    let status: ProjectListItem["status"] = "In Progress";
-    if (phase <= 1 && project._count.artifacts === 0) status = "Pending";
+    const status = resolveProjectListStatus(phase, project._count.artifacts, project.applicabilityJson);
     return {
       id: project.id,
       name: project.name,
       code: formatProjectCode(project.slug, project.vaultFolder),
-      owner: project.owner?.name?.trim() || screenUser.name,
+      owner: ownerDisplayFromProjectRow(
+        project.applicabilityJson,
+        project.owner?.name ?? null,
+        screenUser.name,
+      ),
       currentPhase: phase,
       progressPercent: Math.min(100, Math.max(8, Math.round((phase / 14) * 100))),
       status,
@@ -117,6 +146,9 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       : emptyPlaceholderSelectedProject();
 
   if (selectedDbProject && selectedProjectRow) {
+    const pm = parseProjectApplicabilityMetadata(selectedDbProject.applicabilityJson);
+    const scopePreview =
+      pm.scope && pm.scope.length > 96 ? `${pm.scope.slice(0, 93)}…` : (pm.scope ?? "—");
     const auditTrailEntries = await getProjectAuditScreenEntries(selectedDbProject.id);
     const artifactTotal = selectedDbProject._count.artifacts;
     const artifactComplete = selectedDbProject.artifacts.filter((artifact) => artifact.status !== "Draft").length;
@@ -182,7 +214,9 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
         { key: "Type", value: "Platform" },
         { key: "Business Area", value: "Security" },
         { key: "Owner", value: selectedProject.header.owner },
+        { key: "Lifecycle model", value: pm.lifecycleModel ?? "—" },
         { key: "Phase", value: `Phase ${selectedDbProject.currentPhase} of 14` },
+        { key: "Scope", value: scopePreview },
         { key: "Vault", value: selectedDbProject.vaultFolder },
       ],
       quickActions: [
@@ -226,6 +260,21 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     selectedProject,
   };
 
+  const hasProjects = projects.length > 0;
+  const newProjectOpenHref = projectsListHref({
+    selectedProjectId: hasProjects ? selectedProjectId : undefined,
+    selectedTab,
+    currentPage,
+    newProject: true,
+    intent: newProjectIntent,
+  });
+  const newProjectCancelHref = projectsCloseNewModalHref({
+    hasProjects,
+    selectedProjectId,
+    selectedTab,
+    currentPage,
+  });
+
   return (
     <ProjectsScreenPage
       data={screenData}
@@ -233,7 +282,11 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       selectedTab={selectedTab}
       currentPage={currentPage}
       totalPages={totalPages}
-      hasProjects={projects.length > 0}
+      hasProjects={hasProjects}
+      newProjectModalOpen={newProjectModalOpen}
+      newProjectIntent={newProjectIntent}
+      newProjectOpenHref={newProjectOpenHref}
+      newProjectCancelHref={newProjectCancelHref}
     />
   );
 }
