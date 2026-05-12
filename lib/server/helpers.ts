@@ -1,12 +1,5 @@
 import type { GateId } from "@/lib/gateRules";
 
-/** Shared solo-user display for local lifecycle platform (no auth). */
-export const SOLO_USER_DISPLAY = {
-  name: "Local User",
-  role: "Lifecycle Owner",
-  initials: "LU",
-} as const;
-
 export function formatDateTimeLabel(d: Date): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }

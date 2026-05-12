@@ -65,6 +65,7 @@ export type GateEvidenceCoverage = {
 
 /** Artifact → Gate readiness (UI-UX Traceability Matrix). */
 export type ArtifactGateCoverage = {
+  /** Stable id for matrix rows: see `lib/server/traceability.ts` (`ag:{artifactId}:{gateId}`). */
   id: string;
   artifactLocalId: string;
   artifactTitle: string;
@@ -72,11 +73,13 @@ export type ArtifactGateCoverage = {
   gateName: string;
   status: CoverageStatus;
   href: string;
+  /** Route to link detail; must match `id` encoding in `lib/server/traceability.ts`. */
   detailHref: string;
 };
 
 /** Evidence → Approval record linkage. */
 export type EvidenceApprovalCoverage = {
+  /** Stable id: `ea:{evidenceId}:{approvalId}` (see server traceability module). */
   id: string;
   evidenceLabel: string;
   approvalTitle: string;

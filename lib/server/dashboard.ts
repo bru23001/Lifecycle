@@ -1,33 +1,31 @@
-import { DASHBOARD_FALLBACK_DATA } from "@/data/dashboard.mock";
 import type { GateId } from "@/lib/gateRules";
 import { getGateVisualState } from "@/lib/gateStatus";
 import { prisma } from "@/lib/prisma";
+import {
+  WORKSPACE_PHASE_MAX,
+  gateHeaderDisplayName,
+} from "@/lib/workspacePhases";
 import type { DashboardData } from "@/types/dashboard.types";
 
 const gates: GateId[] = ["G1", "G2", "G3", "G4", "G5", "G6"];
 
-function percentForPhase(phase: number): number {
-  return Math.min(100, Math.max(10, Math.round((phase / 9) * 100)));
-}
+const DEFAULT_DASHBOARD_USER: DashboardData["user"] = {
+  name: "User",
+  role: "Member",
+  initials: "U",
+};
 
-function gateTitle(gate: GateId): string {
-  switch (gate) {
-    case "G1":
-      return "Concept Approval";
-    case "G2":
-      return "Feasibility Approval";
-    case "G3":
-      return "Solution Approval";
-    case "G4":
-      return "Readiness Approval";
-    case "G5":
-      return "Deployment Approval";
-    case "G6":
-      return "Architecture Approval";
-    default: {
-      return gate;
-    }
-  }
+const DEFAULT_DASHBOARD_TIP: DashboardData["tip"] = {
+  message: "Keep your evidence and artifacts up to date to ensure smooth gate reviews.",
+  ctaLabel: "View projects",
+  ctaHref: "/projects",
+};
+
+function percentForPhase(phase: number): number {
+  return Math.min(
+    100,
+    Math.max(10, Math.round((phase / WORKSPACE_PHASE_MAX) * 100)),
+  );
 }
 
 function decisionLabel(decision: string | undefined): "Approved" | "Changes Requested" | "Pending" {
@@ -62,7 +60,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   try {
     [projects, recentGateDecisions] = await Promise.all([projectsQuery, decisionsQuery]);
   } catch {
-    // Fall back to deterministic values when DB access is unavailable.
+    // Leave empty when DB access fails; UI shows empty states.
   }
 
   const realProjects = projects.map((project, index) => ({
@@ -80,55 +78,41 @@ export async function getDashboardData(): Promise<DashboardData> {
     artifactsCount: project._count.artifacts,
   }));
 
-  const fallbackSnapshots = DASHBOARD_FALLBACK_DATA.projectSnapshots.map((item, index) => ({
-    projectId: item.projectId,
-    name: item.name,
-    phase: item.phase,
-    gate: item.gate,
-    status: item.status,
-    progressPercent:
-      DASHBOARD_FALLBACK_DATA.lifecycleProgress[index]?.progressPercent ?? 10,
-    artifactsCount: [5, 3, 1, 0][index] ?? 0,
-  }));
+  const displayProjects = realProjects.slice(0, 4);
+  const hasProjects = displayProjects.length > 0;
 
-  const displayProjects = [...realProjects, ...fallbackSnapshots.slice(realProjects.length)].slice(
-    0,
-    4,
-  );
+  const pendingGateCount = hasProjects
+    ? displayProjects.flatMap((project) =>
+        gates.filter((gate) => getGateVisualState(project.phase, gate) === "ready"),
+      ).length
+    : 0;
 
-  const pendingGateCount = Math.max(
-    1,
-    displayProjects.flatMap((project) =>
-      gates.filter((gate) => getGateVisualState(project.phase, gate) === "ready"),
-    ).length,
-  );
-
-  const missingEvidence =
-    projects.length === 0
-      ? 7
-      : Math.max(1, displayProjects.filter((project) => project.artifactsCount < 2).length);
+  const missingEvidence = hasProjects
+    ? Math.max(0, displayProjects.filter((project) => project.artifactsCount < 2).length)
+    : 0;
 
   const pendingApprovals = recentGateDecisions.filter(
     (decision) => decisionLabel(decision.decision) !== "Approved",
   ).length;
 
-  const gateStatuses = gates.slice(0, 5).map((gate, index) => {
+  const gateStatuses = gates.slice(0, 5).map((gate) => {
     const latest = recentGateDecisions.find((decision) => decision.gateId === gate);
-    const label =
-      latest === undefined
-        ? index === 0
-          ? "Approved"
-          : index === 2
-            ? "Changes Requested"
-            : "Pending"
-        : decisionLabel(latest.decision);
+    if (latest === undefined) {
+      return {
+        gateId: gate,
+        title: gateHeaderDisplayName(gate),
+        label: "Pending" as const,
+        count: 0,
+        widthPercent: 0,
+      };
+    }
+    const label = decisionLabel(latest.decision);
     return {
       gateId: gate,
-      title: gateTitle(gate),
+      title: gateHeaderDisplayName(gate),
       label,
-      count: label === "Approved" ? 3 : label === "Changes Requested" ? 1 : 0,
-      widthPercent:
-        label === "Approved" ? 100 : label === "Changes Requested" ? 32 : 46,
+      count: label === "Approved" ? 1 : label === "Changes Requested" ? 1 : 0,
+      widthPercent: label === "Approved" ? 100 : label === "Changes Requested" ? 32 : 46,
     };
   });
 
@@ -140,7 +124,7 @@ export async function getDashboardData(): Promise<DashboardData> {
           label: decisionLabel(decision.decision),
           projectName: decision.project.name,
         }))
-      : DASHBOARD_FALLBACK_DATA.recentDecisions;
+      : [];
 
   const nextActions =
     realProjects.length > 0
@@ -148,62 +132,71 @@ export async function getDashboardData(): Promise<DashboardData> {
           {
             id: "next-1",
             title: "Review Gate G2",
-            projectName: displayProjects[0]?.name ?? DASHBOARD_FALLBACK_DATA.nextActions[0].projectName,
+            projectName: displayProjects[0]!.name,
             dueLabel: "Due Today",
             dueTone: "text-amber-700 bg-amber-50",
-            targetHref: displayProjects[0]?.projectId
+            targetHref: displayProjects[0]!.projectId
               ? `/projects/${displayProjects[0].projectId}/gates/g2/review`
               : "/projects",
           },
           {
             id: "next-2",
             title: "Complete Artifact A-3.2",
-            projectName: displayProjects[1]?.name ?? DASHBOARD_FALLBACK_DATA.nextActions[1].projectName,
+            projectName: displayProjects[1]?.name ?? displayProjects[0]!.name,
             dueLabel: "Due in 2 days",
             dueTone: "text-blue-700 bg-blue-50",
-            targetHref: displayProjects[1]?.projectId
-              ? `/projects/${displayProjects[1].projectId}/artifacts`
-              : "/projects",
+            targetHref:
+              displayProjects[1]?.projectId != null
+                ? `/projects/${displayProjects[1].projectId}/artifacts`
+                : displayProjects[0]!.projectId
+                  ? `/projects/${displayProjects[0].projectId}/artifacts`
+                  : "/projects",
           },
           {
             id: "next-3",
             title: "Provide Evidence",
-            projectName: displayProjects[2]?.name ?? DASHBOARD_FALLBACK_DATA.nextActions[2].projectName,
+            projectName: displayProjects[2]?.name ?? displayProjects[0]!.name,
             dueLabel: "Overdue",
             dueTone: "text-rose-700 bg-rose-50",
-            targetHref: displayProjects[2]?.projectId
-              ? `/projects/${displayProjects[2].projectId}/evidence`
-              : "/projects",
+            targetHref:
+              displayProjects[2]?.projectId != null
+                ? `/projects/${displayProjects[2].projectId}/evidence`
+                : displayProjects[0]!.projectId
+                  ? `/projects/${displayProjects[0].projectId}/evidence`
+                  : "/projects",
           },
         ]
-      : DASHBOARD_FALLBACK_DATA.nextActions;
+      : [];
 
   const continueWorkingProject = realProjects[0] ?? null;
 
+  const inProgressCount = displayProjects.filter((project) => project.status === "In Progress").length;
+  const distinctPhases = new Set(displayProjects.map((project) => project.phase)).size;
+
   return {
-    user: DASHBOARD_FALLBACK_DATA.user,
+    user: DEFAULT_DASHBOARD_USER,
     metrics: [
       {
         id: "active-projects",
         label: "Active Projects",
         value: displayProjects.length,
-        note: `${displayProjects.filter((project) => project.status === "In Progress").length} in progress`,
+        note: hasProjects ? `${inProgressCount} in progress` : "Create a project to begin",
         tone: "blue",
         targetHref: "/projects",
       },
       {
         id: "phases-in-progress",
         label: "Lifecycle Progress",
-        value: new Set(displayProjects.map((project) => project.phase)).size,
-        note: `Across ${displayProjects.length} projects`,
+        note: hasProjects ? `Across ${displayProjects.length} projects` : "No lifecycle data yet",
         tone: "green",
         targetHref: "/projects",
+        value: hasProjects ? distinctPhases : 0,
       },
       {
         id: "gates-pending-review",
         label: "Gate Status Summary",
         value: pendingGateCount,
-        note: "Awaiting decision",
+        note: hasProjects ? "Awaiting decision" : "No gates in flight",
         tone: "amber",
         targetHref: "/approvals",
       },
@@ -211,15 +204,17 @@ export async function getDashboardData(): Promise<DashboardData> {
         id: "missing-evidence",
         label: "Blockers / Missing Evidence",
         value: missingEvidence,
-        note: `Across ${Math.max(1, displayProjects.filter((project) => project.artifactsCount < 2).length)} projects`,
+        note: hasProjects
+          ? `Across ${displayProjects.filter((project) => project.artifactsCount < 2).length} projects`
+          : "Nothing to report",
         tone: "red",
         targetHref: "/projects",
       },
       {
         id: "pending-approvals",
         label: "Pending Approvals",
-        value: Math.max(pendingApprovals, projects.length === 0 ? 5 : 0),
-        note: "Requires your action",
+        value: pendingApprovals,
+        note: pendingApprovals > 0 ? "Requires your action" : "You are up to date",
         tone: "purple",
         targetHref: "/approvals",
       },
@@ -241,12 +236,18 @@ export async function getDashboardData(): Promise<DashboardData> {
     })),
     continueWorking: {
       projectId: continueWorkingProject?.projectId ?? null,
-      projectName: continueWorkingProject?.name ?? "Demo Project",
+      projectName: continueWorkingProject?.name ?? "",
       phaseSummary: continueWorkingProject
-        ? `Phase ${continueWorkingProject.phase} of 14`
-        : "Phase 1 of 14",
-      progressPercent: continueWorkingProject?.progressPercent ?? 10,
+        ? `Phase ${continueWorkingProject.phase} of ${WORKSPACE_PHASE_MAX}`
+        : "No active project",
+      progressPercent: continueWorkingProject?.progressPercent ?? 0,
     },
-    tip: DASHBOARD_FALLBACK_DATA.tip,
+    tip: hasProjects
+      ? DEFAULT_DASHBOARD_TIP
+      : {
+          message: "Start by creating a project. Your dashboard will fill in as artifacts, gates, and decisions accumulate.",
+          ctaLabel: "Create project",
+          ctaHref: "/projects/new",
+        },
   };
 }

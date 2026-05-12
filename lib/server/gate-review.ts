@@ -18,8 +18,8 @@ import {
   formatDateTimeLabel,
   isArtifactBodyApproved,
   projectDisplayCode,
-  SOLO_USER_DISPLAY,
 } from "@/lib/server/helpers";
+import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import { prisma } from "@/lib/prisma";
 import { resolveProjectIdFromRouteParam } from "@/lib/server/project-resolve";
 
@@ -95,6 +95,8 @@ export async function loadGateReviewData(
   if (!project) {
     notFound();
   }
+
+  const userDisplay = await getCurrentUserDisplay();
 
   const projectId = project.id;
 
@@ -201,7 +203,7 @@ export async function loadGateReviewData(
   const code = projectDisplayCode(project.vaultFolder, project.slug);
 
   return {
-    user: { ...SOLO_USER_DISPLAY },
+    user: { ...userDisplay },
     project: {
       id: projectId,
       code,
@@ -219,9 +221,9 @@ export async function loadGateReviewData(
       purpose: purposeLines,
       phaseNumber: anchorPhase,
       phaseName,
-      gateOwnerName: SOLO_USER_DISPLAY.name,
+      gateOwnerName: userDisplay.name,
       submittedOnLabel: formatDateTimeLabel(project.updatedAt),
-      submittedByName: SOLO_USER_DISPLAY.name,
+      submittedByName: userDisplay.name,
       reviewType: "standard",
       dueDateLabel: "—",
       approversAssigned: 2,

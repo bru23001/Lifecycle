@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { WORKSPACE_PHASE_MAX } from "@/lib/workspacePhases";
 import type { DashboardProjectSnapshot } from "@/types/dashboard.types";
 
 function ProjectStatusBadge({ status }: { status: DashboardProjectSnapshot["status"] }) {
@@ -47,7 +48,9 @@ export function ProjectsSnapshot({
                 <td className="py-6 font-semibold text-slate-950 dark:text-slate-100">
                   {project.projectId ? <Link href={`/projects/${project.projectId}`}>{project.name}</Link> : project.name}
                 </td>
-                <td className="py-6 text-slate-700 dark:text-slate-300">{project.phase}/9</td>
+                <td className="py-6 text-slate-700 dark:text-slate-300">
+                  {project.phase}/{WORKSPACE_PHASE_MAX}
+                </td>
                 <td className="py-6 text-slate-700 dark:text-slate-300">{project.gate}</td>
                 <td className="py-6">
                   <ProjectStatusBadge status={project.status} />

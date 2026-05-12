@@ -10,19 +10,29 @@ export function ProjectsPage({
   selectedTab,
   currentPage,
   totalPages,
+  hasProjects,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
   currentPage: number;
   totalPages: number;
+  hasProjects: boolean;
 }) {
+  const activeProject = hasProjects ? data.projects.find((p) => p.id === selectedProjectId) ?? data.projects[0] : null;
+
   return (
     <AuthenticatedAppShell
-      projectId={data.selectedProject.header.id}
-      projectName={data.selectedProject.header.name}
-      phaseSummary={`Phase ${data.selectedProject.header.currentPhase} of ${data.selectedProject.header.totalPhases}`}
-      phaseProgressPct={Math.max(8, data.projects.find((p) => p.id === selectedProjectId)?.progressPercent ?? 0)}
+      projectId={hasProjects ? activeProject?.id ?? null : null}
+      projectName={hasProjects ? data.selectedProject.header.name : undefined}
+      phaseSummary={
+        hasProjects
+          ? `Phase ${data.selectedProject.header.currentPhase} of ${data.selectedProject.header.totalPhases}`
+          : undefined
+      }
+      phaseProgressPct={
+        hasProjects ? Math.max(8, activeProject?.progressPercent ?? 0) : undefined
+      }
       navActive="projects"
     >
       <TopHeader title="Projects" userInitials={data.user.initials} notificationCount={3} />
@@ -36,6 +46,7 @@ export function ProjectsPage({
           selectedTab={selectedTab}
           currentPage={currentPage}
           totalPages={totalPages}
+          hasProjects={hasProjects}
         />
       </main>
     </AuthenticatedAppShell>

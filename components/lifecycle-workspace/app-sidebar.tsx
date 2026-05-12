@@ -2,6 +2,7 @@
 
 import type { ComponentType } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BarChart3,
   CheckCircle2,
@@ -16,11 +17,12 @@ import {
   SearchCheck,
   Settings,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import lifecycleLogoCollapsed from "@/lifecycle-logo-blanco.png";
+import lifecycleLogo from "@/lifecycle-logo-largo-blanco.png";
 import { cn } from "@/lib/utils";
 
 export type AppSidebarActive =
@@ -132,18 +134,17 @@ export function AppSidebar({
         className,
       )}
     >
-      <div className="flex h-[76px] items-center gap-2.5 border-b border-white/10 px-[18px]">
-        <div className="grid size-[30px] shrink-0 place-items-center rounded-lg border border-white/25 bg-white/5">
-          <Sparkles className="size-[16px]" aria-hidden />
+      <div className="flex h-[152px] items-center gap-2.5 border-b border-white/10 px-[18px]">
+        <div className={cn("relative overflow-hidden", collapsed ? "h-16 w-16" : "h-[72px] w-full")}>
+          <Image
+            src={collapsed ? lifecycleLogoCollapsed : lifecycleLogo}
+            alt="Lifecycle Platform"
+            fill
+            sizes={collapsed ? "64px" : "360px"}
+            className="object-contain object-left"
+            priority
+          />
         </div>
-        {!collapsed ? (
-          <div className="min-w-0 leading-none">
-            <p className="truncate text-[14px] font-bold tracking-[0.08em]">CYBERCUBE</p>
-            <p className="mt-1 truncate text-[8px] font-semibold uppercase tracking-[0.23em] text-slate-400">
-              Lifecycle Platform
-            </p>
-          </div>
-        ) : null}
       </div>
 
       <nav className="flex-1 space-y-[3px] overflow-y-auto px-3 py-[18px]" aria-label="Primary navigation">

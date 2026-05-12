@@ -79,6 +79,20 @@ export type SelectedProjectQuickAction = {
   href: string;
 };
 
+/** Serialized audit rows for the projects screen (from `AuditEntry`). */
+export type ProjectScreenAuditEntry = {
+  id: string;
+  createdAt: string;
+  action: string;
+  title: string;
+  subjectKind: string;
+  subjectId: string;
+  detail: string;
+  actorLabel: string | null;
+  /** When true, row appears on the Lifecycle Timeline tab. */
+  lifecycleRelevant: boolean;
+};
+
 export type SelectedProject = {
   header: SelectedProjectHeader;
   lifecyclePhases: SelectedProjectLifecyclePhase[];
@@ -88,6 +102,8 @@ export type SelectedProject = {
   blockers: SelectedProjectBlocker[];
   snapshot: SelectedProjectSnapshotItem[];
   quickActions: SelectedProjectQuickAction[];
+  /** Recent `AuditEntry` rows for this project (newest first). */
+  auditTrailEntries: ProjectScreenAuditEntry[];
   nextRequiredAction: {
     description: string;
     ctaLabel: string;

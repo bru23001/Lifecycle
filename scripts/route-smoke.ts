@@ -55,7 +55,7 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: `/projects/${id}/workspace`, needle: "Lifecycle Workspace" },
     { path: `/projects/${id}/templates/a-3-2`, needle: "Template Wizard" },
     { path: `/projects/${id}/gate/g1`, needle: "Gate G1" },
-    { path: `/projects/${id}/gates/g2/review`, needle: "Feasibility Approval" },
+    { path: `/projects/${id}/gate/g2`, needle: "Gate G2" },
     { path: `/projects/${id}/artifacts`, needle: "Artifact Library" },
     { path: `/projects/${id}/reports`, needle: "Reports" },
     { path: `/projects/${id}/reports/lifecycle-status`, needle: "Lifecycle Status Report" },
@@ -72,8 +72,19 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: `/projects/${id}/traceability/phase-artifacts`, needle: "Traceability Matrix" },
     { path: `/projects/${id}/traceability/requirements-design`, needle: "Traceability Matrix" },
     { path: `/projects/${id}/traceability/requirements-tests`, needle: "Traceability Matrix" },
-    { path: `/projects/${id}/traceability/ag-1`, needle: "Traceability Detail" },
   ];
+
+  const firstTraceLink = await prisma.traceLink.findFirst({
+    where: { projectId: id },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  if (firstTraceLink) {
+    checks.push({
+      path: `/projects/${id}/traceability/${firstTraceLink.id}`,
+      needle: "Traceability Detail",
+    });
+  }
 
   for (const { path, needle } of checks) {
     const url = `${origin}${path}`;
@@ -87,9 +98,25 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
   console.log(`route-smoke OK: ${checks.length} routes @ ${origin}`);
 }
 
+async function chooseDefaultBaseUrl(): Promise<string> {
+  const candidates = ["http://127.0.0.1:3001", "http://127.0.0.1:3033"];
+  for (const candidate of candidates) {
+    try {
+      const home = await fetchText(`${candidate}/`);
+      const projects = await fetchText(`${candidate}/projects`);
+      if (home.status > 0 && home.status < 500 && projects.status > 0 && projects.status < 500) {
+        return candidate;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+  return candidates[0]!;
+}
+
 async function main() {
   const base =
-    process.env.BASE_URL?.trim() || "http://127.0.0.1:3001";
+    process.env.BASE_URL?.trim() || await chooseDefaultBaseUrl();
   await runRouteSmoke(base);
 }
 

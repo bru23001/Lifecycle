@@ -1,5 +1,5 @@
 import { TraceabilityMatrixPage } from "@/components/traceability/traceability-matrix-page";
-import { buildTraceabilityMatrixMock } from "@/data/traceability.mock";
+import { loadTraceabilityMatrix } from "@/lib/server/traceability";
 
 export default async function TraceabilityMatrixRoutePage({
   params,
@@ -7,6 +7,6 @@ export default async function TraceabilityMatrixRoutePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = buildTraceabilityMatrixMock(id);
+  const data = await loadTraceabilityMatrix(id);
   return <TraceabilityMatrixPage initial={data} />;
 }

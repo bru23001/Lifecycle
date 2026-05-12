@@ -10,13 +10,8 @@ import type {
   EvidenceItem,
 } from "@/types/evidence-center.types";
 import type { GateId } from "@/lib/gateRules";
-
-import {
-  ALL_GATES,
-  formatDateTimeLabel,
-  projectDisplayCode,
-  SOLO_USER_DISPLAY,
-} from "@/lib/server/helpers";
+import { getCurrentUserDisplay, type CurrentUserDisplay } from "@/lib/server/current-user";
+import { ALL_GATES, formatDateTimeLabel, projectDisplayCode } from "@/lib/server/helpers";
 import { resolveProjectIdFromRouteParam } from "@/lib/server/project-resolve";
 
 const PHASE_NAMES: Record<number, string> = {
@@ -107,6 +102,8 @@ export async function loadEvidenceCenterData(
   if (!project) {
     notFound();
   }
+
+  const userDisplay = await getCurrentUserDisplay();
 
   const projectId = project.id;
   const proj = project;
@@ -239,7 +236,7 @@ export async function loadEvidenceCenterData(
   const selectedEvidence =
     selectedId && evidencePackages[selectedId] ?
       evidencePackages[selectedId]
-    : buildEmptySelected(projectId, proj.name);
+    : buildEmptySelected(projectId, proj.name, userDisplay);
 
   const evidenceByGate = ALL_GATES.map((g) => {
     const templates = getTemplatesForGate(g);
@@ -316,7 +313,7 @@ export async function loadEvidenceCenterData(
   }
 
   return {
-    user: { ...SOLO_USER_DISPLAY },
+    user: { ...userDisplay },
     project: {
       id: projectId,
       code,
@@ -355,6 +352,7 @@ export async function loadEvidenceCenterData(
 function buildEmptySelected(
   projectId: string,
   projectName: string,
+  viewer: CurrentUserDisplay,
 ): EvidenceCenterSelectedEvidence {
   const now = formatDateTimeLabel(new Date());
   return {
@@ -366,7 +364,7 @@ function buildEmptySelected(
       evidenceType: "document",
       projectId,
       projectName,
-      uploadedBy: SOLO_USER_DISPLAY.name,
+      uploadedBy: viewer.name,
       uploadedOnLabel: now,
       fileTypeLabel: "—",
       classification: "internal",

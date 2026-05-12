@@ -14,6 +14,9 @@ export function toJsonEvidence({
   sections,
   formValues,
   validationSummary,
+  persistedArtifactId,
+  evidenceLinks,
+  generatedAt,
 }: {
   wizardHeader: WizardHeaderData;
   selectedTemplate: { id: string; code: string; version: string };
@@ -22,6 +25,9 @@ export function toJsonEvidence({
   sections: TemplateSection[];
   formValues: Record<string, unknown>;
   validationSummary: ValidationSummary;
+  persistedArtifactId?: string | null;
+  evidenceLinks?: JsonEvidence["evidenceLinks"];
+  generatedAt?: string;
 }): JsonEvidence {
   return buildJsonEvidence(
     wizardHeader,
@@ -31,5 +37,6 @@ export function toJsonEvidence({
     sections,
     formValues,
     validationSummary,
+    { persistedArtifactId, evidenceLinks, generatedAt },
   );
 }

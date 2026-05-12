@@ -17,8 +17,8 @@ import {
   formatDateTimeLabel,
   isArtifactBodyApproved,
   projectDisplayCode,
-  SOLO_USER_DISPLAY,
 } from "@/lib/server/helpers";
+import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import { resolveProjectIdFromRouteParam } from "@/lib/server/project-resolve";
 
 const TOTAL_PHASES = 14;
@@ -218,7 +218,10 @@ export async function loadReportsPageData(
   const partial = evidenceItems.filter((e) => e.status === "partially_linked").length;
   const unlinked = evidenceItems.filter((e) => e.status === "unlinked").length;
 
-  const blockingGates = await countBlockingGates(projectId, focusPhase, gateScope);
+  const [userDisplay, blockingGates] = await Promise.all([
+    getCurrentUserDisplay(),
+    countBlockingGates(projectId, focusPhase, gateScope),
+  ]);
 
   const phasesCompleted = Math.max(0, focusPhase - 1);
   const phasesNotStarted = Math.max(0, TOTAL_PHASES - focusPhase);
@@ -279,7 +282,7 @@ export async function loadReportsPageData(
   );
 
   return {
-    user: { ...SOLO_USER_DISPLAY },
+    user: userDisplay,
     project: {
       id: project.id,
       code,

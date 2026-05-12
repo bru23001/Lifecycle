@@ -1,61 +1,10 @@
 import type {
-  ProjectDetailTab,
   ProjectListItem,
-  ProjectsScreenData,
   SelectedProject,
   SelectedProjectLifecyclePhase,
 } from "@/types/projects.types";
 
-export const PROJECT_DETAIL_TABS: Array<{ id: ProjectDetailTab; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "profile", label: "Profile" },
-  { id: "lifecycle-timeline", label: "Lifecycle Timeline" },
-  { id: "artifacts", label: "Artifacts" },
-  { id: "gates", label: "Gates" },
-  { id: "traceability", label: "Traceability" },
-  { id: "audit-trail", label: "Audit Trail" },
-];
-
-export const PROJECTS_LIST_FALLBACK: ProjectListItem[] = [
-  {
-    id: "mock-sip-001",
-    name: "Secure Identity Platform",
-    code: "SIP-001",
-    owner: "Alex Developer",
-    currentPhase: 3,
-    progressPercent: 65,
-    status: "In Progress",
-    updatedLabel: "2h ago",
-  },
-  {
-    id: "mock-dgh-002",
-    name: "Data Governance Hub",
-    code: "DGH-002",
-    owner: "Morgan Reviewer",
-    currentPhase: 4,
-    progressPercent: 40,
-    status: "In Progress",
-    updatedLabel: "1d ago",
-  },
-  {
-    id: "mock-tis-003",
-    name: "Threat Intelligence System",
-    code: "TIS-003",
-    owner: "Sam Architect",
-    currentPhase: 2,
-    progressPercent: 20,
-    status: "Blocked",
-    updatedLabel: "2d ago",
-  },
-];
-
-export const PROJECTS_USER_FALLBACK: ProjectsScreenData["user"] = {
-  name: "Alex Developer",
-  role: "Project Owner",
-  initials: "AD",
-};
-
-export function fallbackLifecyclePhases(currentPhase: number): SelectedProjectLifecyclePhase[] {
+function fallbackLifecyclePhases(currentPhase: number): SelectedProjectLifecyclePhase[] {
   return [
     "Idea Capture",
     "Problem Definition",
@@ -76,7 +25,8 @@ export function fallbackLifecyclePhases(currentPhase: number): SelectedProjectLi
   });
 }
 
-export function buildFallbackSelectedProject(project: ProjectListItem): SelectedProject {
+/** Base shape merged with Prisma row data on the projects screen. */
+export function buildSelectedProjectFromListItem(project: ProjectListItem): SelectedProject {
   return {
     header: {
       id: project.id,
@@ -141,6 +91,7 @@ export function buildFallbackSelectedProject(project: ProjectListItem): Selected
       { id: "qa-audit", label: "View Audit Trail", href: "/projects" },
       { id: "qa-export", label: "Export Project Package", href: "/projects" },
     ],
+    auditTrailEntries: [],
     nextRequiredAction: {
       description:
         "Complete required artifacts and evidence items before advancing to the next lifecycle gate review.",

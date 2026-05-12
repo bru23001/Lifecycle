@@ -1,5 +1,5 @@
 import { TraceabilityMatrixPage } from "@/components/traceability/traceability-matrix-page";
-import { buildTraceabilityMatrixInitial } from "@/lib/traceability-matrix-initial";
+import { loadTraceabilityMatrixWithView } from "@/lib/server/traceability";
 
 export default async function GateEvidenceTraceabilityPage({
   params,
@@ -7,6 +7,6 @@ export default async function GateEvidenceTraceabilityPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const initial = buildTraceabilityMatrixInitial(id, "gates");
+  const initial = await loadTraceabilityMatrixWithView(id, "gates");
   return <TraceabilityMatrixPage initial={initial} />;
 }

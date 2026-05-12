@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
-import { buildTraceabilityMatrixMock } from "@/data/traceability.mock";
+import { loadTraceabilityMatrix } from "@/lib/server/traceability";
 
 export default async function TraceabilityReportPage({
   params,
@@ -11,7 +11,7 @@ export default async function TraceabilityReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = buildTraceabilityMatrixMock(id);
+  const data = await loadTraceabilityMatrix(id);
 
   return (
     <AuthenticatedAppShell
@@ -36,7 +36,8 @@ export default async function TraceabilityReportPage({
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Traceability Report</h1>
             <p className="mt-2 text-sm text-slate-600">
-              End-to-end traceability health across lifecycle phases, requirements, tests, gates, and evidence.
+              End-to-end traceability health across lifecycle phases, requirements, tests, gates, and evidence. Figures
+              are derived from the live project graph (not a static demo).
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm min-[901px]:grid-cols-4">
               <div className="rounded-lg bg-slate-50 px-3 py-2">
@@ -58,20 +59,26 @@ export default async function TraceabilityReportPage({
                 </p>
               </div>
             </div>
+            <p className="mt-4 text-xs text-slate-500">Last updated (matrix): {data.filters.lastUpdatedLabel}</p>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Top Gaps Requiring Correction</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {data.traceabilityGaps.slice(0, 8).map((gap) => (
-                <li key={gap.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-                  <Link href={gap.href} className="font-medium text-[#2563eb] hover:underline">
-                    {gap.objectId}
-                  </Link>{" "}
-                  · {gap.objectName} · {gap.issue}
-                </li>
-              ))}
-            </ul>
+            <h2 className="text-lg font-semibold text-slate-900">Top gaps</h2>
+            {data.traceabilityGaps.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600">No gaps detected with the current rules. Add requirements or
+                evidence to grow the graph.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 text-sm">
+                {data.traceabilityGaps.slice(0, 8).map((gap) => (
+                  <li key={gap.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                    <Link href={gap.href} className="font-medium text-[#2563eb] hover:underline">
+                      {gap.objectId}
+                    </Link>{" "}
+                    · {gap.objectName} · {gap.issue}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       </main>

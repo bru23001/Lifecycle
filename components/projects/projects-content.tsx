@@ -9,6 +9,7 @@ import {
   Clock3,
   ClipboardList,
   CircleAlert,
+  FolderKanban,
   FileText,
   GitBranch,
   Network,
@@ -20,7 +21,8 @@ import {
   Star,
 } from "lucide-react";
 
-import { PROJECT_DETAIL_TABS } from "@/data/projects.mock";
+import { PROJECT_DETAIL_TABS } from "@/data/projects.constants";
+import { ProjectAuditTrailTab, ProjectLifecycleTimelineTab } from "@/components/projects/project-audit-tabs";
 import type {
   ProjectDetailTab,
   ProjectListItem,
@@ -606,7 +608,7 @@ export function ActiveTabContent({
     return <GenericDataTab selectedProject={selectedProject} title="Project Profile" description="Project identity, ownership, classification, and governance metadata." />;
   }
   if (selectedTab === "lifecycle-timeline") {
-    return <GenericDataTab selectedProject={selectedProject} title="Lifecycle Timeline" description="Phase-by-phase movement, historical changes, and readiness checkpoints." />;
+    return <ProjectLifecycleTimelineTab selectedProject={selectedProject} />;
   }
   if (selectedTab === "artifacts") {
     return <GenericDataTab selectedProject={selectedProject} title="Artifacts" description="Artifact inventory, completion status, and evidence package readiness." />;
@@ -617,7 +619,7 @@ export function ActiveTabContent({
   if (selectedTab === "traceability") {
     return <GenericDataTab selectedProject={selectedProject} title="Traceability" description="Links between requirements, designs, tests, and evidence records." />;
   }
-  return <GenericDataTab selectedProject={selectedProject} title="Audit Trail" description="Immutable activity and decision log for project lifecycle governance." />;
+  return <ProjectAuditTrailTab selectedProject={selectedProject} />;
 }
 
 export function ProjectDetailPanel({
@@ -742,13 +744,38 @@ export function ProjectsContent({
   selectedTab,
   currentPage,
   totalPages,
+  hasProjects,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
   currentPage: number;
   totalPages: number;
+  hasProjects: boolean;
 }) {
+  if (!hasProjects) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col items-center justify-center overflow-hidden px-5 pb-8 pt-4 min-[901px]:px-8">
+        <section className="cc-card-standard flex max-w-md flex-col items-center gap-4 p-10 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <FolderKanban className="size-7 stroke-[2]" aria-hidden />
+          </div>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-950">No projects yet</h2>
+          <p className="text-sm leading-relaxed text-slate-600">
+            Create a project to manage lifecycle phases, gate reviews, artifacts, and traceability in one workspace.
+          </p>
+          <Link
+            href="/projects/new"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-[#2563eb] px-4 text-sm font-semibold text-white"
+          >
+            <Plus className="size-4" />
+            New project
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col overflow-hidden px-5 pb-5 min-[901px]:px-8">
       <div className="split-detail-grid min-h-0 flex-1 overflow-hidden">

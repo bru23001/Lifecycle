@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     "Capture lifecycle artifacts, run gate reviews (G1–G10), and inspect traceability across all workspace milestones.",
 };
 
+/** Avoid cached HTML that still references old `/_next/static/*` hashes after rebuilds. */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

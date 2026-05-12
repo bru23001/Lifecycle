@@ -1,5 +1,5 @@
 import { ArtifactLibraryPage } from "@/components/artifact-library/artifact-library-page";
-import { buildArtifactLibraryMock } from "@/data/artifact-library.mock";
+import { loadArtifactLibraryData } from "@/lib/server/artifact-library";
 
 export default async function ArtifactLibraryRoutePage({
   params,
@@ -7,6 +7,6 @@ export default async function ArtifactLibraryRoutePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = buildArtifactLibraryMock(id);
+  const data = await loadArtifactLibraryData(id);
   return <ArtifactLibraryPage data={data} />;
 }
