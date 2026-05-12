@@ -208,14 +208,14 @@ This artifact documents the evaluation and scoring of solution options against e
       totalPhases: 14,
       phaseName: "Evaluation & Selection",
       status: "in_progress",
-      workspaceHref: "/projects/sip-001/workspace?phase=3",
+      workspaceHref: "/workspace?phase=3",
     },
     linkedGate: {
       gateId: "g2",
       gateCode: "G2",
       gateName: "Feasibility Approval",
       status: "pending_decision",
-      reviewHref: "/projects/sip-001/gates/g2/review",
+      reviewHref: "/gates/g2/review",
     },
     quickInfo: {
       artifactType: "Template Output",
@@ -279,8 +279,8 @@ export function buildArtifactLibraryMock(
   data.selectedArtifact.detail.projectId = projectId;
   data.selectedArtifact.markdownView.artifactId = selectedArtifactId ?? data.selectedArtifact.markdownView.artifactId;
   data.selectedArtifact.jsonEvidence.projectId = projectId;
-  data.selectedArtifact.linkedPhase.workspaceHref = `/projects/${projectId}/workspace?phase=${data.selectedArtifact.linkedPhase.phaseNumber}`;
-  data.selectedArtifact.linkedGate.reviewHref = `/projects/${projectId}/gates/${data.selectedArtifact.linkedGate.gateId}/review`;
+  data.selectedArtifact.linkedPhase.workspaceHref = `/workspace?phase=${data.selectedArtifact.linkedPhase.phaseNumber}`;
+  data.selectedArtifact.linkedGate.reviewHref = `/gates/${data.selectedArtifact.linkedGate.gateId}/review`;
 
   const selected =
     data.artifactListItems.find((item) => item.id === selectedArtifactId) ??

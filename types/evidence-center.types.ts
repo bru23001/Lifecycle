@@ -104,6 +104,8 @@ export type EvidenceActionState = {
   description: string;
   secondaryLabel: string;
   primaryLabel: string;
+  /** Optional sub-label rendered under the primary action (e.g. "Finalize approval decision"). */
+  primarySubLabel?: string;
   secondaryHref?: string;
   primaryHref?: string;
   canSubmit: boolean;

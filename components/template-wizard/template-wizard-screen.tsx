@@ -4,21 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
-import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
-import { JsonEvidencePreview } from "@/components/template-wizard/json-evidence-preview";
-import { MarkdownPreview } from "@/components/template-wizard/markdown-preview";
-import { SectionEditorPanel } from "@/components/template-wizard/section-editor-panel";
-import { TemplateSelectionPanel } from "@/components/template-wizard/template-selection-panel";
-import { ValidationPanel } from "@/components/template-wizard/validation-panel";
-import { WizardActionBar } from "@/components/template-wizard/wizard-action-bar";
-import { WizardHeader } from "@/components/template-wizard/wizard-header";
 import {
-  buildJsonEvidence,
-  buildMarkdownPreview,
   computeValidationSummary,
 } from "@/lib/template-wizard-computed";
 import type { TemplateWizardData, ValidationIssue } from "@/types/template-wizard.types";
+import { toJsonEvidence } from "@/templates/renderJsonEvidence";
+import { toMarkdown } from "@/templates/renderMarkdown";
+import { TemplateWizardContent } from "@/components/template-wizard/template-wizard-content";
 
 function downloadFile(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -33,9 +26,27 @@ function downloadFile(filename: string, content: string, mime: string) {
 export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData }) {
   const router = useRouter();
   const sections = initial.selectedTemplate.sections;
+  const storageKey = useMemo(
+    () => `template-wizard-draft:${initial.project.id}:${initial.selectedTemplate.id}`,
+    [initial.project.id, initial.selectedTemplate.id],
+  );
+
+  const initialFormValues = useMemo(() => {
+    if (typeof window === "undefined") {
+      return initial.formValues;
+    }
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return initial.formValues;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return { ...initial.formValues, ...parsed };
+    } catch {
+      return initial.formValues;
+    }
+  }, [initial.formValues, storageKey]);
 
   const [activeSectionId, setActiveSectionId] = useState(initial.activeSectionId);
-  const [formValues, setFormValues] = useState<Record<string, unknown>>(initial.formValues);
+  const [formValues, setFormValues] = useState<Record<string, unknown>>(initialFormValues);
   const [autosaveLabel, setAutosaveLabel] = useState<string | null>(
     initial.wizardHeader.lastSavedLabel ?? null,
   );
@@ -73,21 +84,27 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
   }, []);
 
   const markdownPreview = useMemo(
-    () => buildMarkdownPreview(wizardHeader, sections, formValues, generatedAtLabel),
+    () =>
+      toMarkdown({
+        wizardHeader,
+        sections,
+        formValues,
+        generatedAtLabel,
+      }),
     [wizardHeader, sections, formValues, generatedAtLabel],
   );
 
   const jsonEvidence = useMemo(
     () =>
-      buildJsonEvidence(
+      toJsonEvidence({
         wizardHeader,
-        initial.selectedTemplate,
-        initial.project.id,
-        initial.user.name,
+        selectedTemplate: initial.selectedTemplate,
+        projectId: initial.project.id,
+        generatedBy: initial.user.name,
         sections,
         formValues,
         validationSummary,
-      ),
+      }),
     [
       wizardHeader,
       initial.selectedTemplate,
@@ -135,6 +152,15 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
     [bumpAutosave],
   );
 
+  const persistDraft = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(formValues));
+    } catch {
+      // non-blocking fallback: keep working even if storage is unavailable
+    }
+  }, [formValues, storageKey]);
+
   const onIssueClick = useCallback((issue: ValidationIssue) => {
     if (issue.sectionId) {
       setActiveSectionId(issue.sectionId);
@@ -158,8 +184,9 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
   }, [activeIndex, activeSection.id, sections, validationSummary.issues]);
 
   const saveDraft = useCallback(() => {
+    persistDraft();
     bumpAutosave();
-  }, [bumpAutosave]);
+  }, [bumpAutosave, persistDraft]);
 
   const exportMd = useCallback(() => {
     downloadFile(
@@ -181,6 +208,10 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
     validationSummary.errorCount > 0 || validationSummary.warningCount > 0
       ? "Resolve validation warnings and errors in the Validation Panel."
       : null;
+
+  const saveArtifactDisabledReason = !initial.artifactSaveState.canSave
+    ? initial.artifactSaveState.blockers.join("; ") || "Artifact cannot be saved yet."
+    : null;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -206,7 +237,7 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
       projectName={initial.project.name}
       phaseSummary={phaseSummary}
       phaseProgressPct={wizardHeader.completionPercent}
-      navActive="templates"
+      navActive="artifacts"
     >
       <TopHeader
         title="Template Wizard"
@@ -214,85 +245,43 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
         autosaveLabel={autosaveLabel}
         notificationCount={6}
       />
-
-      <div className="flex min-h-0 flex-1 flex-col bg-[#f8fafc] dark:bg-background">
-        <div className="mx-auto w-full max-w-[1920px] px-5 pt-4">
-          <Breadcrumbs
-            items={[
-              { label: "Projects", href: "/projects" },
-              {
-                label: `${initial.project.name} (${initial.project.code})`,
-                href: `/projects/${initial.project.id}`,
-              },
-              { label: "Lifecycle Workspace", href: `/projects/${initial.project.id}/workspace` },
-              { label: "Template Wizard" },
-              {
-                label: `${wizardHeader.templateCode} ${wizardHeader.templateName}`,
-              },
-            ]}
-          />
-        </div>
-
-        <div className="mx-auto w-full max-w-[1920px] px-5 pb-3 pt-2">
-          <WizardHeader data={wizardHeader} />
-        </div>
-
-        <div className="template-wizard-grid">
-          <TemplateSelectionPanel
-            projectId={initial.project.id}
-            phaseNumber={wizardHeader.phaseNumber}
-            phaseName={wizardHeader.phaseName}
-            templates={initial.templateSelections}
-            selectedTemplateId={initial.selectedTemplate.id}
-            sections={sections}
-            activeSectionId={activeSection.id}
-            formValues={formValues}
-            onSelectSection={setActiveSectionId}
-          />
-
-          <SectionEditorPanel
-            section={activeSection}
-            sectionIndex={activeIndex}
-            sectionCount={sections.length}
-            values={formValues}
-            errors={sectionErrors}
-            idPrefix={`sec-${activeSection.id}`}
-            onChange={onFieldChange}
-            canGoPrev={activeIndex > 0}
-            canGoNext={activeIndex < sections.length - 1}
-            onPrev={goPrev}
-            onNext={goNext}
-            onSaveSection={saveDraft}
-          />
-
-          <div className="validation-preview-panel">
-            <ValidationPanel summary={validationSummary} onIssueClick={onIssueClick} />
-            <MarkdownPreview
-              data={markdownPreview}
-              onRegenerate={() => {
-                bumpAutosave();
-              }}
-            />
-            <JsonEvidencePreview data={jsonEvidence} />
-          </div>
-        </div>
-
-        <WizardActionBar
-          autosaveLabel={autosaveLabel}
-          onSaveDraft={saveDraft}
-          onExportMarkdown={exportMd}
-          onExportJson={exportJson}
-          onCancel={() => router.push(`/projects/${initial.project.id}/workspace`)}
-          onSaveArtifact={saveDraft}
-          onMarkComplete={() => {
-            if (!markCompleteDisabledReason) {
-              setAutosaveLabel("Marked complete · saved");
-            }
-          }}
-          saveArtifactDisabledReason={null}
-          markCompleteDisabledReason={markCompleteDisabledReason}
-        />
-      </div>
+      <TemplateWizardContent
+        project={initial.project}
+        wizardHeader={wizardHeader}
+        templateSelections={initial.templateSelections}
+        selectedTemplateId={initial.selectedTemplate.id}
+        sections={sections}
+        activeSection={activeSection}
+        activeIndex={activeIndex}
+        formValues={formValues}
+        sectionErrors={sectionErrors}
+        validationSummary={validationSummary}
+        markdownPreview={markdownPreview}
+        jsonEvidence={jsonEvidence}
+        autosaveLabel={autosaveLabel}
+        onSelectSection={setActiveSectionId}
+        onFieldChange={onFieldChange}
+        onIssueClick={onIssueClick}
+        onPrevSection={goPrev}
+        onNextSection={goNext}
+        onSaveSection={saveDraft}
+        onRegenerateMarkdown={bumpAutosave}
+        onSaveDraft={saveDraft}
+        onExportMarkdown={exportMd}
+        onExportJson={exportJson}
+        onCancel={() => router.push(`/projects/${initial.project.id}/workspace`)}
+        onSaveArtifact={() => {
+          saveDraft();
+        }}
+        onMarkComplete={() => {
+          if (!markCompleteDisabledReason) {
+            setAutosaveLabel("Marked complete · saved");
+            saveDraft();
+          }
+        }}
+        saveArtifactDisabledReason={saveArtifactDisabledReason}
+        markCompleteDisabledReason={markCompleteDisabledReason}
+      />
     </AuthenticatedAppShell>
   );
 }

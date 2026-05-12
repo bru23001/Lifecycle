@@ -109,6 +109,17 @@
   --cc-red: #dc2626;
   --cc-purple: #7c3aed;
   --cc-gray: #94a3b8;
+
+  /* Global card standard (center-pane baseline) */
+  --cc-card-standard-radius: 1rem;
+  --cc-card-standard-padding: 1.5rem;
+  --cc-card-standard-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --cc-card-title-size: 1.25rem;
+  --cc-card-title-line-height: 1.75rem;
+  --cc-card-body-size: 1rem;
+  --cc-card-body-line-height: 1.5rem;
+  --cc-card-meta-size: 0.95rem;
+  --cc-card-meta-line-height: 1.4rem;
 }
 
 .dark {
@@ -181,6 +192,8 @@
   .app-shell {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100dvh;
     min-height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -194,8 +207,15 @@
   .main-area {
     display: grid;
     grid-template-rows: var(--header-height) minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
     min-width: 0;
+    overflow: hidden;
     background: var(--app-bg);
+  }
+
+  .main-area > * {
+    min-height: 0;
   }
 
   .page-content {
@@ -294,10 +314,45 @@
   }
 
   .platform-surface-card {
-    border-radius: var(--card-radius);
-    padding: var(--card-padding);
+    border-radius: var(--cc-card-standard-radius);
+    padding: var(--cc-card-standard-padding);
     background: var(--surface);
     border: 1px solid var(--cc-border);
+    box-shadow: var(--cc-card-standard-shadow);
+  }
+
+  .cc-card-standard {
+    border-radius: var(--cc-card-standard-radius);
+    border: 1px solid var(--cc-border);
+    background: var(--surface);
+    box-shadow: var(--cc-card-standard-shadow);
+    padding: var(--cc-card-standard-padding);
+  }
+
+  .cc-card-title {
+    font-size: var(--cc-card-title-size);
+    line-height: var(--cc-card-title-line-height);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .cc-card-text {
+    font-size: var(--cc-card-body-size);
+    line-height: var(--cc-card-body-line-height);
+    color: var(--text-secondary);
+  }
+
+  .cc-card-meta {
+    font-size: var(--cc-card-meta-size);
+    line-height: var(--cc-card-meta-line-height);
+    color: var(--text-muted);
+  }
+
+  .cc-card-link {
+    font-size: var(--cc-card-body-size);
+    line-height: var(--cc-card-body-line-height);
+    font-weight: 600;
+    color: var(--cc-blue);
   }
 
   @media (max-width: 1280px) {
@@ -317,8 +372,7 @@
     .approval-review-panel,
     .review-status-panel,
     .validation-preview-panel,
-    .settings-overview-panel,
-    .gate-decision-column {
+    .settings-overview-panel {
       grid-column: 1 / -1;
     }
 
@@ -342,27 +396,37 @@
     }
   }
 
-  /* Lifecycle Workspace — three-panel workspace (compact) */
+  /* ============================================================
+     Lifecycle Workspace — single source of truth for layout.
+     Cards in center & right columns get a uniform contract:
+       - flex column, min-h: 0, height: 100%, overflow: hidden
+     Long-content cards expose a `.card-scroll-area` for internal
+     scrolling. Padded cards (p-4) use overflow:auto on the section.
+     ============================================================ */
   .lifecycle-workspace {
     display: grid;
-    grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr) 360px;
+    grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr) 320px;
     gap: var(--grid-gap);
     padding: var(--page-padding-mobile) var(--page-padding) var(--page-padding);
     background: var(--app-bg);
     height: 100%;
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
     align-items: stretch;
-  }
-
-  .lifecycle-workspace > * {
-    min-height: 0;
   }
 
   .dark .lifecycle-workspace {
     background: var(--app-bg);
   }
 
+  .lifecycle-workspace > * {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+  }
+
+  /* Visual: rounded card corners on every workspace card */
   .phase-navigator-panel,
   .current-phase-panel,
   .review-status-panel,
@@ -372,42 +436,111 @@
   .completion-checklist,
   .validation-warnings,
   .submit-for-gate-review {
-    min-width: 0;
+    border-radius: var(--cc-card-standard-radius);
   }
 
-  .phase-navigator-panel,
-  .current-phase-panel,
-  .review-status-panel {
+  /* Left column — phase navigator fills the column */
+  .phase-navigator-panel {
     display: flex;
     flex-direction: column;
-    gap: var(--grid-gap);
+    height: 100%;
     min-height: 0;
     overflow: hidden;
-    flex: 1 1 0%;
   }
 
+  /* Center & right column containers — 3 equal stacked rows */
+  .current-phase-panel,
+  .review-status-panel {
+    display: grid;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: var(--grid-gap);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Cards inside center & right columns: stretch to fill row, scroll inside */
+  .current-phase-panel > *,
+  .review-status-panel > * {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  /* Padded cards scroll on the section itself */
+  .validation-warnings,
+  .completion-checklist,
+  .submit-for-gate-review,
+  .current-phase-workspace {
+    overflow: auto;
+  }
+
+  /* Sticky-header + scrollable-body cards (templates, evidence) */
+  .required-templates > .card-header,
+  .evidence-attachments > .card-header {
+    flex: 0 0 auto;
+  }
+
+  .card-scroll-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* Merged phase-header + workspace card */
+  .current-phase-workspace > .current-phase-workspace__header {
+    flex: 0 0 auto;
+  }
+
+  .current-phase-workspace > .current-phase-workspace__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* Tablet — drop the third column; right panel becomes a row of 3 cards */
   @media (max-width: 1280px) {
     .lifecycle-workspace {
-      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-columns: var(--left-panel-narrow) minmax(0, 1fr);
     }
 
     .review-status-panel {
       grid-column: 1 / -1;
-      display: grid;
+      grid-template-rows: auto;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: var(--grid-gap);
+      height: auto;
     }
   }
 
+  /* Mobile — stack everything; release height constraints */
   @media (max-width: 900px) {
     .lifecycle-workspace {
       grid-template-columns: 1fr;
+      grid-auto-rows: auto;
+      height: auto;
+      overflow: visible;
       padding: var(--page-padding-mobile);
     }
 
-    .phase-navigator-panel,
-    .review-status-panel {
-      display: block;
+    .current-phase-panel,
+    .review-status-panel,
+    .phase-navigator-panel {
+      display: flex;
+      flex-direction: column;
+      grid-template-rows: none;
+      grid-template-columns: none;
+      height: auto;
+      overflow: visible;
+    }
+
+    .current-phase-panel > *,
+    .review-status-panel > * {
+      height: auto;
+      max-height: none;
+      overflow: visible;
     }
 
     .review-status-panel > * + * {
@@ -727,10 +860,10 @@
     }
   }
 
-  /* Evidence Center — split detail wide (380 / flex / 420) */
+  /* Evidence Center — items column 620px (flex detail / wide coverage) */
   .evidence-center {
     display: grid;
-    grid-template-columns: 380px minmax(0, 1fr) var(--right-panel-wide);
+    grid-template-columns: minmax(0, 620px) minmax(0, 1fr) var(--right-panel-wide);
     gap: var(--grid-gap);
     padding: var(--page-padding-tablet) 0 var(--page-padding-tablet);
     height: 100%;
@@ -764,7 +897,7 @@
 
   @media (max-width: 1280px) {
     .evidence-center {
-      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
     }
 
     .evidence-coverage-panel {
@@ -824,11 +957,9 @@
   }
 
   /*
-   * Shell containment hardening:
-   * Keep every major pane/card inside the static app shell and prefer
-   * internal scrollbars over layout overflow.
+   * Shell containment hardening — applies to non-lifecycle-workspace
+   * pages. The lifecycle workspace owns its own containment block above.
    */
-  .lifecycle-workspace,
   .artifact-library,
   .template-wizard-grid,
   .traceability-matrix,
@@ -846,7 +977,6 @@
     overflow: hidden;
   }
 
-  .lifecycle-workspace > *,
   .artifact-library > *,
   .template-wizard-grid > *,
   .traceability-report-card-grid > *,
@@ -862,9 +992,6 @@
     max-width: 100%;
   }
 
-  .phase-navigator-panel,
-  .current-phase-panel,
-  .review-status-panel,
   .artifact-list-panel,
   .artifact-detail-panel,
   .artifact-context-panel,
@@ -979,4 +1106,28 @@
       display: none !important;
     }
   }
+}
+
+.lifecycle-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.lifecycle-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.lifecycle-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.lifecycle-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.lifecycle-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

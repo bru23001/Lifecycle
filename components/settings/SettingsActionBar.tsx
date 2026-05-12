@@ -25,7 +25,7 @@ export function SettingsActionBar({
   onReset: () => void;
 }) {
   return (
-    <footer className="sticky bottom-0 z-20 mt-5 flex flex-col items-stretch justify-between gap-3 border-t border-[#e5e7eb] bg-white px-4 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] min-[901px]:flex-row min-[901px]:items-center min-[901px]:px-8">
+    <footer className="z-20 mt-5 flex shrink-0 flex-col items-stretch justify-between gap-3 border-t border-[#e5e7eb] bg-white px-4 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] min-[901px]:flex-row min-[901px]:items-center min-[901px]:px-8">
       <div className="flex items-start gap-2">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-blue-700" aria-hidden />
         <div>

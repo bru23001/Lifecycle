@@ -17,15 +17,16 @@ export function SettingsNavigationPanel({
 }) {
   return (
     <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-bold text-slate-900">Settings</h2>
-      <ul className="mt-3 space-y-2">
+      <h2 className="text-xl font-bold text-slate-900">Settings</h2>
+      <p className="mt-0.5 text-xs text-slate-500">Configure platform behavior</p>
+      <ul className="mt-4 space-y-2">
         {data.navigationItems.map((item) => (
           <li key={item.id}>
             <SettingsNavItem item={item} activeSection={activeSection} onSelect={onSectionChange} />
           </li>
         ))}
       </ul>
-      <div className="mt-4 border-t border-slate-200 pt-3">
+      <div className="mt-auto border-t border-slate-200 pt-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">System Settings</p>
         <ul className="mt-2 space-y-1">
           {data.systemNavigationItems.map((item) => (

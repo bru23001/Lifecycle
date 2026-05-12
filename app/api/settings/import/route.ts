@@ -3,7 +3,18 @@ import { NextResponse } from "next/server";
 import { readSettingsStore, writeSettingsStore } from "@/lib/settings-storage";
 import type { SettingsActivity, SettingsPageData } from "@/types/settings.types";
 
-type PartialImport = Partial<Pick<SettingsPageData, "exportSettings" | "localStorageSettings" | "activeSection">>;
+type PartialImport = Partial<
+  Pick<
+    SettingsPageData,
+    | "activeSection"
+    | "lifecycleConfiguration"
+    | "templateRegistry"
+    | "gateRules"
+    | "rolesPermissions"
+    | "exportSettings"
+    | "localStorageSettings"
+  >
+>;
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { payload?: PartialImport };
@@ -22,6 +33,10 @@ export async function POST(request: Request) {
   const merged: SettingsPageData = {
     ...current,
     activeSection: body.payload.activeSection ?? current.activeSection,
+    lifecycleConfiguration: body.payload.lifecycleConfiguration ?? current.lifecycleConfiguration,
+    templateRegistry: body.payload.templateRegistry ?? current.templateRegistry,
+    gateRules: body.payload.gateRules ?? current.gateRules,
+    rolesPermissions: body.payload.rolesPermissions ?? current.rolesPermissions,
     exportSettings: body.payload.exportSettings ?? current.exportSettings,
     localStorageSettings: body.payload.localStorageSettings ?? current.localStorageSettings,
     recentActivity: [importActivity, ...current.recentActivity].slice(0, 20),

@@ -1,15 +1,17 @@
 import Link from "next/link";
 import {
-  AlertTriangle,
+  AlertCircle,
   ArrowUpDown,
-  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Circle,
   Clock3,
   ClipboardList,
   CircleAlert,
   FileText,
   GitBranch,
+  Network,
   Package,
   Pencil,
   Plus,
@@ -24,7 +26,6 @@ import type {
   ProjectListItem,
   ProjectsScreenData,
   SelectedProject,
-  SelectedProjectMetric,
 } from "@/types/projects.types";
 
 function statusBadgeClass(status: ProjectListItem["status"]): string {
@@ -34,26 +35,111 @@ function statusBadgeClass(status: ProjectListItem["status"]): string {
   return "bg-emerald-50 text-emerald-700";
 }
 
-function metricToneClass(tone: SelectedProjectMetric["tone"]): string {
-  switch (tone) {
-    case "green":
-      return "bg-emerald-50 text-emerald-600";
-    case "amber":
-      return "bg-amber-50 text-amber-600";
-    case "red":
-      return "bg-rose-50 text-rose-600";
-    case "purple":
-      return "bg-fuchsia-50 text-fuchsia-600";
-    default:
-      return "bg-blue-50 text-blue-600";
-  }
+type SummaryCard = {
+  id: string;
+  title: string;
+  value: string;
+  detail: string;
+  icon: "file" | "shield" | "network";
+  iconColor: "blue" | "green" | "slate";
+};
+
+type ActivityItem = {
+  id: string;
+  icon: "artifact" | "gate" | "evidence" | "trace" | "project";
+  iconColor: "blue" | "green" | "slate";
+  text: string;
+  author: string;
+  time: string;
+};
+
+type GateItem = {
+  id: string;
+  title: string;
+  status: "Approved" | "In Review" | "Pending";
+  time: string;
+};
+
+function SummaryIcon({
+  icon,
+  color,
+}: {
+  icon: SummaryCard["icon"];
+  color: SummaryCard["iconColor"];
+}) {
+  const colorClasses = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-emerald-50 text-emerald-600",
+    slate: "bg-slate-100 text-slate-600",
+  };
+  const iconClasses = "h-7 w-7 stroke-[2.2]";
+
+  return (
+    <div
+      className={[
+        "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl",
+        colorClasses[color],
+      ].join(" ")}
+    >
+      {icon === "file" && <FileText className={iconClasses} />}
+      {icon === "shield" && <ShieldCheck className={iconClasses} />}
+      {icon === "network" && <Network className={iconClasses} />}
+    </div>
+  );
 }
 
-function metricIcon(label: string) {
-  if (label.includes("Gate")) return ShieldCheck;
-  if (label.includes("Trace")) return GitBranch;
-  if (label.includes("Evidence")) return SearchCheck;
-  return FileText;
+function ActivityIcon({
+  icon,
+  color,
+}: {
+  icon: ActivityItem["icon"];
+  color: ActivityItem["iconColor"];
+}) {
+  const colorClasses = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-emerald-50 text-emerald-600",
+    slate: "bg-slate-100 text-slate-600",
+  };
+  const iconClassName = "h-5 w-5 stroke-[2.2]";
+
+  return (
+    <div
+      className={[
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+        colorClasses[color],
+      ].join(" ")}
+    >
+      {icon === "artifact" && <FileText className={iconClassName} />}
+      {icon === "gate" && <ShieldCheck className={iconClassName} />}
+      {icon === "evidence" && <ClipboardList className={iconClassName} />}
+      {icon === "trace" && <GitBranch className={iconClassName} />}
+      {icon === "project" && <FileText className={iconClassName} />}
+    </div>
+  );
+}
+
+function GateStatusIcon({ status }: { status: GateItem["status"] }) {
+  if (status === "Approved") {
+    return <CheckCircle2 className="h-6 w-6 text-emerald-500" />;
+  }
+  if (status === "In Review") {
+    return <Clock3 className="h-6 w-6 text-amber-500" />;
+  }
+  return <Circle className="h-6 w-6 text-slate-400" />;
+}
+
+function GateStatusText({ status }: { status: GateItem["status"] }) {
+  const statusClasses = {
+    Approved: "text-emerald-600",
+    "In Review": "text-amber-500",
+    Pending: "text-slate-600",
+  };
+
+  return (
+    <span className={["font-semibold", statusClasses[status]].join(" ")}>
+      {status}
+    </span>
+  );
 }
 
 export function ProjectListPanel({
@@ -75,10 +161,10 @@ export function ProjectListPanel({
   const previousPage = Math.max(1, currentPage - 1);
   const nextPage = Math.min(totalPages, currentPage + 1);
   return (
-    <aside className="flex min-h-0 flex-col rounded-2xl border border-[var(--cc-border)] bg-white dark:bg-card">
+    <aside className="cc-card-standard flex h-full min-h-0 flex-col p-0 dark:bg-card">
       <div className="flex h-[52px] items-center justify-between border-b border-slate-100 px-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-[13px] font-bold">Project List</h2>
+          <h2 className="cc-card-title">Project List</h2>
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
             {projects.length}
           </span>
@@ -93,7 +179,7 @@ export function ProjectListPanel({
       </div>
       <div className="border-b border-slate-100 px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex-1 rounded-md border border-slate-200 bg-[var(--app-bg)] px-3 py-2 text-[11px] text-slate-400">
+          <div className="cc-card-meta flex-1 rounded-md border border-slate-200 bg-[var(--app-bg)] px-3 py-2">
             Search projects...
           </div>
           <button
@@ -119,7 +205,7 @@ export function ProjectListPanel({
               }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="inline-flex items-center gap-1 truncate text-[12px] font-semibold text-slate-800">
+                <p className="cc-card-text inline-flex items-center gap-1 truncate font-semibold text-slate-800">
                   {project.name}
                   {project.status === "In Progress" ? <Star className="size-3 text-amber-500" /> : null}
                   {project.status === "Blocked" ? <CircleAlert className="size-3 text-rose-500" /> : null}
@@ -128,10 +214,10 @@ export function ProjectListPanel({
                   {project.status}
                 </span>
               </div>
-              <p className="mt-1 text-[10px] text-slate-500">
+              <p className="cc-card-meta mt-1">
                 {project.code} · Phase {project.currentPhase}
               </p>
-              <p className="mt-1 text-[10px] text-slate-500">Updated {project.updatedLabel}</p>
+              <p className="cc-card-meta mt-1">Updated {project.updatedLabel}</p>
               <div className="mt-2 flex items-center gap-2">
                 <div className="h-1.5 flex-1 rounded-full bg-slate-100">
                   <div
@@ -139,7 +225,7 @@ export function ProjectListPanel({
                     style={{ width: `${project.progressPercent}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-semibold text-slate-500">{project.progressPercent}%</span>
+                <span className="cc-card-meta font-semibold">{project.progressPercent}%</span>
               </div>
             </Link>
           );
@@ -155,10 +241,10 @@ export function ProjectListPanel({
         >
           <ChevronLeft className="size-4" />
         </Link>
-        <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-[#1d4ed8]">
+        <span className="cc-card-meta inline-flex min-w-6 items-center justify-center rounded-md bg-blue-50 px-2 py-1 font-semibold text-[#1d4ed8]">
           {currentPage}
         </span>
-        <span className="text-[10px] font-semibold">{totalPages > 1 ? totalPages : 1}</span>
+        <span className="cc-card-meta font-semibold">{totalPages > 1 ? totalPages : 1}</span>
         <Link
           href={`/projects?selected=${selectedProjectId}&tab=${selectedTab}&page=${nextPage}`}
           className={`inline-flex size-6 items-center justify-center rounded-md hover:bg-slate-100 ${
@@ -183,7 +269,7 @@ export function ProjectDetailHeader({ selectedProject }: { selectedProject: Sele
             {selectedProject.header.status}
           </span>
         </div>
-        <p className="mt-1 text-[11px] text-slate-600">
+        <p className="cc-card-meta mt-1">
           {selectedProject.header.code} · Phase {selectedProject.header.currentPhase} of {selectedProject.header.totalPhases}
           {" · "}
           Owner: {selectedProject.header.owner}
@@ -229,205 +315,253 @@ export function ProjectTabs({
 }
 
 function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProject }) {
-  const totalPhases = selectedProject.header.totalPhases;
-  const currentPhase = selectedProject.header.currentPhase;
-  const visualCurrentPhase =
-    currentPhase >= totalPhases ? totalPhases : currentPhase > 5 ? 5 : currentPhase;
-  const earlyPhases = selectedProject.lifecyclePhases.slice(0, 5);
-  const finalPhaseLabel =
-    selectedProject.lifecyclePhases[selectedProject.lifecyclePhases.length - 1]?.label ??
-    "Maintenance / Review";
-  const milestones = [
-    ...earlyPhases.map((phase, index) => ({
-      id: phase.id,
-      label: phase.label,
-      phaseNumber: index + 1,
-    })),
-    {
-      id: "phase-final",
-      label: finalPhaseLabel,
-      phaseNumber: totalPhases,
-    },
+  const phaseTitles = [
+    "Idea Capture",
+    "Problem Definition",
+    "Evaluation & Selection",
+    "Feasibility & Business Case",
+    "Approval & Funding",
+    "Planning & Scope Control",
+    "Requirements",
+    "UI/UX Design",
+    "Architecture & Data Model",
+    "Development",
+    "Testing",
+    "Deployment & Release",
+    "Maintenance",
+    "Maintenance / Review",
   ];
+  const totalPhases = phaseTitles.length;
+  const currentPhase = Math.min(
+    totalPhases,
+    Math.max(1, selectedProject.header.currentPhase),
+  );
+  const currentIndex = currentPhase - 1;
+  const phases = phaseTitles.map((title, index) => ({
+    id: index + 1,
+    title,
+    status:
+      index < currentIndex
+        ? ("complete" as const)
+        : index === currentIndex
+          ? ("current" as const)
+          : ("pending" as const),
+  }));
+  const summaryCards: SummaryCard[] = selectedProject.metrics.map((metric) => {
+    const isGateMetric = metric.label.includes("Gate");
+    const isTraceMetric = metric.label.includes("Trace");
 
-  function milestoneState(phaseNumber: number): "completed" | "current" | "upcoming" {
-    if (phaseNumber === totalPhases) {
-      if (currentPhase >= totalPhases) return "current";
-      return "upcoming";
-    }
-    if (visualCurrentPhase > phaseNumber) return "completed";
-    if (visualCurrentPhase === phaseNumber) return "current";
-    return "upcoming";
-  }
-
+    return {
+      id: metric.id,
+      title: metric.label,
+      value: metric.value,
+      detail: metric.note,
+      icon: isGateMetric ? "shield" : isTraceMetric ? "network" : "file",
+      iconColor: isGateMetric ? "green" : isTraceMetric ? "slate" : "blue",
+    };
+  });
+  const recentActivity: ActivityItem[] = selectedProject.recentActivity
+    .slice(0, 5)
+    .map((item) => {
+      const text = item.title;
+      const lowered = text.toLowerCase();
+      const icon: ActivityItem["icon"] = lowered.includes("gate")
+        ? "gate"
+        : lowered.includes("trace")
+          ? "trace"
+          : lowered.includes("evidence")
+            ? "evidence"
+            : lowered.includes("project") || lowered.includes("phase")
+              ? "project"
+              : "artifact";
+      const iconColor: ActivityItem["iconColor"] =
+        icon === "trace" || icon === "project"
+          ? "slate"
+          : icon === "evidence"
+            ? "green"
+            : "blue";
+      return {
+        id: item.id,
+        icon,
+        iconColor,
+        text,
+        author: item.meta.split("·")[0]?.trim() ?? item.meta,
+        time: item.timeLabel,
+      };
+    });
+  const gateStatus: GateItem[] = selectedProject.gateStatuses
+    .slice(0, 6)
+    .map((gate) => ({
+      id: gate.gateId,
+      title: `${gate.gateId}: ${gate.title}`,
+      status:
+        gate.status === "Approved"
+          ? "Approved"
+          : gate.status === "In Review"
+            ? "In Review"
+            : "Pending",
+      time: gate.timeLabel,
+    }));
   return (
-    <div className="space-y-4">
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[13px] font-bold">Lifecycle Progress</h3>
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <section className="cc-card-standard shrink-0 p-6">
+        <div className="mb-8 flex items-center justify-between gap-2">
+          <h3 className="cc-card-title">
+            Lifecycle Progress
+          </h3>
           <Link
             href={`/projects?selected=${selectedProject.header.id}&tab=lifecycle-timeline`}
-            className="inline-flex items-center rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-[#1d4ed8]"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
           >
             View Full Timeline
           </Link>
         </div>
-        <div className="mt-4 overflow-x-auto pb-1">
-          <div className="flex min-w-[780px] items-start">
-            {milestones.map((milestone, idx) => {
-              const state = milestoneState(milestone.phaseNumber);
-              const isCurrent = state === "current";
-              const isCompleted = state === "completed";
-              const isFirst = idx === 0;
-              const hasConnector = idx < milestones.length - 1;
-              const nextPhase = milestones[idx + 1]?.phaseNumber ?? totalPhases;
-              const nextState = milestoneState(nextPhase);
-              const connectorTone =
-                state === "completed" && nextState === "completed"
-                  ? "bg-emerald-500"
-                  : state === "completed" && nextState === "current"
-                    ? "bg-[#2563eb]"
-                    : "bg-slate-200";
+        <div className="lifecycle-scroll overflow-x-auto pb-4">
+          <div className="relative min-w-[1900px] px-8">
+            <div className="absolute left-8 right-8 top-6 h-[3px] bg-slate-200" />
+            <div
+              className="absolute left-8 top-6 h-[3px] bg-emerald-500"
+              style={{
+                width: `calc(${(currentIndex / (phases.length - 1)) * 100}% - 0px)`,
+              }}
+            />
 
-              return (
-                <div key={milestone.id} className="flex min-w-0 flex-1 items-start">
-                  <div className="w-[86px] shrink-0">
+            <div className="relative grid grid-cols-[repeat(14,minmax(0,1fr))]">
+              {phases.map((phase) => {
+                const isComplete = phase.status === "complete";
+                const isCurrent = phase.status === "current";
+                const isPending = phase.status === "pending";
+
+                return (
+                  <div
+                    key={phase.id}
+                    className="flex flex-col items-center text-center"
+                  >
                     <div
-                      className={`mx-auto grid size-8 place-items-center rounded-full text-[11px] font-bold ${
-                        isCurrent
-                          ? "bg-[#2563eb] text-white shadow-[0_2px_8px_rgba(37,99,235,0.3)]"
-                          : isCompleted
-                            ? "bg-emerald-500 text-white"
-                            : "bg-slate-100 text-slate-500"
-                      }`}
+                      className={[
+                        "z-10 flex h-12 w-12 items-center justify-center rounded-full text-base font-bold",
+                        isComplete && "bg-emerald-500 text-white",
+                        isCurrent && "bg-blue-600 text-white",
+                        isPending && "bg-slate-100 text-slate-500",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                     >
-                      {isFirst && isCompleted ? <Check className="size-4" /> : milestone.phaseNumber}
+                      {phase.id === 1 && isComplete ? (
+                        <span className="text-xl leading-none">✓</span>
+                      ) : (
+                        phase.id
+                      )}
                     </div>
+
                     <p
-                      className={`mt-2 text-center text-[10px] font-semibold leading-4 ${
-                        isCurrent ? "text-[#1d4ed8]" : "text-slate-600"
-                      }`}
+                      className={[
+                        "mt-5 max-w-[130px] text-sm leading-6",
+                        isCurrent
+                          ? "font-medium text-blue-600"
+                          : "text-slate-700",
+                      ].join(" ")}
                     >
-                      {milestone.label}
+                      {phase.title}
                     </p>
                   </div>
-
-                  {hasConnector ? (
-                    <div className="relative mt-4 h-[2px] min-w-[44px] flex-1">
-                      <span className={`block h-[2px] w-full rounded-full ${connectorTone}`} />
-                      {idx === milestones.length - 2 ? (
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[14px] font-semibold leading-none text-slate-400">
-                          ...
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {selectedProject.metrics.map((metric) => {
-          const Icon = metricIcon(metric.label);
+      <section className="grid w-full shrink-0 grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        {summaryCards.map((card) => {
+          const isPositive = /(complete|passed)/i.test(card.detail);
+
           return (
-            <article key={metric.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className={`inline-grid size-8 place-items-center rounded-lg ${metricToneClass(metric.tone)}`}>
-                <Icon className="size-4" />
+            <article
+              key={card.id}
+              className="cc-card-standard flex min-h-[160px] items-start gap-6 p-7"
+            >
+              <SummaryIcon icon={card.icon} color={card.iconColor} />
+
+              <div className="space-y-4">
+                <h3 className="text-base font-medium text-slate-700">{card.title}</h3>
+                <p className="text-3xl font-bold tracking-tight text-slate-950">{card.value}</p>
+                <p
+                  className={[
+                    "text-base font-medium",
+                    isPositive ? "text-emerald-600" : "text-slate-500",
+                  ].join(" ")}
+                >
+                  {card.detail}
+                </p>
               </div>
-              <p className="mt-2 text-[11px] font-semibold text-slate-500">{metric.label}</p>
-              <p className="mt-1 text-2xl font-bold">{metric.value}</p>
-              <p className="mt-1 text-[10px] font-semibold text-slate-600">{metric.note}</p>
             </article>
           );
         })}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[13px] font-bold">Recent Activity</h3>
+      <section className="grid min-h-0 flex-1 w-full grid-cols-1 gap-6 min-[700px]:grid-cols-2">
+        <article className="cc-card-standard flex min-h-0 flex-col overflow-hidden p-0">
+          <header className="flex items-center justify-between px-7 py-6">
+            <h2 className="cc-card-title">Recent Activity</h2>
             <Link
               href={`/projects?selected=${selectedProject.header.id}&tab=audit-trail`}
-              className="text-[10px] font-semibold text-[#1d4ed8]"
+              className="cc-card-link"
             >
               View all activity
             </Link>
-          </div>
-          <ul className="mt-2 space-y-2">
-            {selectedProject.recentActivity.slice(0, 5).map((activity) => (
-              <li key={activity.id} className="flex items-start gap-2">
-                <div className="mt-0.5 grid size-6 place-items-center rounded-full bg-slate-100">
-                  <Clock3 className="size-3.5 text-slate-500" />
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {recentActivity.map((item) => (
+              <div
+                key={item.id}
+                className="grid grid-cols-[44px_1fr_auto] gap-5 border-t border-slate-100 px-7 py-5"
+              >
+                <ActivityIcon icon={item.icon} color={item.iconColor} />
+
+                <div>
+                  <p className="cc-card-text">{item.text}</p>
+                  <p className="cc-card-meta mt-1">by {item.author}</p>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-800">{activity.title}</p>
-                  <p className="text-[10px] text-slate-500">{activity.meta}</p>
-                  <p className="text-[10px] text-slate-500">{activity.timeLabel}</p>
-                </div>
-              </li>
+
+                <time className="cc-card-meta whitespace-nowrap font-medium">
+                  {item.time}
+                </time>
+              </div>
             ))}
-          </ul>
+          </div>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[13px] font-bold">Gate Status Summary</h3>
+        <article className="cc-card-standard flex min-h-0 flex-col overflow-hidden p-0">
+          <header className="flex items-center justify-between px-7 py-6">
+            <h2 className="cc-card-title">Gate Status Summary</h2>
             <Link
               href={`/projects?selected=${selectedProject.header.id}&tab=gates`}
-              className="text-[10px] font-semibold text-[#1d4ed8]"
+              className="cc-card-link"
             >
               View all gates
             </Link>
-          </div>
-          <ul className="mt-2 space-y-2">
-            {selectedProject.gateStatuses.map((gate) => (
-              <li key={gate.gateId} className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="inline-flex min-w-0 items-center gap-2 truncate">
-                  <span className="size-1.5 rounded-full bg-slate-400" />
-                  <span className="truncate">
-                    {gate.gateId}: {gate.title}
-                  </span>
-                </span>
-                <span
-                  className={`shrink-0 font-semibold ${
-                    gate.status === "Approved"
-                      ? "text-emerald-700"
-                      : gate.status === "In Review"
-                        ? "text-amber-700"
-                        : gate.status === "Changes Requested"
-                          ? "text-rose-700"
-                          : "text-slate-500"
-                  }`}
-                >
-                  {gate.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </article>
-      </section>
+          </header>
 
-      <section className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[12px] font-bold text-rose-900">Blockers / Missing Evidence</h3>
-          <Link
-            href={`/projects?selected=${selectedProject.header.id}&tab=artifacts`}
-            className="text-[10px] font-semibold text-[#1d4ed8]"
-          >
-            View all
-          </Link>
-        </div>
-        <ul className="mt-2 space-y-2 text-[10.5px] font-semibold text-rose-800">
-          {selectedProject.blockers.map((blocker) => (
-            <li key={blocker.id} className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              {blocker.message}
-            </li>
-          ))}
-        </ul>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {gateStatus.map((gate) => (
+              <div
+                key={gate.id}
+                className="grid grid-cols-[32px_1fr_130px_70px] items-center gap-4 border-t border-slate-100 px-7 py-4"
+              >
+                <GateStatusIcon status={gate.status} />
+
+                <p className="cc-card-text">{gate.title}</p>
+
+                <GateStatusText status={gate.status} />
+
+                <time className="cc-card-meta text-right">{gate.time}</time>
+              </div>
+            ))}
+          </div>
+        </article>
+
       </section>
     </div>
   );
@@ -443,15 +577,15 @@ function GenericDataTab({
   description: string;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4">
-      <h3 className="text-[13px] font-bold">{title}</h3>
-      <p className="mt-2 text-[11px] text-slate-600">{description}</p>
-      <p className="mt-3 text-[11px] text-slate-500">
+    <section className="cc-card-standard p-4">
+      <h3 className="cc-card-title">{title}</h3>
+      <p className="cc-card-text mt-2">{description}</p>
+      <p className="cc-card-meta mt-3">
         {selectedProject.header.code} · {selectedProject.header.name}
       </p>
       <Link
         href={`/projects/${selectedProject.header.id}/workspace`}
-        className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-[#1d4ed8]"
+        className="cc-card-link mt-3 inline-flex items-center gap-1"
       >
         Open lifecycle workspace
         <ChevronRight className="size-3.5" />
@@ -494,20 +628,38 @@ export function ProjectDetailPanel({
   selectedTab: ProjectDetailTab;
 }) {
   return (
-    <section className="min-h-0 rounded-2xl border border-[var(--cc-border)] bg-[var(--app-bg)] p-6">
+    <section className="cc-card-standard flex h-full min-h-0 flex-col overflow-hidden bg-[var(--app-bg)] p-6">
       <ProjectDetailHeader selectedProject={selectedProject} />
       <ProjectTabs selectedProjectId={selectedProject.header.id} selectedTab={selectedTab} />
-      <ActiveTabContent selectedProject={selectedProject} selectedTab={selectedTab} />
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <ActiveTabContent selectedProject={selectedProject} selectedTab={selectedTab} />
+      </div>
     </section>
   );
 }
 
-export function ProjectContextPanel({ selectedProject }: { selectedProject: SelectedProject }) {
+export function ProjectContextPanel({
+  selectedProject,
+  selectedTab,
+}: {
+  selectedProject: SelectedProject;
+  selectedTab: ProjectDetailTab;
+}) {
+  const blockers = selectedProject.blockers.map((blocker) => ({
+    id: blocker.id,
+    text: blocker.message,
+    icon: blocker.message.toLowerCase().includes("gate") ? "alert" : "file",
+  }));
+  const layoutRowsClass =
+    selectedTab === "overview"
+      ? "grid h-full min-h-0 grid-rows-[auto_auto_1fr] gap-4"
+      : "grid h-full min-h-0 grid-rows-[auto_1fr] gap-4";
+
   return (
-    <aside className="space-y-4">
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="text-[13px] font-bold">Project Snapshot</h3>
-        <dl className="mt-3 space-y-2 text-[11px]">
+    <aside className={layoutRowsClass}>
+      <article className="cc-card-standard min-h-0 overflow-y-auto p-4">
+        <h3 className="cc-card-title">Project Snapshot</h3>
+        <dl className="cc-card-meta mt-3 space-y-2">
           {selectedProject.snapshot.map((item) => (
             <div key={item.key} className="flex items-start justify-between gap-3">
               <dt className="text-slate-500">{item.key}</dt>
@@ -517,14 +669,14 @@ export function ProjectContextPanel({ selectedProject }: { selectedProject: Sele
         </dl>
       </article>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="text-[13px] font-bold">Quick Actions</h3>
+      <article className="cc-card-standard min-h-0 overflow-y-auto p-4">
+        <h3 className="cc-card-title">Quick Actions</h3>
         <div className="mt-2 space-y-1">
           {selectedProject.quickActions.map((action) => (
             <Link
               key={action.id}
               href={action.href}
-              className="flex items-center justify-between rounded-md px-2 py-2 text-[11px] font-semibold text-[#1d4ed8] hover:bg-blue-50"
+              className="cc-card-link flex items-center justify-between rounded-md px-2 py-2 hover:bg-blue-50"
             >
               <span className="inline-flex items-center gap-2">
                 {action.id.includes("profile") ? (
@@ -549,6 +701,37 @@ export function ProjectContextPanel({ selectedProject }: { selectedProject: Sele
           ))}
         </div>
       </article>
+
+      {selectedTab === "overview" ? (
+        <article className="cc-card-standard flex min-h-0 flex-col p-4">
+          <header className="mb-4 flex items-center justify-between">
+            <h2 className="cc-card-title">
+              Blockers / Missing Evidence
+            </h2>
+            <Link
+              href={`/projects?selected=${selectedProject.header.id}&tab=artifacts`}
+              className="cc-card-link"
+            >
+              View all
+            </Link>
+          </header>
+
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+            {blockers.map((blocker) => (
+              <div key={blocker.id} className="flex items-center gap-3">
+                {blocker.icon === "file" ? (
+                  <FileText className="h-4 w-4 text-red-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                )}
+                <p className="cc-card-meta font-semibold text-red-500">
+                  {blocker.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </article>
+      ) : null}
     </aside>
   );
 }
@@ -577,8 +760,11 @@ export function ProjectsContent({
           totalPages={totalPages}
         />
         <ProjectDetailPanel selectedProject={data.selectedProject} selectedTab={selectedTab} />
-        <div className="min-h-0 overflow-y-auto">
-          <ProjectContextPanel selectedProject={data.selectedProject} />
+        <div className="h-full min-h-0">
+          <ProjectContextPanel
+            selectedProject={data.selectedProject}
+            selectedTab={selectedTab}
+          />
         </div>
       </div>
 

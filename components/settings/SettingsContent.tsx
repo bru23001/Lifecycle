@@ -6,7 +6,10 @@ import { SettingsGrid } from "@/components/settings/SettingsGrid";
 import { ErrorBanner } from "@/components/settings/shared";
 import type {
   ExportSettings,
+  GateRuleSetting,
   LocalStorageSettings,
+  RolePermissionEntry,
+  TemplateRegistryItem,
   SettingsPageData,
   SettingsQuickAction,
   SettingsSectionId,
@@ -35,6 +38,9 @@ export function SettingsContent({
   onUpdateExportSettings,
   onUpdateLocalStorageSettings,
   onChangeLocalStoragePath,
+  onEditTemplate,
+  onEditGateRule,
+  onEditRolePermission,
   onQuickAction,
   onReset,
   onSave,
@@ -61,13 +67,21 @@ export function SettingsContent({
   onUpdateExportSettings: (nextValue: ExportSettings) => void;
   onUpdateLocalStorageSettings: (nextValue: LocalStorageSettings) => void;
   onChangeLocalStoragePath: (key: keyof LocalStorageSettings["paths"]) => void;
+  onEditTemplate: (templateId: string, updater: (item: TemplateRegistryItem) => TemplateRegistryItem) => void;
+  onEditGateRule: (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => void;
+  onEditRolePermission: (
+    roleId: string,
+    module: RolePermissionEntry["module"],
+    action: keyof Omit<RolePermissionEntry, "module">,
+    checked: boolean,
+  ) => void;
   onQuickAction: (action: SettingsQuickAction) => void;
   onReset: () => void;
   onSave: () => void;
 }) {
   return (
-    <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#f8fafc]">
-      <div className="mx-auto w-full max-w-[1920px] px-5 pb-4 pt-4 min-[901px]:px-8">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
+      <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-4 pt-4 min-[901px]:px-8">
         <Breadcrumbs
           items={[
             { label: "Home", href: "/dashboard" },
@@ -78,25 +92,30 @@ export function SettingsContent({
         {errorMessage ? <ErrorBanner message={errorMessage} onRetry={onRetryError} /> : null}
       </div>
 
-      <SettingsGrid
-        isLoading={isLoading}
-        data={data}
-        activeSection={data.activeSection}
-        exportSettings={exportSettings}
-        localStorageSettings={localStorageSettings}
-        localStoragePathError={localStoragePathError}
-        onSectionChange={onSectionChange}
-        onAddPhase={onAddPhase}
-        onEditPhase={onEditPhase}
-        onCreateTemplate={onCreateTemplate}
-        onCreateRule={onCreateRule}
-        onCreateRole={onCreateRole}
-        onTestExport={onTestExport}
-        onUpdateExportSettings={onUpdateExportSettings}
-        onUpdateLocalStorageSettings={onUpdateLocalStorageSettings}
-        onChangeLocalStoragePath={onChangeLocalStoragePath}
-        onQuickAction={onQuickAction}
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <SettingsGrid
+          isLoading={isLoading}
+          data={data}
+          activeSection={data.activeSection}
+          exportSettings={exportSettings}
+          localStorageSettings={localStorageSettings}
+          localStoragePathError={localStoragePathError}
+          onSectionChange={onSectionChange}
+          onAddPhase={onAddPhase}
+          onEditPhase={onEditPhase}
+          onCreateTemplate={onCreateTemplate}
+          onCreateRule={onCreateRule}
+          onCreateRole={onCreateRole}
+          onTestExport={onTestExport}
+          onUpdateExportSettings={onUpdateExportSettings}
+          onUpdateLocalStorageSettings={onUpdateLocalStorageSettings}
+          onChangeLocalStoragePath={onChangeLocalStoragePath}
+          onEditTemplate={onEditTemplate}
+          onEditGateRule={onEditGateRule}
+          onEditRolePermission={onEditRolePermission}
+          onQuickAction={onQuickAction}
+        />
+      </div>
 
       <SettingsActionBar
         title={data.actionState.title}

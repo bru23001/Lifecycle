@@ -125,6 +125,23 @@ export function LocalStorageSettingsPanel({
               />
             </label>
             <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-slate-500">Keep Audit Snapshots (days)</span>
+              <input
+                type="number"
+                className="h-9 w-full rounded-lg border border-slate-200 px-2"
+                value={value.retention.keepAuditSnapshotsDays}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    retention: {
+                      ...value.retention,
+                      keepAuditSnapshotsDays: Number(event.target.value),
+                    },
+                  })
+                }
+              />
+            </label>
+            <label className="block">
               <span className="mb-1 block text-xs font-semibold text-slate-500">Cleanup Policy</span>
               <select
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2"

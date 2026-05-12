@@ -52,6 +52,18 @@ export function validateSettingsPageData(data: SettingsPageData): string[] {
     blockers.push("At least one lifecycle phase is required.");
   }
 
+  if (data.templateRegistry.some((template) => template.schemaVersion.trim().length === 0)) {
+    blockers.push("Each template must define a schema version.");
+  }
+
+  if (data.gateRules.some((rule) => rule.requiredEvidenceCount < 1 || rule.requiredApproverRoles.length === 0)) {
+    blockers.push("Each gate rule needs at least one approver and one required evidence item.");
+  }
+
+  if (data.rolesPermissions.some((role) => role.permissions.length === 0)) {
+    blockers.push("Each role must have at least one permission entry.");
+  }
+
   return blockers;
 }
 

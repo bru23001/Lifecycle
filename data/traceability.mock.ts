@@ -13,6 +13,7 @@ export const traceabilityMatrixMock: TraceabilityMatrixData = {
   },
   filters: {
     projectId: "sip-001",
+    searchTerm: "",
     viewMode: "all_links",
     phaseNumber: "all",
     status: "all",

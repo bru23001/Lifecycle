@@ -1,6 +1,8 @@
 export type GateReviewHeaderData = {
   projectId: string;
   projectName: string;
+  /** Project code shown next to the name, e.g. SIP-001 */
+  projectCode?: string;
   gateId: string;
   gateCode: string;
   gateNumber: number;
@@ -22,6 +24,8 @@ export type GateReviewHeaderData = {
   submittedByName: string;
   reviewType: "standard" | "expedited" | "exception";
   dueDateLabel: string;
+  /** Optional relative hint next to the due date, e.g. "(7 days left)" */
+  dueRelativeLabel?: string;
   approversAssigned: number;
   readinessPercent: number;
 };

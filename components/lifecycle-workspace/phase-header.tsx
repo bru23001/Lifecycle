@@ -167,19 +167,25 @@ export type PhaseHeaderProps = {
   data: PhaseHeaderData;
 };
 
+export function PhaseHeaderBody({ data }: PhaseHeaderProps) {
+  return (
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0 flex-1 space-y-3">
+        <div className="flex flex-wrap items-start gap-3">
+          <PhaseIcon />
+          <PhaseTitleBlock data={data} />
+        </div>
+        <PhaseMetadataRow data={data} />
+      </div>
+      <CompletionRing percent={data.completionPercent} />
+    </div>
+  );
+}
+
 export function PhaseHeader({ data }: PhaseHeaderProps) {
   return (
     <section className="rounded-lg border bg-card p-4 shadow-sm" aria-labelledby="phase-header-title">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-wrap items-start gap-3">
-            <PhaseIcon />
-            <PhaseTitleBlock data={data} />
-          </div>
-          <PhaseMetadataRow data={data} />
-        </div>
-        <CompletionRing percent={data.completionPercent} />
-      </div>
+      <PhaseHeaderBody data={data} />
     </section>
   );
 }

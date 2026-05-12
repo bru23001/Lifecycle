@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, Circle } from "lucide-react";
+import { CheckCircle2, Clock3, Shield } from "lucide-react";
 
-import type { GateReviewHeaderData } from "@/types/gate-review.types";
+import type { GateApprover, GateReviewHeaderData } from "@/types/gate-review.types";
 import { cn } from "@/lib/utils";
 
-import { gateReviewStatusBadgeMap, StatusBadge } from "./badge-maps";
+import { gateReviewStatusBadgeMap } from "./badge-maps";
 
 export type GateReviewHeaderChecklist = {
   allRequiredInputsProvided: boolean;
@@ -14,165 +14,240 @@ export type GateReviewHeaderChecklist = {
   awaitingReviewerDecision: boolean;
 };
 
-function CompletionRing({ percent }: { percent: number }) {
-  const p = Math.min(100, Math.max(0, percent));
-  const r = 36;
-  const c = 2 * Math.PI * r;
-  const offset = c - (p / 100) * c;
+type ReadinessStatus = "complete" | "waiting";
+
+function GateShieldBadge({ gateCode }: { gateCode: string }) {
   return (
     <div
-      className="relative grid size-[104px] shrink-0 place-items-center"
+      className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-3xl bg-amber-400 text-white dark:bg-amber-500"
+      aria-hidden
+    >
+      <div className="relative flex h-[60px] w-[60px] items-center justify-center">
+        <Shield className="absolute h-[60px] w-[60px] fill-none stroke-white stroke-[2]" />
+        <span className="mt-0.5 text-base font-bold">{gateCode}</span>
+      </div>
+    </div>
+  );
+}
+
+function ReadinessRing({ percent }: { percent: number }) {
+  const p = Math.min(100, Math.max(0, percent));
+  const angle = (p / 100) * 360;
+  return (
+    <div
+      className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full [--readiness-track:#e5e7eb] dark:[--readiness-track:#334155]"
       role="progressbar"
       aria-label={`Gate readiness ${p} percent complete`}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={p}
     >
-      <svg className="size-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
-        <circle
-          className="text-slate-200 dark:text-slate-700"
-          strokeWidth="10"
-          stroke="currentColor"
-          fill="none"
-          r={r}
-          cx="50"
-          cy="50"
-        />
-        <circle
-          className="text-[#2563eb]"
-          strokeWidth="10"
-          stroke="currentColor"
-          fill="none"
-          r={r}
-          cx="50"
-          cy="50"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="pointer-events-none absolute text-lg font-semibold text-[#111827] dark:text-foreground" aria-hidden>
-        {p}%
-      </span>
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `conic-gradient(#1d4ed8 0deg ${angle}deg, var(--readiness-track) ${angle}deg 360deg)`,
+        }}
+      />
+      <div className="absolute inset-[6px] rounded-full bg-white dark:bg-card" />
+      <div className="relative text-center">
+        <p className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-foreground">{p}%</p>
+        <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-muted-foreground">Complete</p>
+      </div>
     </div>
   );
 }
 
-function ChecklistRow({
-  ok,
+function ReadinessIcon({ status }: { status: ReadinessStatus }) {
+  if (status === "complete") {
+    return <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500 dark:text-emerald-400" aria-hidden />;
+  }
+  return <Clock3 className="h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden />;
+}
+
+function formatReviewType(t: GateReviewHeaderData["reviewType"]) {
+  switch (t) {
+    case "standard":
+      return "Standard";
+    case "expedited":
+      return "Expedited";
+    case "exception":
+      return "Exception";
+    default:
+      return t;
+  }
+}
+
+function formatApproversSummary(approvers: GateApprover[]) {
+  const total = approvers.length;
+  const completed = approvers.filter((a) =>
+    ["reviewed", "approved", "rejected"].includes(a.status),
+  ).length;
+  return `${completed} of ${total} reviewed`;
+}
+
+function HeaderDecisionBadge({
   label,
-  pending,
+  tone,
 }: {
-  ok: boolean;
   label: string;
-  pending?: boolean;
+  tone: keyof typeof headerToneClass;
 }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-[#475569] dark:text-muted-foreground">
-      {ok ? (
-        <Check className="size-4 shrink-0 text-[#16a34a]" aria-hidden />
-      ) : pending ? (
-        <Circle className="size-4 shrink-0 text-[#f59e0b]" aria-hidden />
-      ) : (
-        <Circle className="size-4 shrink-0 text-slate-300" aria-hidden />
+    <span
+      className={cn(
+        "rounded-full px-4 py-1.5 text-xs font-semibold",
+        headerToneClass[tone],
       )}
-      <span>{label}</span>
-    </div>
+    >
+      {label}
+    </span>
   );
 }
+
+const headerToneClass = {
+  gray: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-200",
+  amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300",
+  green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+  red: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300",
+  purple: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
+} as const;
 
 export function GateReviewHeader({
   data,
   checklist,
+  approvers,
 }: {
   data: GateReviewHeaderData;
   checklist: GateReviewHeaderChecklist;
+  approvers: GateApprover[];
 }) {
   const badge = gateReviewStatusBadgeMap[data.status];
+  const projectCode = data.projectCode?.trim();
+  const readinessItems: { id: string; label: string; status: ReadinessStatus }[] = [
+    {
+      id: "inputs",
+      label: "All required inputs provided",
+      status: checklist.allRequiredInputsProvided ? "complete" : "waiting",
+    },
+    {
+      id: "evidence",
+      label: "Evidence attached",
+      status: checklist.evidenceAttached ? "complete" : "waiting",
+    },
+    {
+      id: "criteria",
+      label: "Decision criteria met",
+      status: checklist.decisionCriteriaMet ? "complete" : "waiting",
+    },
+    {
+      id: "reviewer",
+      label: "Awaiting reviewer decision",
+      status: checklist.awaitingReviewerDecision ? "waiting" : "complete",
+    },
+  ];
 
   return (
     <section
       aria-label="Gate review summary"
-      className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm dark:border-border dark:bg-card"
+      className="grid w-full grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card xl:grid-cols-[1.05fr_1.25fr_0.75fr]"
     >
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 flex-1 gap-4">
-          <div
-            className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-lg font-bold text-white shadow-sm"
-            aria-hidden
-          >
-            {data.gateCode}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-[#64748b] dark:text-muted-foreground">
+      <article className="flex items-center gap-6 border-b border-slate-100 p-6 dark:border-border xl:border-b-0 xl:border-r">
+        <GateShieldBadge gateCode={data.gateCode} />
+
+        <div className="min-w-0">
+          <div className="mb-1 flex items-center gap-3">
+            <p className="text-sm font-semibold text-slate-500 dark:text-muted-foreground">
               Gate {data.gateNumber} of {data.totalGates}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl font-bold tracking-tight text-[#111827] dark:text-foreground">
-                {data.gateName}
-              </h2>
-              <StatusBadge label={badge.label} tone={badge.tone} />
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-[#475569] dark:text-muted-foreground">
-              {data.purpose}
-            </p>
           </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-foreground">{data.gateName}</h2>
+
+            <HeaderDecisionBadge label={badge.label} tone={badge.tone} />
+          </div>
+
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 dark:text-muted-foreground">{data.purpose}</p>
+        </div>
+      </article>
+
+      <article className="grid grid-cols-1 gap-x-12 gap-y-6 border-b border-slate-100 p-6 md:grid-cols-3 dark:border-border xl:border-b-0 xl:border-r">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Project</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">
+            {data.projectName}{" "}
+            {projectCode ? (
+              <span className="text-slate-500 dark:text-muted-foreground">({projectCode})</span>
+            ) : null}
+          </p>
         </div>
 
-        <div className="grid shrink-0 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:min-w-[240px]">
-          <div className="rounded-xl border border-[#e5e7eb] bg-[#f8fafc] p-3 text-sm dark:border-border dark:bg-muted/40">
-            <dl className="space-y-2">
-              <div className="flex justify-between gap-4">
-                <dt className="text-[#64748b] dark:text-muted-foreground">Project</dt>
-                <dd className="truncate font-medium text-[#111827] dark:text-foreground">{data.projectName}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-[#64748b] dark:text-muted-foreground">Phase</dt>
-                <dd className="font-medium text-[#111827] dark:text-foreground">
-                  {data.phaseNumber}. {data.phaseName}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-[#64748b] dark:text-muted-foreground">Gate Owner</dt>
-                <dd className="truncate font-medium">{data.gateOwnerName}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-[#64748b] dark:text-muted-foreground">Submitted</dt>
-                <dd className="font-medium">{data.submittedOnLabel}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-[#64748b] dark:text-muted-foreground">Approvers</dt>
-                <dd className="font-medium">
-                  {data.approversAssigned} assigned
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-[#64748b] dark:text-muted-foreground">Due</dt>
-                <dd className="font-medium">{data.dueDateLabel}</dd>
-              </div>
-            </dl>
-          </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Phase</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">
+            {data.phaseNumber}. {data.phaseName}
+          </p>
         </div>
 
-        <div
-          className={cn(
-            "flex flex-col gap-4 rounded-xl border border-[#e5e7eb] bg-white p-4 dark:border-border dark:bg-card sm:flex-row sm:items-center lg:flex-col xl:min-w-[280px]",
-          )}
-        >
-          <CompletionRing percent={data.readinessPercent} />
-          <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-sm font-semibold text-[#111827] dark:text-foreground">Gate readiness</p>
-            <ChecklistRow ok={checklist.allRequiredInputsProvided} label="All required inputs provided" />
-            <ChecklistRow ok={checklist.evidenceAttached} label="Evidence attached" />
-            <ChecklistRow ok={checklist.decisionCriteriaMet} label="Decision criteria met" />
-            <ChecklistRow
-              ok={!checklist.awaitingReviewerDecision}
-              pending={checklist.awaitingReviewerDecision}
-              label="Awaiting reviewer decision"
-            />
+        <div className="hidden md:block" aria-hidden />
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Gate Owner</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">{data.gateOwnerName}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Submitted On</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">{data.submittedOnLabel}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Submitted By</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">{data.submittedByName}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Review Type</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">
+            {formatReviewType(data.reviewType)}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Due Date</p>
+          <p className="mt-2 text-sm font-semibold text-red-600 dark:text-red-400">
+            {data.dueDateLabel}{" "}
+            {data.dueRelativeLabel ? (
+              <span className="text-amber-600 dark:text-amber-400">{data.dueRelativeLabel}</span>
+            ) : null}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Approvers</p>
+          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">
+            {formatApproversSummary(approvers)}
+          </p>
+        </div>
+      </article>
+
+      <article className="p-6">
+        <h3 className="mb-5 text-lg font-semibold text-slate-950 dark:text-foreground">Gate Readiness</h3>
+
+        <div className="flex flex-col items-start gap-7 sm:flex-row sm:items-center">
+          <ReadinessRing percent={data.readinessPercent} />
+
+          <div className="min-w-0 space-y-3">
+            {readinessItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-3">
+                <ReadinessIcon status={item.status} />
+                <p className="text-sm font-medium text-slate-700 dark:text-foreground/90">{item.label}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </article>
     </section>
   );
 }

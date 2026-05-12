@@ -3,14 +3,21 @@
 import { useState } from "react";
 
 import { SectionHeader } from "@/components/settings/shared";
-import type { RolePermissionSetting } from "@/types/settings.types";
+import type { RolePermissionEntry, RolePermissionSetting } from "@/types/settings.types";
 
 export function RolesPermissionsPanel({
   data,
   onCreateRole,
+  onUpdatePermission,
 }: {
   data: RolePermissionSetting[];
   onCreateRole: () => void;
+  onUpdatePermission: (
+    roleId: string,
+    module: RolePermissionEntry["module"],
+    action: keyof Omit<RolePermissionEntry, "module">,
+    checked: boolean,
+  ) => void;
 }) {
   const [selectedRoleId, setSelectedRoleId] = useState<string>(data[0]?.roleId ?? "");
   const selectedRole = data.find((row) => row.roleId === selectedRoleId);
@@ -77,7 +84,14 @@ export function RolesPermissionsPanel({
                             <input
                               type="checkbox"
                               checked={permission[actionKey]}
-                              readOnly
+                              onChange={(event) =>
+                                onUpdatePermission(
+                                  selectedRole.roleId,
+                                  permission.module,
+                                  actionKey,
+                                  event.target.checked,
+                                )
+                              }
                               aria-label={`${selectedRole.roleName} ${actionKey} ${permission.module}`}
                             />
                             {permission[actionKey] ? "Yes" : "No"}

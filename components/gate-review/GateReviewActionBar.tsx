@@ -17,7 +17,7 @@ export function GateReviewActionBar({
   submitting?: boolean;
 }) {
   return (
-    <div className="gate-review-action-bar sticky bottom-0 z-10 flex flex-col gap-3 border-t border-[#e5e7eb] bg-white px-5 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] dark:border-border dark:bg-card max-[900px]:items-stretch min-[901px]:flex-row min-[901px]:items-center min-[901px]:justify-between min-[901px]:px-8">
+    <div className="gate-review-action-bar sticky bottom-0 z-10 flex shrink-0 flex-col gap-3 border-t border-[#e5e7eb] bg-white px-5 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] dark:border-border dark:bg-card max-[900px]:items-stretch min-[901px]:flex-row min-[901px]:items-center min-[901px]:justify-between min-[901px]:px-8">
       <div className="flex min-w-0 items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/80 p-3 dark:border-blue-900 dark:bg-blue-950/40">
         <Info className="mt-0.5 size-5 shrink-0 text-[#2563eb]" aria-hidden />
         <div className="min-w-0">

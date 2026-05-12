@@ -1,22 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import type { ArtifactTab, ArtifactTabKey, ArtifactLibraryData } from "@/types/artifact-library.types";
+import { cn } from "@/lib/utils";
+import type { ArtifactLibraryData, ArtifactTabKey } from "@/types/artifact-library.types";
 
-import { ActivityLog } from "./ActivityLog";
-import { CommentsPanel } from "./CommentsPanel";
 import { JsonEvidenceView } from "./JsonEvidenceView";
 import { MarkdownView } from "./MarkdownView";
 import { VersionHistory } from "./VersionHistory";
 
-const tabs: ArtifactTab[] = [
-  { key: "markdown", label: "Markdown View" },
-  { key: "json_evidence", label: "JSON Evidence View" },
-  { key: "version_history", label: "Version History" },
-  { key: "activity_log", label: "Activity Log" },
-  { key: "comments", label: "Comments" },
+const TAB_ORDER: ArtifactTabKey[] = [
+  "markdown",
+  "json_evidence",
+  "version_history",
+  "activity_log",
+  "comments",
 ];
+
+function tabLabel(key: ArtifactTabKey, artifact: ArtifactLibraryData["selectedArtifact"]): string {
+  switch (key) {
+    case "markdown":
+      return "Markdown View";
+    case "json_evidence":
+      return "JSON Evidence View";
+    case "version_history":
+      return "Version History";
+    case "activity_log":
+      return "Activity Log";
+    case "comments":
+      return `Comments (${artifact.comments.length})`;
+    default: {
+      const _exhaustive: never = key;
+      return _exhaustive;
+    }
+  }
+}
 
 export function ArtifactContentTabs({
   artifact,
@@ -24,13 +42,21 @@ export function ArtifactContentTabs({
   artifact: ArtifactLibraryData["selectedArtifact"];
 }) {
   const [activeTab, setActiveTab] = useState<ArtifactTabKey>("markdown");
-  const commentsCount = artifact.comments.length;
+
+  const tabs = useMemo(
+    () => TAB_ORDER.map((key) => ({ key, label: tabLabel(key, artifact) })),
+    [artifact],
+  );
+
   return (
-    <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm dark:border-border dark:bg-card">
-      <div role="tablist" aria-label="Artifact content tabs" className="flex flex-wrap gap-1 border-b border-[#e5e7eb] pb-3 dark:border-border">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card">
+      <nav
+        role="tablist"
+        aria-label="Artifact content tabs"
+        className="flex overflow-x-auto border-b border-slate-200 px-4 dark:border-border sm:px-6"
+      >
         {tabs.map((tab, index) => {
           const selected = tab.key === activeTab;
-          const count = tab.key === "comments" ? commentsCount : tab.count;
           return (
             <button
               key={tab.key}
@@ -40,11 +66,12 @@ export function ArtifactContentTabs({
               aria-selected={selected}
               aria-controls={`panel-${tab.key}`}
               tabIndex={selected ? 0 : -1}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+              className={cn(
+                "relative h-14 shrink-0 px-4 text-sm font-semibold sm:h-16 sm:px-5 sm:text-base",
                 selected
-                  ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/40 dark:text-blue-200"
-                  : "text-[#64748b] hover:bg-slate-100 dark:text-muted-foreground dark:hover:bg-muted"
-              }`}
+                  ? "text-blue-600 dark:text-blue-400"
+                  : "text-slate-700 hover:text-slate-950 dark:text-muted-foreground dark:hover:text-foreground",
+              )}
               onClick={() => setActiveTab(tab.key)}
               onKeyDown={(e) => {
                 if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -55,27 +82,67 @@ export function ArtifactContentTabs({
               }}
             >
               {tab.label}
-              {count ? ` (${count})` : ""}
+              {selected ? (
+                <span className="absolute inset-x-2 bottom-0 h-[3px] rounded-full bg-blue-600 dark:bg-blue-400 sm:inset-x-4" />
+              ) : null}
             </button>
           );
         })}
-      </div>
+      </nav>
 
-      <div className="mt-4">
-        <div
-          role="tabpanel"
-          id={`panel-${activeTab}`}
-          aria-labelledby={`tab-${activeTab}`}
-          className="min-h-[280px]"
-        >
-          {activeTab === "markdown" && <MarkdownView view={artifact.markdownView} />}
-          {activeTab === "json_evidence" && <JsonEvidenceView evidence={artifact.jsonEvidence} />}
-          {activeTab === "version_history" && (
-            <VersionHistory currentVersion={artifact.detail.version} versions={artifact.versionHistory} />
+      <div
+        role="tabpanel"
+        id={`panel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
+        <article className="p-6 sm:p-10">
+          {activeTab === "markdown" && (
+            <MarkdownView view={artifact.markdownView} detail={artifact.detail} />
           )}
-          {activeTab === "activity_log" && <ActivityLog items={artifact.activityLog} />}
-          {activeTab === "comments" && <CommentsPanel comments={artifact.comments} />}
-        </div>
+          {activeTab === "json_evidence" && <JsonEvidenceView evidence={artifact.jsonEvidence} embedded />}
+          {activeTab === "version_history" && (
+            <VersionHistory
+              currentVersion={artifact.detail.version}
+              versions={artifact.versionHistory}
+              embedded
+            />
+          )}
+          {activeTab === "activity_log" && (
+            <ul className="space-y-4">
+              {artifact.activityLog.map((item) => (
+                <li
+                  key={item.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-border dark:bg-card"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-foreground">{item.actor}</p>
+                    <p className="text-xs text-slate-500 dark:text-muted-foreground">{item.timestampLabel}</p>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-muted-foreground">
+                    {item.action}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          {activeTab === "comments" && (
+            <ul className="space-y-4">
+              {artifact.comments.map((c) => (
+                <li
+                  key={c.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-border dark:bg-card"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-foreground">{c.author}</p>
+                    <p className="text-xs text-slate-500 dark:text-muted-foreground">{c.createdOnLabel}</p>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-muted-foreground">{c.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
       </div>
     </section>
   );

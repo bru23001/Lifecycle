@@ -186,7 +186,7 @@ export function TopHeader({
   const resolvedActionAriaLabel = actionButtonAriaLabel ?? resolvedActionLabel;
 
   return (
-    <header className="flex h-[74px] shrink-0 items-center justify-between gap-4 border-b bg-card px-6">
+    <header className="flex h-[var(--header-height)] min-h-[var(--header-height)] shrink-0 items-center justify-between gap-4 border-b bg-card px-6">
       <div className="flex min-w-0 items-center gap-3">
         <SidebarToggle />
         <PageTitle>{title}</PageTitle>

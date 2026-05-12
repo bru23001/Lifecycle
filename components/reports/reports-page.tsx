@@ -2,18 +2,28 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { ComponentType } from "react";
 import { useState } from "react";
 import {
+  AlertTriangle,
   Calendar,
-  ClipboardList,
+  CircleAlert,
+  CircleDot,
+  ClipboardCheck,
+  Clock,
   FileBarChart2,
-  FileSearch,
-  FlaskConical,
+  FileText,
   Info,
+  MessageSquareWarning,
   Package,
   RefreshCw,
   Route,
   ShieldCheck,
+  ShieldQuestion,
+  SlidersHorizontal,
+  ThumbsDown,
+  ThumbsUp,
+  XCircle,
 } from "lucide-react";
 
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
@@ -28,94 +38,253 @@ import {
 } from "@/lib/reports-scoped-data";
 import { reportStatusBadgeMap } from "@/lib/report-status";
 import { cn } from "@/lib/utils";
-import type { ReportsFilters, ReportsPageData } from "@/types/reports.types";
+import type {
+  ReportExportFormat,
+  ReportsFilters,
+  ReportsPageData,
+} from "@/types/reports.types";
 
-const toneClass: Record<"green" | "amber" | "blue" | "red", string> = {
+type Tone = "green" | "amber" | "blue" | "red" | "gray" | "purple" | "cyan";
+
+const badgeToneClass: Record<Tone, string> = {
   green: "border-emerald-200 bg-emerald-50 text-emerald-800",
   amber: "border-amber-200 bg-amber-50 text-amber-900",
   blue: "border-blue-200 bg-blue-50 text-blue-800",
-  red: "border-red-200 bg-red-50 text-red-800",
+  red: "border-rose-200 bg-rose-50 text-rose-800",
+  gray: "border-slate-200 bg-slate-50 text-slate-700",
+  purple: "border-violet-200 bg-violet-50 text-violet-800",
+  cyan: "border-cyan-200 bg-cyan-50 text-cyan-800",
 };
 
-function Badge({ label, tone }: { label: string; tone: keyof typeof toneClass }) {
+const iconToneClass: Record<Tone, string> = {
+  green: "bg-emerald-50 text-emerald-700",
+  amber: "bg-amber-50 text-amber-700",
+  blue: "bg-blue-50 text-blue-700",
+  red: "bg-rose-50 text-rose-700",
+  gray: "bg-slate-100 text-slate-600",
+  purple: "bg-violet-50 text-violet-700",
+  cyan: "bg-cyan-50 text-cyan-700",
+};
+
+const dotToneClass: Record<Tone, string> = {
+  green: "text-emerald-600",
+  amber: "text-amber-600",
+  blue: "text-blue-600",
+  red: "text-rose-600",
+  gray: "text-slate-500",
+  purple: "text-violet-600",
+  cyan: "text-cyan-600",
+};
+
+const ringColorClass: Record<Tone, string> = {
+  green: "#16a34a",
+  amber: "#f59e0b",
+  blue: "#2563eb",
+  red: "#dc2626",
+  gray: "#94a3b8",
+  purple: "#7c3aed",
+  cyan: "#0891b2",
+};
+
+const EXPORT_FORMATS: ReadonlyArray<ReportExportFormat> = [
+  "pdf",
+  "csv",
+  "json",
+  "zip",
+];
+
+const exportFormatLabel: Record<ReportExportFormat, string> = {
+  pdf: "PDF",
+  csv: "CSV",
+  json: "JSON",
+  zip: "ZIP",
+};
+
+function StatusBadge({ label, tone }: { label: string; tone: Tone }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium", toneClass[tone])}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold",
+        badgeToneClass[tone],
+      )}
+    >
       {label}
     </span>
   );
 }
 
-function Ring({ percent, label }: { percent: number; label: string }) {
+function MetricRing({
+  percent,
+  label,
+  tone = "blue",
+}: {
+  percent: number;
+  label: string;
+  tone?: Tone;
+}) {
   const value = Math.max(0, Math.min(100, percent));
+  const color = ringColorClass[tone];
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col items-center">
       <div
-        className="grid size-20 place-items-center rounded-full border-8 border-white bg-white"
-        style={{ backgroundImage: `conic-gradient(#2563eb ${value}%, #e2e8f0 ${value}% 100%)` }}
+        className="grid size-28 place-items-center rounded-full"
+        style={{ backgroundImage: `conic-gradient(${color} ${value}%, #e2e8f0 ${value}% 100%)` }}
         role="progressbar"
         aria-label={label}
         aria-valuenow={value}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="grid size-14 place-items-center rounded-full bg-white text-center">
-          <p className="text-lg font-semibold text-slate-900">{value}%</p>
+        <div className="grid size-[5.5rem] place-items-center rounded-full bg-white text-center">
+          <div>
+            <p className="text-2xl font-bold leading-none text-slate-900">{value}%</p>
+            <p className="mt-1 text-[11px] font-medium text-slate-500">{label}</p>
+          </div>
         </div>
       </div>
-      <p className="text-xs text-slate-500">{label}</p>
     </div>
   );
 }
 
-function ReportCard({
+type BreakdownRow = {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  tone: Tone;
+};
+
+function BreakdownList({ rows }: { rows: BreakdownRow[] }) {
+  return (
+    <ul className="space-y-2 text-sm">
+      {rows.map((row) => {
+        const Icon = row.icon;
+        return (
+          <li key={row.label} className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-slate-700">
+              <Icon className={cn("size-4 shrink-0", dotToneClass[row.tone])} aria-hidden />
+              <span>{row.label}</span>
+            </span>
+            <span className="font-semibold text-slate-900">{row.value}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ReportActions({
+  viewHref,
+  primaryLabel,
+  onPrimary,
+  exportFormat,
+  onExportFormatChange,
+  primaryVariant = "outline",
+  primaryLeadingIcon,
+}: {
+  viewHref: string;
+  primaryLabel: string;
+  onPrimary: () => void;
+  exportFormat: ReportExportFormat;
+  onExportFormatChange: (format: ReportExportFormat) => void;
+  primaryVariant?: "outline" | "primary";
+  primaryLeadingIcon?: ComponentType<{ className?: string }>;
+}) {
+  const PrimaryIcon = primaryLeadingIcon;
+  return (
+    <div className="mt-4 space-y-2">
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-semibold text-slate-500">Export format</span>
+        <select
+          className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+          value={exportFormat}
+          onChange={(event) => onExportFormatChange(event.target.value as ReportExportFormat)}
+          aria-label={`Export format for ${primaryLabel}`}
+        >
+          {EXPORT_FORMATS.map((format) => (
+            <option key={format} value={format}>
+              {exportFormatLabel[format]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex items-center gap-2">
+      <Link
+        href={viewHref}
+        className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"
+      >
+        <FileText className="size-3.5" aria-hidden />
+        View Report
+      </Link>
+      <button
+        type="button"
+        onClick={onPrimary}
+        className={cn(
+          "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-blue-600",
+          primaryVariant === "primary"
+            ? "bg-blue-600 text-white hover:bg-blue-700"
+            : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+        )}
+        aria-label={primaryLabel}
+      >
+        {PrimaryIcon ? <PrimaryIcon className="size-3.5" aria-hidden /> : null}
+        <span>
+          {primaryLabel} ({exportFormatLabel[exportFormat]})
+        </span>
+      </button>
+      </div>
+    </div>
+  );
+}
+
+function ReportCardShell({
   icon,
+  iconTone,
   title,
   description,
   status,
   children,
   lastGeneratedLabel,
-  viewHref,
-  onPrimaryExport,
-  primaryExportLabel,
+  actions,
 }: {
-  icon: React.ReactNode;
+  icon: ComponentType<{ className?: string }>;
+  iconTone: Tone;
   title: string;
   description: string;
   status: "ready" | "stale" | "generating" | "missing" | "error";
   children: React.ReactNode;
   lastGeneratedLabel?: string;
-  viewHref: string;
-  onPrimaryExport: () => void;
-  primaryExportLabel: string;
+  actions: React.ReactNode;
 }) {
+  const Icon = icon;
+  const badge = reportStatusBadgeMap[status];
   return (
-    <article className="report-card min-w-0 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-      <header className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2">
-          <div className="mt-0.5 text-blue-700">{icon}</div>
+    <article className="report-card flex min-w-0 flex-col rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span
+            aria-hidden
+            className={cn(
+              "inline-flex size-10 shrink-0 items-center justify-center rounded-xl",
+              iconToneClass[iconTone],
+            )}
+          >
+            <Icon className="size-5" />
+          </span>
           <div>
-            <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-            <p className="mt-0.5 text-sm text-slate-600">{description}</p>
+            <h2 className="text-base font-bold text-slate-900">{title}</h2>
+            <p className="mt-1 text-sm leading-snug text-slate-600">{description}</p>
           </div>
         </div>
-        <Badge {...reportStatusBadgeMap[status]} />
+        <StatusBadge {...badge} />
       </header>
 
-      <div className="mt-4">{children}</div>
+      <div className="mt-5 flex-1">{children}</div>
 
-      <p className="mt-4 text-xs text-slate-500">Last Generated: {lastGeneratedLabel ?? "—"}</p>
+      <p className="mt-4 text-xs text-slate-500">
+        Last Generated: <span className="font-medium text-slate-700">{lastGeneratedLabel ?? "—"}</span>
+      </p>
 
-      <div className="mt-3 flex items-center gap-2">
-        <Link
-          href={viewHref}
-          className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"
-        >
-          View Report
-        </Link>
-        <Button type="button" variant="outline" size="sm" onClick={onPrimaryExport}>
-          {primaryExportLabel}
-        </Button>
-      </div>
+      {actions}
     </article>
   );
 }
@@ -125,9 +294,28 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [singleExportFormats, setSingleExportFormats] = useState<
+    Record<
+      | "lifecycleStatus"
+      | "gateDecision"
+      | "traceability"
+      | "missingEvidence"
+      | "approvalHistory"
+      | "fullProjectEvidencePackage",
+      ReportExportFormat
+    >
+  >({
+    lifecycleStatus: "pdf",
+    gateDecision: "pdf",
+    traceability: "pdf",
+    missingEvidence: "csv",
+    approvalHistory: "pdf",
+    fullProjectEvidencePackage: "zip",
+  });
+  const [allExportFormat, setAllExportFormat] = useState<ReportExportFormat>("zip");
 
   const filters = initial.filters;
-  const scopedData = initial;
+  const data = initial;
 
   const navigateFilters = (patch: Partial<ReportsFilters>) => {
     setError(null);
@@ -136,9 +324,7 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
     router.push(q ? `${pathname}?${q}` : pathname);
   };
 
-  const runExport = async (
-    fn: () => Promise<void>,
-  ) => {
+  const runExport = async (fn: () => Promise<void>) => {
     setError(null);
     try {
       await fn();
@@ -147,361 +333,727 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
     }
   };
 
+  const changeSingleExportFormat = (
+    key:
+      | "lifecycleStatus"
+      | "gateDecision"
+      | "traceability"
+      | "missingEvidence"
+      | "approvalHistory"
+      | "fullProjectEvidencePackage",
+    format: ReportExportFormat,
+  ) => {
+    setSingleExportFormats((prev) => ({ ...prev, [key]: format }));
+  };
+
   const refreshAll = () => {
     setLoading(true);
     setError(null);
     window.setTimeout(() => setLoading(false), 240);
   };
 
+  const reportFilter = filters.reportStatus ?? "all";
+
   return (
     <AuthenticatedAppShell
-      projectId={scopedData.project.id}
-      projectName={scopedData.project.name}
-      phaseSummary={`Report hub • ${scopedData.reports.lifecycleStatus.overallProgressPercent}% progress`}
-      phaseProgressPct={scopedData.reports.lifecycleStatus.overallProgressPercent}
+      projectId={data.project.id}
+      projectName={data.project.name}
+      phaseSummary={`Report hub • ${data.reports.lifecycleStatus.overallProgressPercent}% progress`}
+      phaseProgressPct={data.reports.lifecycleStatus.overallProgressPercent}
       navActive="reports"
     >
       <TopHeader
         title="Reports"
-        userInitials={initial.user.initials}
+        userInitials={data.user.initials}
         notificationCount={6}
-        actionButtonLabel="Export All Reports"
-        actionButtonAriaLabel="Export all report outputs as JSON"
-        onActionButtonClick={() =>
-          runExport(() => exportAllReports(scopedData))
-        }
+        actionButtonLabel={`Export All Reports (${exportFormatLabel[allExportFormat]})`}
+        actionButtonAriaLabel="Export all report outputs"
+        onActionButtonClick={() => runExport(() => exportAllReports(data, allExportFormat))}
       />
 
-      <main className="reports-page flex min-h-0 min-w-0 flex-1 flex-col bg-[#f8fafc] px-5 pb-8 pt-4 min-[901px]:px-8">
-        <div className="mx-auto w-full max-w-[1920px]">
+      <main className="reports-page flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
+        <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-5 min-[901px]:px-8">
           <Breadcrumbs
             items={[
               { label: "Home", href: "/dashboard" },
               { label: "Projects", href: "/projects" },
-              { label: `${scopedData.project.name} (${scopedData.project.code})`, href: `/projects/${scopedData.project.id}` },
+              {
+                label: `${data.project.name} (${data.project.code})`,
+                href: `/projects/${data.project.id}`,
+              },
               { label: "Reports" },
             ]}
           />
 
-          <section className="reports-filter-bar mt-4 grid grid-cols-1 gap-4 rounded-2xl border border-[#e5e7eb] bg-white p-4 min-[901px]:grid-cols-2 min-[1281px]:grid-cols-3 min-[1600px]:grid-cols-4">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Project</span>
-              <select
-                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                value={filters.projectId}
-                disabled
-                aria-label="Current project (single-project workspace)"
-              >
-                <option value={scopedData.project.id}>{scopedData.project.name} ({scopedData.project.code})</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Date Range</span>
-              <select
-                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                value={filters.dateRange}
-                onChange={(event) =>
-                  navigateFilters({ dateRange: event.target.value as ReportsFilters["dateRange"] })
-                }
-              >
-                <option value="this_week">This Week</option>
-                <option value="this_month">This Month</option>
-                <option value="this_quarter">This Quarter</option>
-                <option value="this_year">This Year</option>
-                <option value="custom">Custom</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phase</span>
-              <select
-                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                value={String(filters.phaseNumber ?? "all")}
-                onChange={(event) =>
-                  navigateFilters({
-                    phaseNumber:
-                      event.target.value === "all" ? "all" : Number.parseInt(event.target.value, 10),
-                  })
-                }
-              >
-                <option value="all">All Phases</option>
-                <option value="1">Phase 1</option>
-                <option value="2">Phase 2</option>
-                <option value="3">Phase 3</option>
-                <option value="4">Phase 4</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Gate</span>
-              <select
-                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                value={filters.gateCode ?? "all"}
-                onChange={(event) => navigateFilters({ gateCode: event.target.value })}
-              >
-                <option value="all">All Gates</option>
-                <option value="G1">G1</option>
-                <option value="G2">G2</option>
-                <option value="G3">G3</option>
-                <option value="G4">G4</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Report health</span>
-              <select
-                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                value={filters.reportStatus ?? "all"}
-                onChange={(event) =>
-                  navigateFilters({
-                    reportStatus: event.target.value as ReportsFilters["reportStatus"],
-                  })
-                }
-              >
-                <option value="all">All reports</option>
-                <option value="ready">Healthy / ready</option>
-                <option value="stale">Needs refresh</option>
-                <option value="missing">Has gaps</option>
-              </select>
-            </label>
-            <div className="col-span-full flex flex-wrap items-end justify-between gap-3 border-t border-slate-100 pt-4 min-[1281px]:border-t-0 min-[1281px]:pt-0">
-              <Button type="button" variant="outline" size="lg">
-                <Calendar className="size-4" aria-hidden />
-                More Filters
-              </Button>
-              <p className="text-xs text-slate-500">Last Update: {scopedData.filters.lastUpdatedLabel}</p>
+          <section
+            className="reports-filter-bar mt-3 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 min-[901px]:px-5"
+            aria-label="Report filters"
+          >
+            <header className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-slate-900">Report Filters</h2>
+            </header>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 min-[901px]:grid-cols-2 min-[1281px]:grid-cols-[1.5fr_1.5fr_1fr_1fr_1fr_auto] min-[1281px]:items-end">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-slate-500">Project</span>
+                <select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 disabled:cursor-default disabled:opacity-100"
+                  value={filters.projectId}
+                  disabled
+                  aria-label="Current project"
+                >
+                  <option value={data.project.id}>
+                    {data.project.name} ({data.project.code})
+                  </option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-slate-500">Date Range</span>
+                <select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+                  value={filters.dateRange}
+                  onChange={(event) =>
+                    navigateFilters({ dateRange: event.target.value as ReportsFilters["dateRange"] })
+                  }
+                  aria-label="Date range"
+                >
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="this_quarter">This Quarter (Apr 1 - Jun 30, 2024)</option>
+                  <option value="this_year">This Year</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-slate-500">Phase</span>
+                <select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+                  value={String(filters.phaseNumber ?? "all")}
+                  onChange={(event) =>
+                    navigateFilters({
+                      phaseNumber:
+                        event.target.value === "all" ? "all" : Number.parseInt(event.target.value, 10),
+                    })
+                  }
+                  aria-label="Phase"
+                >
+                  <option value="all">All Phases</option>
+                  <option value="1">Phase 1</option>
+                  <option value="2">Phase 2</option>
+                  <option value="3">Phase 3</option>
+                  <option value="4">Phase 4</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-slate-500">Gate</span>
+                <select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+                  value={filters.gateCode ?? "all"}
+                  onChange={(event) => navigateFilters({ gateCode: event.target.value })}
+                  aria-label="Gate"
+                >
+                  <option value="all">All Gates</option>
+                  <option value="G1">G1</option>
+                  <option value="G2">G2</option>
+                  <option value="G3">G3</option>
+                  <option value="G4">G4</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-slate-500">Report Status</span>
+                <select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+                  value={filters.reportStatus ?? "all"}
+                  onChange={(event) =>
+                    navigateFilters({
+                      reportStatus: event.target.value as ReportsFilters["reportStatus"],
+                    })
+                  }
+                  aria-label="Report status"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="ready">Ready</option>
+                  <option value="stale">Stale</option>
+                  <option value="missing">Missing</option>
+                </select>
+              </label>
+
+              <p className="whitespace-nowrap text-xs text-slate-500 min-[1281px]:pb-2">
+                Last Updated:{" "}
+                <span className="font-medium text-slate-700">{data.filters.lastUpdatedLabel}</span>
+              </p>
             </div>
           </section>
 
           {error ? (
-            <section className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <section className="mt-4 flex items-start justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
               <p>{error}</p>
+              <Button type="button" size="sm" variant="outline" onClick={() => setError(null)}>
+                Dismiss
+              </Button>
             </section>
           ) : null}
+        </div>
 
-          <section className="reports-grid mt-5 grid grid-cols-1 gap-5 min-[901px]:grid-cols-2 min-[1281px]:grid-cols-3">
+        <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col gap-5 overflow-y-auto px-5 pb-8 min-[901px]:px-8">
+          <section className="reports-grid mt-5 min-h-0 flex-1" aria-label="Reports">
             {loading ? (
-              <>
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <div key={i} className="h-56 animate-pulse rounded-2xl bg-slate-100" />
-                ))}
-              </>
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-72 animate-pulse rounded-2xl bg-slate-100" />
+              ))
             ) : (
               <>
-                {shouldShowReportCard(scopedData, "lifecycleStatus", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<FileBarChart2 className="size-5" aria-hidden />}
+                {shouldShowReportCard(data, "lifecycleStatus", reportFilter) ? (
+                  <ReportCardShell
+                    icon={FileBarChart2}
+                    iconTone="blue"
                     title="Lifecycle Status Report"
-                    description="Overall lifecycle progress, phase completion, key transitions, and upcoming actions."
-                    status={getReportCardHealth(scopedData.reports, "lifecycleStatus")}
-                    lastGeneratedLabel={scopedData.reports.lifecycleStatus.lastGeneratedLabel}
-                    viewHref={scopedData.reports.lifecycleStatus.viewHref}
-                    onPrimaryExport={() =>
-                      runExport(() => exportSingleReport(scopedData, "lifecycleStatus"))
+                    description="Overall lifecycle progress, phase completion, key milestones, and upcoming actions."
+                    status={getReportCardHealth(data.reports, "lifecycleStatus")}
+                    lastGeneratedLabel={data.reports.lifecycleStatus.lastGeneratedLabel}
+                    actions={
+                      <ReportActions
+                        viewHref={data.reports.lifecycleStatus.viewHref}
+                        primaryLabel="Export"
+                        primaryLeadingIcon={FileText}
+                        exportFormat={singleExportFormats.lifecycleStatus}
+                        onExportFormatChange={(format) =>
+                          changeSingleExportFormat("lifecycleStatus", format)
+                        }
+                        onPrimary={() =>
+                          runExport(() =>
+                            exportSingleReport(
+                              data,
+                              "lifecycleStatus",
+                              singleExportFormats.lifecycleStatus,
+                            ),
+                          )
+                        }
+                      />
                     }
-                    primaryExportLabel="Export JSON"
                   >
-                    <div className="flex items-center justify-between">
-                      <Ring percent={scopedData.reports.lifecycleStatus.overallProgressPercent} label="Overall progress" />
-                      <ul className="space-y-1 text-sm text-slate-700">
-                        <li>
-                          Completed: {scopedData.reports.lifecycleStatus.phasesCompleted} / {scopedData.reports.lifecycleStatus.totalPhases}
-                        </li>
-                        <li>
-                          In Progress: {scopedData.reports.lifecycleStatus.phasesInProgress} / {scopedData.reports.lifecycleStatus.totalPhases}
-                        </li>
-                        <li>
-                          Not Started: {scopedData.reports.lifecycleStatus.phasesNotStarted} / {scopedData.reports.lifecycleStatus.totalPhases}
-                        </li>
-                        <li>Blockers: {scopedData.reports.lifecycleStatus.blockersCount}</li>
-                      </ul>
+                    <div className="flex items-center gap-4">
+                      <MetricRing
+                        percent={data.reports.lifecycleStatus.overallProgressPercent}
+                        label="In Progress"
+                        tone="blue"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Phases
+                        </p>
+                        <div className="mt-2">
+                          <BreakdownList
+                            rows={[
+                              {
+                                icon: ThumbsUp,
+                                label: "Completed",
+                                value: `${data.reports.lifecycleStatus.phasesCompleted} / ${data.reports.lifecycleStatus.totalPhases}`,
+                                tone: "green",
+                              },
+                              {
+                                icon: Clock,
+                                label: "In Progress",
+                                value: `${data.reports.lifecycleStatus.phasesInProgress} / ${data.reports.lifecycleStatus.totalPhases}`,
+                                tone: "blue",
+                              },
+                              {
+                                icon: CircleDot,
+                                label: "Not Started",
+                                value: `${data.reports.lifecycleStatus.phasesNotStarted} / ${data.reports.lifecycleStatus.totalPhases}`,
+                                tone: "gray",
+                              },
+                            ]}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </ReportCard>
+                  </ReportCardShell>
                 ) : null}
 
-                {shouldShowReportCard(scopedData, "gateDecision", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<ShieldCheck className="size-5" aria-hidden />}
+                {shouldShowReportCard(data, "gateDecision", reportFilter) ? (
+                  <ReportCardShell
+                    icon={ShieldCheck}
+                    iconTone="green"
                     title="Gate Decision Report"
-                    description="Summary of gate decisions, states, approvers, and conditions."
-                    status={getReportCardHealth(scopedData.reports, "gateDecision")}
-                    lastGeneratedLabel={scopedData.reports.gateDecision.lastGeneratedLabel}
-                    viewHref={scopedData.reports.gateDecision.viewHref}
-                    onPrimaryExport={() =>
-                      runExport(() => exportSingleReport(scopedData, "gateDecision"))
+                    description="Summary of gate decisions, outcomes, dates, approvers, and conditions."
+                    status={getReportCardHealth(data.reports, "gateDecision")}
+                    lastGeneratedLabel={data.reports.gateDecision.lastGeneratedLabel}
+                    actions={
+                      <ReportActions
+                        viewHref={data.reports.gateDecision.viewHref}
+                        primaryLabel="Export"
+                        primaryLeadingIcon={FileText}
+                        exportFormat={singleExportFormats.gateDecision}
+                        onExportFormatChange={(format) =>
+                          changeSingleExportFormat("gateDecision", format)
+                        }
+                        onPrimary={() =>
+                          runExport(() =>
+                            exportSingleReport(data, "gateDecision", singleExportFormats.gateDecision),
+                          )
+                        }
+                      />
                     }
-                    primaryExportLabel="Export JSON"
                   >
-                    <p className="text-3xl font-semibold text-slate-900">{scopedData.reports.gateDecision.totalGates}</p>
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                      <li>
-                        Approved: {scopedData.reports.gateDecision.approved} ({scopedData.reports.gateDecision.approvalRatePercent}%)
-                      </li>
-                      <li>Pending: {scopedData.reports.gateDecision.pending}</li>
-                      <li>Rejected: {scopedData.reports.gateDecision.rejected}</li>
-                      <li>Not Reached: {scopedData.reports.gateDecision.notReached}</li>
-                    </ul>
-                  </ReportCard>
-                ) : null}
-
-                {shouldShowReportCard(scopedData, "artifactCompletion", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<ClipboardList className="size-5" aria-hidden />}
-                    title="Artifact Completion Report"
-                    description="Required templates and artifacts: draft, in review, approved, and blocked counts by lifecycle phase."
-                    status={getReportCardHealth(scopedData.reports, "artifactCompletion")}
-                    lastGeneratedLabel={scopedData.reports.artifactCompletion.lastGeneratedLabel}
-                    viewHref={scopedData.reports.artifactCompletion.viewHref}
-                    onPrimaryExport={() =>
-                      runExport(() => exportSingleReport(scopedData, "artifactCompletion"))
-                    }
-                    primaryExportLabel="Export JSON"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <Ring percent={scopedData.reports.artifactCompletion.completionPercent} label="Artifacts complete" />
-                      <ul className="space-y-1 text-sm text-slate-700">
-                        <li>Required: {scopedData.reports.artifactCompletion.totalRequired}</li>
-                        <li>Completed: {scopedData.reports.artifactCompletion.completed}</li>
-                        <li>In review: {scopedData.reports.artifactCompletion.inReview}</li>
-                        <li>Draft / blocked: {scopedData.reports.artifactCompletion.draft + scopedData.reports.artifactCompletion.blocked}</li>
-                      </ul>
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 px-5 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Total Gates
+                        </p>
+                        <p className="mt-1 text-3xl font-bold text-slate-900">
+                          {data.reports.gateDecision.totalGates}
+                        </p>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <BreakdownList
+                          rows={[
+                            {
+                              icon: ThumbsUp,
+                              label: "Approved",
+                              value: formatCountWithPercent(
+                                data.reports.gateDecision.approved,
+                                data.reports.gateDecision.totalGates,
+                              ),
+                              tone: "green",
+                            },
+                            {
+                              icon: Clock,
+                              label: "Pending",
+                              value: formatCountWithPercent(
+                                data.reports.gateDecision.pending,
+                                data.reports.gateDecision.totalGates,
+                              ),
+                              tone: "blue",
+                            },
+                            {
+                              icon: ThumbsDown,
+                              label: "Rejected",
+                              value: formatCountWithPercent(
+                                data.reports.gateDecision.rejected,
+                                data.reports.gateDecision.totalGates,
+                              ),
+                              tone: "red",
+                            },
+                            {
+                              icon: ShieldQuestion,
+                              label: "Not Reached",
+                              value: formatCountWithPercent(
+                                data.reports.gateDecision.notReached,
+                                data.reports.gateDecision.totalGates,
+                              ),
+                              tone: "gray",
+                            },
+                          ]}
+                        />
+                      </div>
                     </div>
-                  </ReportCard>
+                  </ReportCardShell>
                 ) : null}
 
-                {shouldShowReportCard(scopedData, "evidenceCompleteness", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<FileSearch className="size-5" aria-hidden />}
-                    title="Evidence Completeness Report"
-                    description="Evidence coverage, gaps by severity, and blocking gates — includes missing and incomplete items."
-                    status={getReportCardHealth(scopedData.reports, "evidenceCompleteness")}
-                    lastGeneratedLabel={scopedData.reports.evidenceCompleteness.lastGeneratedLabel}
-                    viewHref={scopedData.reports.evidenceCompleteness.viewHref}
-                    onPrimaryExport={() =>
-                      runExport(() => exportSingleReport(scopedData, "evidenceCompleteness"))
-                    }
-                    primaryExportLabel="Export JSON"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <Ring percent={scopedData.reports.evidenceCompleteness.overallPercent} label="Evidence coverage" />
-                      <ul className="space-y-1 text-sm text-slate-700">
-                        <li>Missing: {scopedData.reports.evidenceCompleteness.missingItems}</li>
-                        <li>
-                          Critical / High: {scopedData.reports.evidenceCompleteness.critical} / {scopedData.reports.evidenceCompleteness.high}
-                        </li>
-                        <li>Blocking gates: {scopedData.reports.evidenceCompleteness.blockingGates}</li>
-                      </ul>
-                    </div>
-                  </ReportCard>
-                ) : null}
-
-                {shouldShowReportCard(scopedData, "traceability", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<Route className="size-5" aria-hidden />}
-                    title="Traceability Coverage Report"
+                {shouldShowReportCard(data, "traceability", reportFilter) ? (
+                  <ReportCardShell
+                    icon={Route}
+                    iconTone="cyan"
+                    title="Traceability Report"
                     description="End-to-end traceability coverage across requirements, design, test, gates, and evidence."
-                    status={getReportCardHealth(scopedData.reports, "traceability")}
-                    lastGeneratedLabel={scopedData.reports.traceability.lastGeneratedLabel}
-                    viewHref={scopedData.reports.traceability.viewHref}
-                    onPrimaryExport={() =>
-                      runExport(() => exportSingleReport(scopedData, "traceability"))
+                    status={getReportCardHealth(data.reports, "traceability")}
+                    lastGeneratedLabel={data.reports.traceability.lastGeneratedLabel}
+                    actions={
+                      <ReportActions
+                        viewHref={data.reports.traceability.viewHref}
+                        primaryLabel="Export"
+                        primaryLeadingIcon={FileText}
+                        exportFormat={singleExportFormats.traceability}
+                        onExportFormatChange={(format) =>
+                          changeSingleExportFormat("traceability", format)
+                        }
+                        onPrimary={() =>
+                          runExport(() =>
+                            exportSingleReport(data, "traceability", singleExportFormats.traceability),
+                          )
+                        }
+                      />
                     }
-                    primaryExportLabel="Export JSON"
                   >
-                    <div className="flex items-center justify-between">
-                      <Ring percent={scopedData.reports.traceability.coveragePercent} label="Coverage" />
-                      <ul className="space-y-1 text-sm text-slate-700">
-                        <li>Complete: {scopedData.reports.traceability.completeLinks}</li>
-                        <li>Partial: {scopedData.reports.traceability.partialLinks}</li>
-                        <li>Missing: {scopedData.reports.traceability.missingLinks}</li>
-                        <li>Critical gaps: {scopedData.reports.traceability.criticalGaps}</li>
-                      </ul>
+                    <div className="flex items-center gap-4">
+                      <MetricRing
+                        percent={data.reports.traceability.coveragePercent}
+                        label="Coverage"
+                        tone="green"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <BreakdownList
+                          rows={[
+                            {
+                              icon: ThumbsUp,
+                              label: "Complete",
+                              value: formatPercentWithCount(
+                                data.reports.traceability.coveragePercent,
+                                data.reports.traceability.completeLinks,
+                              ),
+                              tone: "green",
+                            },
+                            {
+                              icon: CircleDot,
+                              label: "Partial",
+                              value: formatPercentWithCount(
+                                computePartialPercent(data.reports.traceability),
+                                data.reports.traceability.partialLinks,
+                              ),
+                              tone: "amber",
+                            },
+                            {
+                              icon: XCircle,
+                              label: "Missing",
+                              value: formatPercentWithCount(
+                                computeMissingPercent(data.reports.traceability),
+                                data.reports.traceability.missingLinks,
+                              ),
+                              tone: "red",
+                            },
+                          ]}
+                        />
+                      </div>
                     </div>
-                  </ReportCard>
+                  </ReportCardShell>
                 ) : null}
 
-                {shouldShowReportCard(scopedData, "approvalHistory", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<FlaskConical className="size-5" aria-hidden />}
-                    title="Approval History Report"
-                    description="Complete approval timeline including decisions, comments, and review actions."
-                    status={getReportCardHealth(scopedData.reports, "approvalHistory")}
-                    lastGeneratedLabel={scopedData.reports.approvalHistory.lastGeneratedLabel}
-                    viewHref={scopedData.reports.approvalHistory.viewHref}
-                    onPrimaryExport={() =>
-                      runExport(() => exportSingleReport(scopedData, "approvalHistory"))
+                {shouldShowReportCard(data, "missingEvidence", reportFilter) ? (
+                  <ReportCardShell
+                    icon={AlertTriangle}
+                    iconTone="amber"
+                    title="Missing Evidence Report"
+                    description="Missing, incomplete, and orphaned evidence items preventing full lifecycle coverage."
+                    status={getReportCardHealth(data.reports, "missingEvidence")}
+                    lastGeneratedLabel={data.reports.missingEvidence.lastGeneratedLabel}
+                    actions={
+                      <ReportActions
+                        viewHref={data.reports.missingEvidence.viewHref}
+                        primaryLabel="Export"
+                        primaryLeadingIcon={FileText}
+                        exportFormat={singleExportFormats.missingEvidence}
+                        onExportFormatChange={(format) =>
+                          changeSingleExportFormat("missingEvidence", format)
+                        }
+                        onPrimary={() =>
+                          runExport(() =>
+                            exportSingleReport(
+                              data,
+                              "missingEvidence",
+                              singleExportFormats.missingEvidence,
+                            ),
+                          )
+                        }
+                      />
                     }
-                    primaryExportLabel="Export JSON"
                   >
-                    {scopedData.reports.approvalHistory.totalDecisions === 0 ? (
+                    <div className="flex items-start gap-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="rounded-xl bg-rose-50 px-4 py-3 text-rose-800">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide">
+                            Missing Items
+                          </p>
+                          <p className="mt-1 text-3xl font-bold">
+                            {data.reports.missingEvidence.missingItems}
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-amber-50 px-4 py-2 text-amber-900">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide">
+                            Orphaned Items
+                          </p>
+                          <p className="mt-1 text-xl font-bold">
+                            {data.reports.missingEvidence.orphanedItems}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <BreakdownList
+                          rows={[
+                            {
+                              icon: CircleAlert,
+                              label: "Critical",
+                              value: String(data.reports.missingEvidence.critical),
+                              tone: "red",
+                            },
+                            {
+                              icon: AlertTriangle,
+                              label: "High",
+                              value: String(data.reports.missingEvidence.high),
+                              tone: "amber",
+                            },
+                            {
+                              icon: Info,
+                              label: "Medium",
+                              value: String(data.reports.missingEvidence.medium),
+                              tone: "blue",
+                            },
+                            {
+                              icon: CircleDot,
+                              label: "Low",
+                              value: String(data.reports.missingEvidence.low),
+                              tone: "gray",
+                            },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  </ReportCardShell>
+                ) : null}
+
+                {shouldShowReportCard(data, "approvalHistory", reportFilter) ? (
+                  <ReportCardShell
+                    icon={ClipboardCheck}
+                    iconTone="purple"
+                    title="Approval History Report"
+                    description="Complete history of approvals, decisions, comments, and changes over time."
+                    status={getReportCardHealth(data.reports, "approvalHistory")}
+                    lastGeneratedLabel={data.reports.approvalHistory.lastGeneratedLabel}
+                    actions={
+                      <ReportActions
+                        viewHref={data.reports.approvalHistory.viewHref}
+                        primaryLabel="Export"
+                        primaryLeadingIcon={FileText}
+                        exportFormat={singleExportFormats.approvalHistory}
+                        onExportFormatChange={(format) =>
+                          changeSingleExportFormat("approvalHistory", format)
+                        }
+                        onPrimary={() =>
+                          runExport(() =>
+                            exportSingleReport(
+                              data,
+                              "approvalHistory",
+                              singleExportFormats.approvalHistory,
+                            ),
+                          )
+                        }
+                      />
+                    }
+                  >
+                    {data.reports.approvalHistory.totalDecisions === 0 ? (
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                         No approval history has been recorded.
                       </div>
                     ) : (
-                      <>
-                        <p className="text-3xl font-semibold text-slate-900">{scopedData.reports.approvalHistory.totalDecisions}</p>
-                        <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                          <li>Approved: {scopedData.reports.approvalHistory.approved}</li>
-                          <li>Changes Requested: {scopedData.reports.approvalHistory.changesRequested}</li>
-                          <li>Rejected: {scopedData.reports.approvalHistory.rejected}</li>
-                          <li>Pending: {scopedData.reports.approvalHistory.pending}</li>
-                        </ul>
-                      </>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 px-5 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            Total Decisions
+                          </p>
+                          <p className="mt-1 text-3xl font-bold text-slate-900">
+                            {data.reports.approvalHistory.totalDecisions}
+                          </p>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <BreakdownList
+                            rows={[
+                              {
+                                icon: ThumbsUp,
+                                label: "Approved",
+                                value: formatCountWithPercent(
+                                  data.reports.approvalHistory.approved,
+                                  data.reports.approvalHistory.totalDecisions,
+                                ),
+                                tone: "green",
+                              },
+                              {
+                                icon: MessageSquareWarning,
+                                label: "Changes Requested",
+                                value: formatCountWithPercent(
+                                  data.reports.approvalHistory.changesRequested,
+                                  data.reports.approvalHistory.totalDecisions,
+                                ),
+                                tone: "amber",
+                              },
+                              {
+                                icon: ThumbsDown,
+                                label: "Rejected",
+                                value: formatCountWithPercent(
+                                  data.reports.approvalHistory.rejected,
+                                  data.reports.approvalHistory.totalDecisions,
+                                ),
+                                tone: "red",
+                              },
+                              {
+                                icon: Clock,
+                                label: "Pending",
+                                value: formatCountWithPercent(
+                                  data.reports.approvalHistory.pending,
+                                  data.reports.approvalHistory.totalDecisions,
+                                ),
+                                tone: "blue",
+                              },
+                            ]}
+                          />
+                        </div>
+                      </div>
                     )}
-                  </ReportCard>
+                  </ReportCardShell>
                 ) : null}
 
-                {shouldShowReportCard(scopedData, "fullProjectEvidencePackage", filters.reportStatus ?? "all") ? (
-                  <ReportCard
-                    icon={<Package className="size-5" aria-hidden />}
-                    title="Full Project Lifecycle Package"
-                    description="Export the complete lifecycle evidence package with metadata, trace links, and audit manifest."
-                    status={getReportCardHealth(scopedData.reports, "fullProjectEvidencePackage")}
-                    lastGeneratedLabel={scopedData.reports.fullProjectEvidencePackage.lastGeneratedLabel}
-                    viewHref={scopedData.reports.fullProjectEvidencePackage.configureHref}
-                    onPrimaryExport={() =>
-                      runExport(() =>
-                        exportSingleReport(scopedData, "fullProjectEvidencePackage"),
-                      )
-                    }
-                    primaryExportLabel="Export JSON"
-                  >
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        <p className="text-xs text-slate-500">Size (est.)</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          {scopedData.reports.fullProjectEvidencePackage.estimatedSizeLabel}
-                        </p>
+                {shouldShowReportCard(data, "fullProjectEvidencePackage", reportFilter) ? (
+                  <ReportCardShell
+                    icon={Package}
+                    iconTone="blue"
+                    title="Full Project Evidence Package"
+                    description="Export complete project evidence with metadata, traceability links, and audit manifest."
+                    status={getReportCardHealth(data.reports, "fullProjectEvidencePackage")}
+                    lastGeneratedLabel={data.reports.fullProjectEvidencePackage.lastGeneratedLabel}
+                    actions={
+                      <div className="mt-4 space-y-2">
+                        <label className="flex flex-col gap-1">
+                          <span className="text-[11px] font-semibold text-slate-500">Export format</span>
+                          <select
+                            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+                            value={singleExportFormats.fullProjectEvidencePackage}
+                            onChange={(event) =>
+                              changeSingleExportFormat(
+                                "fullProjectEvidencePackage",
+                                event.target.value as ReportExportFormat,
+                              )
+                            }
+                            aria-label="Export format for full project evidence package"
+                          >
+                            {EXPORT_FORMATS.map((format) => (
+                              <option key={format} value={format}>
+                                {exportFormatLabel[format]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={data.reports.fullProjectEvidencePackage.viewHref}
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            <FileText className="size-3.5" aria-hidden />
+                            View Report
+                          </Link>
+                          <Link
+                            href={data.reports.fullProjectEvidencePackage.configureHref}
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            <SlidersHorizontal className="size-3.5" aria-hidden />
+                            Configure
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              runExport(() =>
+                                exportSingleReport(
+                                  data,
+                                  "fullProjectEvidencePackage",
+                                  singleExportFormats.fullProjectEvidencePackage,
+                                ),
+                              )
+                            }
+                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                          >
+                            <Package className="size-3.5" aria-hidden />
+                            <span>
+                              Export ({exportFormatLabel[singleExportFormats.fullProjectEvidencePackage]})
+                            </span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        <p className="text-xs text-slate-500">Files (est.)</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          {scopedData.reports.fullProjectEvidencePackage.estimatedFileCount}
+                    }
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="grid size-20 shrink-0 place-items-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700"
+                        aria-hidden
+                      >
+                        <Package className="size-10" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs leading-snug text-slate-600">
+                          Includes all evidence files, links, metadata, traceability mappings, and audit manifest.
                         </p>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                              Size (Est.)
+                            </p>
+                            <p className="text-base font-bold text-slate-900">
+                              {data.reports.fullProjectEvidencePackage.estimatedSizeLabel}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                              Files (Est.)
+                            </p>
+                            <p className="text-base font-bold text-slate-900">
+                              {data.reports.fullProjectEvidencePackage.estimatedFileCount}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </ReportCard>
+                  </ReportCardShell>
                 ) : null}
               </>
             )}
           </section>
 
-          <section className="reports-action-bar mt-5 flex flex-col items-stretch justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 min-[901px]:flex-row min-[901px]:items-center">
+          <section
+            className="reports-action-bar mt-5 flex flex-col items-stretch justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 min-[901px]:flex-row min-[901px]:items-center min-[901px]:px-5"
+            aria-label="Reports actions"
+          >
             <div className="flex items-start gap-3">
-              <Info className="mt-0.5 size-5 shrink-0 text-blue-700" aria-hidden />
+              <span
+                aria-hidden
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700"
+              >
+                <Info className="size-5" />
+              </span>
               <div>
-                <p className="text-sm font-semibold text-slate-900">{scopedData.actionState.title}</p>
-                <p className="text-sm text-slate-600">{scopedData.actionState.description}</p>
+                <p className="text-sm font-semibold text-slate-900">{data.actionState.title}</p>
+                <p className="text-sm text-slate-600">{data.actionState.description}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <Link href={scopedData.actionState.scheduleHref}>
-                <Button type="button" variant="outline" size="lg" disabled={!scopedData.actionState.canScheduleReports}>
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span>Export all as</span>
+                <select
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm normal-case tracking-normal text-slate-900"
+                  value={allExportFormat}
+                  onChange={(event) => setAllExportFormat(event.target.value as ReportExportFormat)}
+                  aria-label="Export all reports format"
+                >
+                  {EXPORT_FORMATS.map((format) => (
+                    <option key={format} value={format}>
+                      {exportFormatLabel[format]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="bg-white"
+                onClick={() => runExport(() => exportAllReports(data, allExportFormat))}
+              >
+                <FileText className="size-4" aria-hidden />
+                Export All Reports
+              </Button>
+              <Link href={data.actionState.scheduleHref}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="bg-white"
+                  disabled={!data.actionState.canScheduleReports}
+                >
+                  <Calendar className="size-4" aria-hidden />
                   Schedule Reports
                 </Button>
               </Link>
               <Button
                 type="button"
                 size="lg"
-                className="gap-2 bg-[#2563eb] text-white hover:bg-blue-700"
-                disabled={!scopedData.actionState.canRefreshReports}
+                className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
+                disabled={!data.actionState.canRefreshReports}
                 onClick={refreshAll}
               >
                 <RefreshCw className="size-4" aria-hidden />
@@ -513,4 +1065,26 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
       </main>
     </AuthenticatedAppShell>
   );
+}
+
+function formatCountWithPercent(count: number, total: number): string {
+  if (total <= 0) return `${count}`;
+  const pct = Math.round((count / total) * 100);
+  return `${count} (${pct}%)`;
+}
+
+function formatPercentWithCount(percent: number, count: number): string {
+  return `${percent}% (${count})`;
+}
+
+function computePartialPercent(t: ReportsPageData["reports"]["traceability"]): number {
+  const total = t.completeLinks + t.partialLinks + t.missingLinks;
+  if (total <= 0) return 0;
+  return Math.round((t.partialLinks / total) * 100);
+}
+
+function computeMissingPercent(t: ReportsPageData["reports"]["traceability"]): number {
+  const total = t.completeLinks + t.partialLinks + t.missingLinks;
+  if (total <= 0) return 0;
+  return Math.round((t.missingLinks / total) * 100);
 }

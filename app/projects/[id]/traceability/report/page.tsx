@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
+import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
+import { TopHeader } from "@/components/lifecycle-workspace/top-header";
+import { buildTraceabilityMatrixMock } from "@/data/traceability.mock";
 
 export default async function TraceabilityReportPage({
   params,
@@ -8,16 +11,70 @@ export default async function TraceabilityReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const data = buildTraceabilityMatrixMock(id);
+
   return (
-    <main className="mx-auto max-w-4xl space-y-4 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Traceability Report</h1>
-      <p className="text-sm text-muted-foreground">
-        Detailed report package is staged here. Use the matrix screen to review current coverage and export
-        CSV, JSON, or PDF snapshots.
-      </p>
-      <Link href={`/projects/${id}/traceability`}>
-        <Button variant="outline">Back to Traceability Matrix</Button>
-      </Link>
-    </main>
+    <AuthenticatedAppShell
+      projectId={data.project.id}
+      projectName={data.project.name}
+      phaseSummary="Traceability report insights"
+      phaseProgressPct={data.coverageSummary.overallCoveragePercent}
+      navActive="traceability"
+    >
+      <TopHeader title="Traceability Report" userInitials={data.user.initials} notificationCount={6} />
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-[var(--app-bg)] px-5 pb-10 pt-4 min-[901px]:px-8">
+        <div className="mx-auto w-full max-w-[1200px] space-y-6">
+          <Breadcrumbs
+            items={[
+              { label: "Projects", href: "/projects" },
+              { label: `${data.project.name} (${data.project.code})`, href: `/projects/${data.project.id}` },
+              { label: "Traceability Matrix", href: `/projects/${data.project.id}/traceability` },
+              { label: "Report" },
+            ]}
+          />
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Traceability Report</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              End-to-end traceability health across lifecycle phases, requirements, tests, gates, and evidence.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm min-[901px]:grid-cols-4">
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-slate-500">Overall Coverage</p>
+                <p className="text-xl font-semibold text-slate-900">{data.coverageSummary.overallCoveragePercent}%</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-slate-500">Complete</p>
+                <p className="text-xl font-semibold text-slate-900">{data.coverageSummary.complete.count}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-slate-500">Partial</p>
+                <p className="text-xl font-semibold text-slate-900">{data.coverageSummary.partial.count}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-slate-500">Missing + Orphaned</p>
+                <p className="text-xl font-semibold text-slate-900">
+                  {data.coverageSummary.missing.count + data.coverageSummary.orphaned.count}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900">Top Gaps Requiring Correction</h2>
+            <ul className="mt-4 space-y-2 text-sm">
+              {data.traceabilityGaps.slice(0, 8).map((gap) => (
+                <li key={gap.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                  <Link href={gap.href} className="font-medium text-[#2563eb] hover:underline">
+                    {gap.objectId}
+                  </Link>{" "}
+                  · {gap.objectName} · {gap.issue}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </main>
+    </AuthenticatedAppShell>
   );
 }

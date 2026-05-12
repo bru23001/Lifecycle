@@ -105,7 +105,7 @@ export function EvidenceAttachments({ attachments }: EvidenceAttachmentsProps) {
           Add evidence
         </Button>
       </div>
-      <div className="overflow-x-auto">
+      <div className="card-scroll-area">
         <table className="evidence-table w-full min-w-[720px] text-[13px]">
           <thead>
             <tr className="border-b bg-muted/30 text-left text-[11px] font-semibold text-muted-foreground">

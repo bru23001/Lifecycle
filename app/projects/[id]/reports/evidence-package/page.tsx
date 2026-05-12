@@ -15,7 +15,7 @@ export default async function EvidencePackageReportPage({
   return (
     <ReportChrome
       data={data}
-      title="Full Project Lifecycle Package"
+      title="Full Project Evidence Package"
       description="Packaged exports for auditors: artifacts, evidence, gate decisions, traceability, approvals, and manifest."
     >
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

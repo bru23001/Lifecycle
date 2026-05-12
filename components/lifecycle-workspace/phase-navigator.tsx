@@ -173,6 +173,7 @@ export function PhaseNavigator({ items, projectId }: PhaseNavigatorProps) {
   return (
     <aside
       id="phase-navigator"
+      data-pane="phase"
       aria-label="Phase navigator"
       className="phase-navigator-panel phase-navigator flex flex-col rounded-lg border bg-card shadow-sm"
     >

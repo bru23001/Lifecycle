@@ -24,7 +24,7 @@ export function WizardActionBar({
   markCompleteDisabledReason?: string | null;
 }) {
   return (
-    <footer className="wizard-action-bar">
+    <footer className="wizard-action-bar shrink-0">
       <div className="flex min-w-0 flex-wrap items-center gap-3">
         {autosaveLabel ? (
           <p className="text-sm text-muted-foreground" role="status" aria-live="polite">

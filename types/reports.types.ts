@@ -9,6 +9,8 @@ export type ReportsFilters = {
   lastUpdatedLabel: string;
 };
 
+export type ReportExportFormat = "pdf" | "csv" | "json" | "zip";
+
 export type ReportCardBase = {
   id: string;
   title: string;
@@ -17,9 +19,8 @@ export type ReportCardBase = {
   reportType:
     | "lifecycle_status"
     | "gate_decision"
-    | "artifact_completion"
-    | "evidence_completeness"
     | "traceability"
+    | "missing_evidence"
     | "approval_history"
     | "evidence_package";
   status: "ready" | "stale" | "generating" | "missing" | "error";
@@ -74,27 +75,16 @@ export type TraceabilityReportSummary = {
   exportPdfHref: string;
 };
 
-/** Artifact completion across required templates / phases (UI-UX Reports dashboard). */
-export type ArtifactCompletionSummary = {
+/**
+ * Missing Evidence rollup — counts of missing, orphaned, and incomplete
+ * evidence items along with severity breakdown and number of gates that
+ * the missing evidence is blocking. Per Reports spec §11.
+ */
+export type MissingEvidenceSummary = {
   reportId: string;
-  totalRequired: number;
-  completed: number;
-  inReview: number;
-  draft: number;
-  blocked: number;
-  completionPercent: number;
-  lastGeneratedLabel: string;
-  viewHref: string;
-  exportPdfHref: string;
-};
-
-/** Evidence completeness rollup (includes gaps severity per UI-UX). */
-export type EvidenceCompletenessSummary = {
-  reportId: string;
-  overallPercent: number;
-  completeItems: number;
-  partialItems: number;
   missingItems: number;
+  orphanedItems: number;
+  incompleteItems: number;
   critical: number;
   high: number;
   medium: number;
@@ -130,6 +120,7 @@ export type FullProjectEvidencePackageSummary = {
   estimatedSizeLabel: string;
   estimatedFileCount: number;
   lastGeneratedLabel?: string;
+  viewHref: string;
   configureHref: string;
   exportPackageHref: string;
 };
@@ -158,9 +149,8 @@ export type ReportsPageData = {
   reports: {
     lifecycleStatus: LifecycleStatusSummary;
     gateDecision: GateDecisionSummary;
-    artifactCompletion: ArtifactCompletionSummary;
-    evidenceCompleteness: EvidenceCompletenessSummary;
     traceability: TraceabilityReportSummary;
+    missingEvidence: MissingEvidenceSummary;
     approvalHistory: ApprovalHistorySummary;
     fullProjectEvidencePackage: FullProjectEvidencePackageSummary;
   };

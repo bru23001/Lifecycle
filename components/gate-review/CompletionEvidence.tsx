@@ -1,23 +1,17 @@
 "use client";
 
-import type { ComponentType } from "react";
 import Link from "next/link";
-import { Download, Eye, FileSpreadsheet, FileText, ImageIcon, Link2 } from "lucide-react";
 
 import type { GateEvidenceItem } from "@/types/gate-review.types";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-const iconForType: Record<GateEvidenceItem["type"], ComponentType<{ className?: string }>> = {
-  pdf: FileText,
-  spreadsheet: FileSpreadsheet,
-  document: FileText,
-  image: ImageIcon,
-  link: Link2,
-  json: FileText,
-};
+import {
+  EvidenceFileIcon,
+  EvidencePreviewDownloadActions,
+  evidenceToneForIndex,
+  evidenceTypeLabel,
+  formatEvidenceAddedOn,
+  GateCountBadge,
+} from "./gate-review-shared-widgets";
 
 export function CompletionEvidence({
   projectId,
@@ -33,94 +27,76 @@ export function CompletionEvidence({
   const viewAllHref = `/projects/${projectId}/gates/${gateId}/evidence`;
 
   return (
-    <section className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm dark:border-border dark:bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-4 dark:border-border">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold text-[#111827] dark:text-foreground">Completion Evidence</h3>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-muted dark:text-foreground">
-            {evidence.length}
-          </span>
+    <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card">
+      <header className="mb-0 shrink-0 border-b border-slate-100 px-8 pb-4 pt-8 dark:border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <h2 className="text-xl font-semibold text-slate-950 dark:text-foreground">Completion Evidence</h2>
+            <GateCountBadge count={evidence.length} />
+          </div>
+
+          <Link
+            href={viewAllHref}
+            className="text-base font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            View all evidence
+          </Link>
         </div>
-        <Link href={viewAllHref} className="text-sm font-medium text-[#2563eb] hover:underline">
-          View all evidence
-        </Link>
       </header>
 
       {evidence.length === 0 ? (
-        <div className="space-y-4 px-5 py-8">
-          <p className="text-sm text-[#475569] dark:text-muted-foreground">No completion evidence attached.</p>
-          <Link
-            href={`/projects/${projectId}/workspace`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Return to Lifecycle Workspace
-          </Link>
+        <div className="px-8 pb-8 pt-4">
+          <p className="text-sm text-slate-600 dark:text-muted-foreground">No completion evidence attached.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead className="border-b border-[#e5e7eb] bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-[#64748b] dark:border-border dark:bg-muted/40 dark:text-muted-foreground">
-              <tr>
-                <th scope="col" className="px-5 py-3">
-                  Evidence
-                </th>
-                <th scope="col" className="px-5 py-3">
-                  Type
-                </th>
-                <th scope="col" className="px-5 py-3">
-                  Linked To
-                </th>
-                <th scope="col" className="px-5 py-3">
-                  Added By
-                </th>
-                <th scope="col" className="px-5 py-3">
-                  Added On
-                </th>
-                <th scope="col" className="px-5 py-3 text-right">
-                  Actions
-                </th>
+        <div className="lifecycle-scroll min-h-0 flex-1 overflow-y-auto overflow-x-auto px-8 pb-8 pt-4">
+          <table className="w-full min-w-[1000px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-slate-200 text-sm font-semibold text-slate-900 dark:border-border dark:text-foreground">
+                <th className="pb-4 pr-8">Evidence Name</th>
+                <th className="pb-4 pr-8">Type</th>
+                <th className="pb-4 pr-8">Linked To</th>
+                <th className="pb-4 pr-8">Added By</th>
+                <th className="pb-4 pr-8">Added On</th>
+                <th className="pb-4">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e5e7eb] dark:divide-border">
-              {evidence.map((row) => {
-                const Icon = iconForType[row.type];
+
+            <tbody>
+              {evidence.map((row, index) => {
+                const tone = evidenceToneForIndex(index);
+                const typeLabel = evidenceTypeLabel(row.type);
                 return (
-                  <tr key={row.id} className="bg-white dark:bg-card">
-                    <td className="px-5 py-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <Icon className="size-4 shrink-0 text-[#64748b]" aria-hidden />
-                        <Link href={row.href} className="min-w-0 truncate font-medium text-[#2563eb] hover:underline">
+                  <tr key={row.id} className="border-b border-slate-100 text-base last:border-b-0 dark:border-border">
+                    <td className="py-5 pr-8">
+                      <div className="flex items-center gap-5">
+                        <EvidenceFileIcon type={row.type} tone={tone} />
+
+                        <Link
+                          href={row.href}
+                          className="font-semibold text-slate-950 hover:text-blue-600 hover:underline dark:text-foreground dark:hover:text-blue-400"
+                        >
                           {row.name}
                         </Link>
                       </div>
                     </td>
-                    <td className="px-5 py-3 capitalize text-[#475569] dark:text-muted-foreground">{row.type}</td>
-                    <td className="px-5 py-3 text-[#475569] dark:text-muted-foreground">{row.linkedTo.join(", ")}</td>
-                    <td className="px-5 py-3">{row.addedBy}</td>
-                    <td className="px-5 py-3 text-[#475569] dark:text-muted-foreground">{row.addedOnLabel}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Preview ${row.name}`}
-                          onClick={() => onPreview(row)}
-                        >
-                          <Eye className="size-4" />
-                        </Button>
-                        <a
-                          href={row.downloadHref ?? row.href}
-                          download
-                          className={cn(
-                            buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                            "text-muted-foreground hover:text-foreground",
-                          )}
-                          aria-label={`Download ${row.name}`}
-                        >
-                          <Download className="size-4" />
-                        </a>
-                      </div>
+
+                    <td className="py-5 pr-8 font-medium text-slate-700 dark:text-foreground/90">{typeLabel}</td>
+
+                    <td className="py-5 pr-8 text-slate-700 dark:text-foreground/90">{row.linkedTo.join(", ")}</td>
+
+                    <td className="py-5 pr-8 text-slate-700 dark:text-foreground/90">{row.addedBy}</td>
+
+                    <td className="whitespace-pre-line py-5 pr-8 text-slate-700 dark:text-foreground/90">
+                      {formatEvidenceAddedOn(row.addedOnLabel)}
+                    </td>
+
+                    <td className="py-5">
+                      <EvidencePreviewDownloadActions
+                        name={row.name}
+                        onPreview={() => onPreview(row)}
+                        downloadHref={row.downloadHref ?? row.href}
+                      />
                     </td>
                   </tr>
                 );
@@ -129,6 +105,6 @@ export function CompletionEvidence({
           </table>
         </div>
       )}
-    </section>
+    </article>
   );
 }

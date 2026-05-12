@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
+import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import type { ArtifactLibraryData, ArtifactListItem } from "@/types/artifact-library.types";
 
@@ -51,6 +52,8 @@ export function ArtifactLibraryPage({
     [data.artifactListItems, search, phaseFilter, statusFilter],
   );
 
+  const [mobilePane, setMobilePane] = useState<"list" | "detail" | "context">("detail");
+
   return (
     <AuthenticatedAppShell
       projectId={data.project.id}
@@ -62,7 +65,7 @@ export function ArtifactLibraryPage({
     >
       <TopHeader title="Artifact Library" userInitials={data.user.initials} />
       <ArtifactLibraryContent>
-        <div className="mx-auto w-full max-w-[1920px] px-5 pt-4 min-[901px]:px-8">
+        <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4 min-[901px]:px-8">
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
@@ -75,7 +78,19 @@ export function ArtifactLibraryPage({
           />
         </div>
 
+        <PaneSwitcher
+          panes={[
+            { id: "list", label: "Artifacts" },
+            { id: "detail", label: "Detail" },
+            { id: "context", label: "Context" },
+          ]}
+          active={mobilePane}
+          onChange={(id) => setMobilePane(id as typeof mobilePane)}
+          className="mx-auto w-full max-w-[1920px]"
+        />
+
         <ArtifactLibraryGrid
+          activePane={mobilePane}
           listPanel={
             <ArtifactListPanel
               projectId={data.project.id}
@@ -87,6 +102,7 @@ export function ArtifactLibraryPage({
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
               items={filteredItems}
+              totalArtifactCount={data.artifactListItems.length}
             />
           }
           detailPanel={

@@ -46,8 +46,8 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
   const id = project.id;
 
   const checks: { path: string; needle: string }[] = [
-    { path: "/", needle: "Lifecycle platform" },
-    { path: "/projects", needle: "Project dashboard" },
+    { path: "/", needle: "Welcome back, Alex" },
+    { path: "/projects", needle: "Project List" },
     { path: `/projects/${id}`, needle: "Gate status" },
     { path: `/projects/${id}/requirements`, needle: "Requirements" },
     { path: `/projects/${id}/features`, needle: "Features" },
@@ -61,9 +61,9 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: `/projects/${id}/reports/lifecycle-status`, needle: "Lifecycle Status Report" },
     { path: `/projects/${id}/reports/gate-decisions`, needle: "Gate Decision Report" },
     { path: `/projects/${id}/reports/traceability`, needle: "Traceability Coverage Report" },
-    { path: `/projects/${id}/reports/missing-evidence`, needle: "Evidence Completeness Report" },
+    { path: `/projects/${id}/reports/missing-evidence`, needle: "Missing Evidence Report" },
     { path: `/projects/${id}/reports/approval-history`, needle: "Approval History Report" },
-    { path: `/projects/${id}/reports/evidence-package`, needle: "Full Project Lifecycle Package" },
+    { path: `/projects/${id}/reports/evidence-package`, needle: "Full Project Evidence Package" },
     { path: `/projects/${id}/reports/evidence-package/configure`, needle: "Configure Evidence Package" },
     { path: `/projects/${id}/reports/schedule`, needle: "Schedule Reports" },
     { path: `/projects/${id}/traceability`, needle: "Traceability Matrix" },

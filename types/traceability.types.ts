@@ -2,6 +2,7 @@ export type CoverageStatus = "complete" | "partial" | "missing";
 
 export type TraceabilityFilters = {
   projectId: string;
+  searchTerm?: string;
   viewMode: "all_links" | "requirements" | "phases" | "gates" | "gaps";
   phaseNumber?: number | "all";
   status?: "all" | CoverageStatus | "orphaned";

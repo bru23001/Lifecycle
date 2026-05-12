@@ -1,10 +1,11 @@
 "use client";
 
-import { FileArchive, FileDown } from "lucide-react";
+import { Download, Package } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { downloadTextFile } from "@/lib/artifact-export";
 import type { ArtifactExportPackage, ArtifactLibraryData } from "@/types/artifact-library.types";
+
+import { OutlineActionButton, SidebarCard } from "./sidebar-primitives";
 
 export function ExportPackageCard({
   exportPackage,
@@ -16,40 +17,35 @@ export function ExportPackageCard({
   json: ArtifactLibraryData["selectedArtifact"]["jsonEvidence"];
 }) {
   return (
-    <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm dark:border-border dark:bg-card">
-      <h3 className="text-sm font-semibold text-[#111827] dark:text-foreground">Export Package</h3>
-      <p className="mt-2 text-xs text-[#64748b] dark:text-muted-foreground">
+    <SidebarCard title="Export Package">
+      <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-muted-foreground sm:mt-7 sm:text-base sm:leading-7">
         Export this artifact with linked evidence and metadata.
       </p>
 
       {exportPackage.blockers.length > 0 ? (
-        <div role="alert" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+        <div
+          role="alert"
+          className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+        >
           {exportPackage.blockers.join(" • ")}
         </div>
       ) : null}
 
-      <div className="mt-3 space-y-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full justify-between"
+      <div className="mt-6 space-y-4 sm:mt-7 sm:space-y-5">
+        <OutlineActionButton
           disabled={!exportPackage.canExportMarkdown}
-          aria-label={`Export Markdown ${exportPackage.markdownFilename}`}
+          ariaLabel={`Export Markdown ${exportPackage.markdownFilename}`}
           onClick={() =>
             downloadTextFile(exportPackage.markdownFilename, markdown.markdown, "text/markdown;charset=utf-8")
           }
+          icon={<Download className="h-5 w-5 shrink-0 stroke-[2.3]" aria-hidden />}
         >
           Export as Markdown (.md)
-          <FileDown className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full justify-between"
+        </OutlineActionButton>
+
+        <OutlineActionButton
           disabled={!exportPackage.canExportJsonEvidence}
-          aria-label={`Export JSON evidence ${exportPackage.jsonFilename}`}
+          ariaLabel={`Export JSON evidence ${exportPackage.jsonFilename}`}
           onClick={() =>
             downloadTextFile(
               exportPackage.jsonFilename,
@@ -57,16 +53,14 @@ export function ExportPackageCard({
               "application/json;charset=utf-8",
             )
           }
+          icon={<Download className="h-5 w-5 shrink-0 stroke-[2.3]" aria-hidden />}
         >
-          Export as JSON evidence
-          <FileDown className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          className="w-full justify-between bg-[#2563eb] text-white hover:bg-blue-700"
+          Export as JSON Evidence (.json)
+        </OutlineActionButton>
+
+        <OutlineActionButton
           disabled={!exportPackage.canExportFullPackage}
-          aria-label={`Export full package ${exportPackage.packageFilename}`}
+          ariaLabel={`Export full package ${exportPackage.packageFilename}`}
           onClick={() =>
             downloadTextFile(
               exportPackage.packageFilename,
@@ -82,11 +76,11 @@ export function ExportPackageCard({
               "application/zip",
             )
           }
+          icon={<Package className="h-5 w-5 shrink-0 stroke-[2.3]" aria-hidden />}
         >
           Export Full Package (.zip)
-          <FileArchive className="size-4" />
-        </Button>
+        </OutlineActionButton>
       </div>
-    </section>
+    </SidebarCard>
   );
 }

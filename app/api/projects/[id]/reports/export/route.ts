@@ -18,12 +18,10 @@ function pickReportPayload(
       return { ...base, report: data.reports.lifecycleStatus };
     case "gateDecision":
       return { ...base, report: data.reports.gateDecision };
-    case "artifactCompletion":
-      return { ...base, report: data.reports.artifactCompletion };
-    case "evidenceCompleteness":
-      return { ...base, report: data.reports.evidenceCompleteness };
     case "traceability":
       return { ...base, report: data.reports.traceability };
+    case "missingEvidence":
+      return { ...base, report: data.reports.missingEvidence };
     case "approvalHistory":
       return { ...base, report: data.reports.approvalHistory };
     case "fullProjectEvidencePackage":
@@ -50,9 +48,8 @@ export async function GET(
   const allowedKeys = new Set([
     "lifecycleStatus",
     "gateDecision",
-    "artifactCompletion",
-    "evidenceCompleteness",
     "traceability",
+    "missingEvidence",
     "approvalHistory",
     "fullProjectEvidencePackage",
     "all",

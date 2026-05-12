@@ -68,17 +68,26 @@ export function SectionEditorPanel({
   onSaveSection: () => void;
 }) {
   return (
-    <section className="section-editor-panel rounded-2xl border bg-card p-6 shadow-sm">
+    <section data-pane="editor" className="section-editor-panel rounded-2xl border bg-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border bg-muted/20 px-3 py-2.5">
         <p className="text-sm font-semibold text-foreground">
           Section {sectionIndex + 1} of {sectionCount}
         </p>
-        <button
-          type="button"
-          className="inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold text-[#2563eb] hover:bg-[#eff6ff]"
-        >
-          View Section Guidance
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onSaveSection}
+            className="inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold text-[#2563eb] hover:bg-[#eff6ff]"
+          >
+            Validate Section
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold text-[#2563eb] hover:bg-[#eff6ff]"
+          >
+            View Section Guidance
+          </button>
+        </div>
       </div>
       <ActiveSectionHeader section={section} values={values} />
 

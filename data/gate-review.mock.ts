@@ -14,6 +14,7 @@ export const gateReviewMock: GateReviewData = {
   gateReviewHeader: {
     projectId: "sip-001",
     projectName: "Secure Identity Platform",
+    projectCode: "SIP-001",
     gateId: "g2",
     gateCode: "G2",
     gateNumber: 2,
@@ -29,6 +30,7 @@ export const gateReviewMock: GateReviewData = {
     submittedByName: "Alex Developer",
     reviewType: "standard",
     dueDateLabel: "May 19, 2024",
+    dueRelativeLabel: "(7 days left)",
     approversAssigned: 3,
     readinessPercent: 92,
   },

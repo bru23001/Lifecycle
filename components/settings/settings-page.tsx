@@ -9,10 +9,15 @@ import { SettingsContent } from "@/components/settings/SettingsContent";
 import { computeActionState, validateStoragePath } from "@/lib/settings-validation";
 import type {
   ExportSettings,
+  GateRuleSetting,
+  LifecyclePhaseSetting,
   LocalStorageSettings,
+  RolePermissionEntry,
+  RolePermissionSetting,
   SettingsPageData,
   SettingsQuickAction,
   SettingsSectionId,
+  TemplateRegistryItem,
 } from "@/types/settings.types";
 
 function downloadBlob(filename: string, blob: Blob): void {
@@ -28,7 +33,10 @@ function downloadBlob(filename: string, blob: Blob): void {
 
 function snapshotForDirtyCheck(data: SettingsPageData) {
   return JSON.stringify({
-    activeSection: data.activeSection,
+    lifecycleConfiguration: data.lifecycleConfiguration,
+    templateRegistry: data.templateRegistry,
+    gateRules: data.gateRules,
+    rolesPermissions: data.rolesPermissions,
     exportSettings: data.exportSettings,
     localStorageSettings: data.localStorageSettings,
   });
@@ -44,8 +52,6 @@ export function SettingsPage({
 
   const [data, setData] = useState<SettingsPageData>(initial);
   const [baseline, setBaseline] = useState<SettingsPageData>(initial);
-  const [exportSettings, setExportSettings] = useState<ExportSettings>(initial.exportSettings);
-  const [localStorageSettings, setLocalStorageSettings] = useState<LocalStorageSettings>(initial.localStorageSettings);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -66,8 +72,6 @@ export function SettingsPage({
         if (!active) return;
         setData(payload.data);
         setBaseline(payload.data);
-        setExportSettings(payload.data.exportSettings);
-        setLocalStorageSettings(payload.data.localStorageSettings);
       } catch {
         if (!active) return;
         setErrorMessage("Unable to load settings from backend. Using local defaults.");
@@ -81,14 +85,6 @@ export function SettingsPage({
     };
   }, [initial.activeSection]);
 
-  useEffect(() => {
-    setData((prev) => ({
-      ...prev,
-      exportSettings,
-      localStorageSettings,
-    }));
-  }, [exportSettings, localStorageSettings]);
-
   const hasUnsavedChanges = snapshotForDirtyCheck(data) !== snapshotForDirtyCheck(baseline);
   const actionState = useMemo(
     () => computeActionState({ data, hasUnsavedChanges }),
@@ -101,8 +97,62 @@ export function SettingsPage({
 
   const updateData = (nextData: SettingsPageData) => {
     setData(nextData);
-    setExportSettings(nextData.exportSettings);
-    setLocalStorageSettings(nextData.localStorageSettings);
+  };
+
+  const updateLifecyclePhase = (phaseId: string, updater: (phase: LifecyclePhaseSetting) => LifecyclePhaseSetting) => {
+    setData((prev) => ({
+      ...prev,
+      lifecycleConfiguration: {
+        ...prev.lifecycleConfiguration,
+        phases: prev.lifecycleConfiguration.phases.map((phase) =>
+          phase.id === phaseId ? updater(phase) : phase,
+        ),
+      },
+    }));
+  };
+
+  const updateTemplateItem = (
+    templateId: string,
+    updater: (item: TemplateRegistryItem) => TemplateRegistryItem,
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      templateRegistry: prev.templateRegistry.map((item) =>
+        item.id === templateId ? updater(item) : item,
+      ),
+    }));
+  };
+
+  const updateGateRule = (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => {
+    setData((prev) => ({
+      ...prev,
+      gateRules: prev.gateRules.map((rule) => (rule.id === ruleId ? updater(rule) : rule)),
+    }));
+  };
+
+  const updateRolePermission = (
+    roleId: string,
+    module: RolePermissionEntry["module"],
+    action: keyof Omit<RolePermissionEntry, "module">,
+    checked: boolean,
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      rolesPermissions: prev.rolesPermissions.map((role): RolePermissionSetting => {
+        if (role.roleId !== roleId) return role;
+        return {
+          ...role,
+          permissions: role.permissions.map((permission) =>
+            permission.module === module
+              ? {
+                  ...permission,
+                  [action]: checked,
+                }
+              : permission,
+          ),
+        };
+      }),
+    }));
   };
 
   const handleSave = async () => {
@@ -250,7 +300,7 @@ export function SettingsPage({
   };
 
   const handleChangeLocalStoragePath = (key: keyof LocalStorageSettings["paths"]) => {
-    const currentPath = localStorageSettings.paths[key];
+    const currentPath = data.localStorageSettings.paths[key];
     const nextPath = window.prompt("Enter a new path", currentPath);
     if (!nextPath) return;
 
@@ -261,60 +311,165 @@ export function SettingsPage({
     }
 
     setLocalStoragePathError(null);
-    setLocalStorageSettings({
-      ...localStorageSettings,
-      paths: {
-        ...localStorageSettings.paths,
-        [key]: nextPath,
+    setData((prev) => ({
+      ...prev,
+      localStorageSettings: {
+        ...prev.localStorageSettings,
+        paths: {
+          ...prev.localStorageSettings.paths,
+          [key]: nextPath,
+        },
       },
+    }));
+  };
+
+  const handleAddPhase = () => {
+    const name = window.prompt("Phase name");
+    if (!name) return;
+    const description = window.prompt("Phase description", "New lifecycle phase") ?? "New lifecycle phase";
+    setData((prev) => {
+      const nextNumber = prev.lifecycleConfiguration.phases.length + 1;
+      const nextId = `phase-${Date.now()}`;
+      const nextPhase: LifecyclePhaseSetting = {
+        id: nextId,
+        phaseNumber: nextNumber,
+        name,
+        description,
+        keyDeliverables: ["Define deliverables"],
+        requiredArtifactIds: [],
+        status: "draft",
+        canEdit: true,
+        canReorder: true,
+      };
+      return {
+        ...prev,
+        lifecycleConfiguration: {
+          ...prev.lifecycleConfiguration,
+          phases: [...prev.lifecycleConfiguration.phases, nextPhase],
+          totalPhases: prev.lifecycleConfiguration.totalPhases + 1,
+        },
+      };
     });
   };
 
+  const handleEditPhase = (phaseId: string) => {
+    const target = data.lifecycleConfiguration.phases.find((phase) => phase.id === phaseId);
+    if (!target) return;
+    const nextDescription = window.prompt(`Update description for ${target.name}`, target.description);
+    if (!nextDescription) return;
+    updateLifecyclePhase(phaseId, (phase) => ({ ...phase, description: nextDescription }));
+  };
+
+  const handleCreateRule = () => {
+    const code = window.prompt("Gate code", `G${data.gateRules.length + 1}`);
+    if (!code) return;
+    setData((prev) => ({
+      ...prev,
+      gateRules: [
+        ...prev.gateRules,
+        {
+          id: `gate-rule-${Date.now()}`,
+          gateCode: code.toUpperCase(),
+          gateName: `New ${code.toUpperCase()} Gate`,
+          relatedPhaseNumber: 1,
+          requiredInputIds: [],
+          requiredEvidenceCount: 1,
+          requiredApproverRoles: ["Governance Admin"],
+          decisionRule: "single_approver",
+          status: "draft",
+        },
+      ],
+    }));
+  };
+
+  const handleCreateRole = () => {
+    const roleName = window.prompt("Role name");
+    if (!roleName) return;
+    setData((prev) => ({
+      ...prev,
+      rolesPermissions: [
+        ...prev.rolesPermissions,
+        {
+          roleId: `custom-role-${Date.now()}`,
+          roleName,
+          description: "Custom role",
+          assignedUsersCount: 0,
+          systemRole: false,
+          permissions: [
+            {
+              module: "settings",
+              view: true,
+              create: false,
+              edit: false,
+              delete: false,
+              approve: false,
+              export: false,
+              admin: false,
+            },
+          ],
+        },
+      ],
+    }));
+  };
+
+  const handleUpdateExportSettings = (nextValue: ExportSettings) => {
+    setData((prev) => ({
+      ...prev,
+      exportSettings: nextValue,
+    }));
+  };
+
+  const handleUpdateLocalStorageSettings = (nextValue: LocalStorageSettings) => {
+    setData((prev) => ({
+      ...prev,
+      localStorageSettings: nextValue,
+    }));
+  };
+
   return (
-    <AuthenticatedAppShell
-      projectId="settings-hub"
-      projectName="Platform Configuration"
-      phaseSummary={hasUnsavedChanges ? "Unsaved configuration changes" : "Configuration overview"}
-      phaseProgressPct={72}
-      navActive="settings"
-    >
+    <AuthenticatedAppShell projectId={null} navActive="settings">
       <TopHeader title="Settings" userInitials={data.user.initials} notificationCount={1} />
-      <SettingsContent
-        data={data}
-        activeSectionLabel={activeSectionLabel}
-        isLoading={isLoading}
-        errorMessage={errorMessage}
-        exportSettings={exportSettings}
-        localStorageSettings={localStorageSettings}
-        localStoragePathError={localStoragePathError}
-        canSave={actionState.canSave}
-        canReset={actionState.canReset}
-        isSaving={isSaving}
-        blockers={actionState.blockers}
-        onRetryError={() => setErrorMessage(null)}
-        onSectionChange={handleSectionChange}
-        onAddPhase={() => setErrorMessage("Add Phase modal is not implemented yet.")}
-        onEditPhase={() => setErrorMessage("Edit Phase drawer is not implemented yet.")}
-        onCreateTemplate={() => router.push("/projects/new?intent=create-template")}
-        onCreateRule={() => setErrorMessage("Gate Rule creation modal is not implemented yet.")}
-        onCreateRole={() => setErrorMessage("Role creation modal is not implemented yet.")}
-        onTestExport={() => setErrorMessage("Test export queued for backend processing.")}
-        onUpdateExportSettings={setExportSettings}
-        onUpdateLocalStorageSettings={setLocalStorageSettings}
-        onChangeLocalStoragePath={handleChangeLocalStoragePath}
-        onQuickAction={handleQuickAction}
-        onReset={handleResetChanges}
-        onSave={() => {
-          void handleSave();
-        }}
-      />
-      <input
-        ref={importFileInputRef}
-        type="file"
-        accept="application/json"
-        className="hidden"
-        onChange={(event) => handleImportFileSelected(event.target.files?.[0] ?? null)}
-      />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <SettingsContent
+          data={data}
+          activeSectionLabel={activeSectionLabel}
+          isLoading={isLoading}
+          errorMessage={errorMessage}
+          exportSettings={data.exportSettings}
+          localStorageSettings={data.localStorageSettings}
+          localStoragePathError={localStoragePathError}
+          canSave={actionState.canSave}
+          canReset={actionState.canReset}
+          isSaving={isSaving}
+          blockers={actionState.blockers}
+          onRetryError={() => setErrorMessage(null)}
+          onSectionChange={handleSectionChange}
+          onAddPhase={handleAddPhase}
+          onEditPhase={handleEditPhase}
+          onCreateTemplate={() => router.push("/projects/new?intent=create-template")}
+          onCreateRule={handleCreateRule}
+          onCreateRole={handleCreateRole}
+          onTestExport={() => setErrorMessage("Test export queued for backend processing.")}
+          onUpdateExportSettings={handleUpdateExportSettings}
+          onUpdateLocalStorageSettings={handleUpdateLocalStorageSettings}
+          onChangeLocalStoragePath={handleChangeLocalStoragePath}
+          onEditTemplate={updateTemplateItem}
+          onEditGateRule={updateGateRule}
+          onEditRolePermission={updateRolePermission}
+          onQuickAction={handleQuickAction}
+          onReset={handleResetChanges}
+          onSave={() => {
+            void handleSave();
+          }}
+        />
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept="application/json"
+          className="hidden"
+          onChange={(event) => handleImportFileSelected(event.target.files?.[0] ?? null)}
+        />
+      </div>
     </AuthenticatedAppShell>
   );
 }

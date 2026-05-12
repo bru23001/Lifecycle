@@ -22,19 +22,25 @@ export function SettingsNavItem({
       onClick={() => onSelect(item.section, item.href)}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "w-full rounded-xl border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-blue-500",
+        "flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
         isActive
           ? "border-blue-300 bg-blue-50"
           : "border-slate-200 bg-white hover:bg-slate-50",
       )}
     >
-      <div className="flex items-start gap-2">
-        <Icon className={cn("mt-0.5 size-4", isActive ? "text-blue-700" : "text-slate-500")} aria-hidden />
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{item.description}</p>
-        </div>
-      </div>
+      <span
+        className={cn(
+          "inline-flex size-8 shrink-0 items-center justify-center rounded-lg",
+          isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600",
+        )}
+        aria-hidden
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-slate-900">{item.label}</span>
+        <span className="mt-0.5 block text-xs leading-snug text-slate-500">{item.description}</span>
+      </span>
     </button>
   );
 }

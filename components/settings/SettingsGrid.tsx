@@ -6,10 +6,13 @@ import { SettingsOverviewPanel } from "@/components/settings/SettingsOverviewPan
 import { PanelSkeleton } from "@/components/settings/shared";
 import type {
   ExportSettings,
+  GateRuleSetting,
   LocalStorageSettings,
+  RolePermissionEntry,
   SettingsPageData,
   SettingsQuickAction,
   SettingsSectionId,
+  TemplateRegistryItem,
 } from "@/types/settings.types";
 
 export function SettingsGrid({
@@ -29,6 +32,9 @@ export function SettingsGrid({
   onUpdateExportSettings,
   onUpdateLocalStorageSettings,
   onChangeLocalStoragePath,
+  onEditTemplate,
+  onEditGateRule,
+  onEditRolePermission,
   onQuickAction,
 }: {
   isLoading: boolean;
@@ -47,11 +53,19 @@ export function SettingsGrid({
   onUpdateExportSettings: (nextValue: ExportSettings) => void;
   onUpdateLocalStorageSettings: (nextValue: LocalStorageSettings) => void;
   onChangeLocalStoragePath: (key: keyof LocalStorageSettings["paths"]) => void;
+  onEditTemplate: (templateId: string, updater: (item: TemplateRegistryItem) => TemplateRegistryItem) => void;
+  onEditGateRule: (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => void;
+  onEditRolePermission: (
+    roleId: string,
+    module: RolePermissionEntry["module"],
+    action: keyof Omit<RolePermissionEntry, "module">,
+    checked: boolean,
+  ) => void;
   onQuickAction: (action: SettingsQuickAction) => void;
 }) {
   return (
-    <div className="settings-page mx-auto grid w-full max-w-[1920px] min-h-[calc(100vh-76px)] grid-cols-1 gap-5 px-5 pb-[96px] min-[901px]:px-8 min-[901px]:pb-[112px] min-[901px]:[grid-template-columns:340px_minmax(0,1fr)_360px] min-[901px]:max-[1280px]:[grid-template-columns:300px_minmax(0,1fr)]">
-      <div className="settings-navigation-panel min-w-0 space-y-5">
+    <div className="settings-page settings-admin-grid mx-auto w-full max-w-[1920px] min-h-0 items-stretch gap-[var(--grid-gap)] px-[var(--page-padding-mobile)] pb-6 min-[901px]:px-[var(--page-padding)]">
+      <div className="settings-navigation-panel flex min-w-0 flex-col gap-5 [&>*:last-child]:flex-1 [&>*:last-child]:flex [&>*:last-child]:flex-col">
         {isLoading ? (
           <PanelSkeleton heightClass="h-52" />
         ) : (
@@ -63,7 +77,7 @@ export function SettingsGrid({
         )}
       </div>
 
-      <div className="settings-detail-panel min-w-0 space-y-5">
+      <div className="settings-detail-panel flex min-w-0 flex-col gap-5 [&>section:first-child]:flex-1 [&>section:first-child]:flex [&>section:first-child]:flex-col">
         {isLoading ? (
           <PanelSkeleton heightClass="h-64" />
         ) : (
@@ -82,11 +96,14 @@ export function SettingsGrid({
             onUpdateExportSettings={onUpdateExportSettings}
             onUpdateLocalStorageSettings={onUpdateLocalStorageSettings}
             onChangeLocalStoragePath={onChangeLocalStoragePath}
+            onEditTemplate={onEditTemplate}
+            onEditGateRule={onEditGateRule}
+            onEditRolePermission={onEditRolePermission}
           />
         )}
       </div>
 
-      <aside className="settings-overview-panel min-w-0 space-y-5 min-[901px]:max-[1280px]:col-span-full min-[901px]:max-[1280px]:grid min-[901px]:max-[1280px]:grid-cols-3 min-[901px]:max-[1280px]:gap-5">
+      <aside className="settings-overview-panel flex min-w-0 flex-col gap-5 [&>*:last-child]:flex-1 [&>*:last-child]:flex [&>*:last-child]:flex-col min-[901px]:max-[1280px]:col-span-full min-[901px]:max-[1280px]:grid min-[901px]:max-[1280px]:grid-cols-3 min-[901px]:max-[1280px]:gap-5 min-[901px]:max-[1280px]:[&>*:last-child]:flex-none">
         {isLoading ? (
           <>
             <PanelSkeleton heightClass="h-36" />

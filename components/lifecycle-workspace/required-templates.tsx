@@ -80,7 +80,7 @@ function TemplateRowActions({ row }: { row: RequiredTemplate }) {
 
 function TemplateTable({ rows }: { rows: RequiredTemplate[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="template-table w-full min-w-[720px] text-[13px]">
         <thead>
           <tr className="border-b bg-muted/30 text-left text-[11px] font-semibold text-muted-foreground">
@@ -174,7 +174,9 @@ export function RequiredTemplates({ templates }: RequiredTemplatesProps) {
           Create from template
         </Button>
       </div>
-      <TemplateTable rows={templates} />
+      <div className="card-scroll-area">
+        <TemplateTable rows={templates} />
+      </div>
     </section>
   );
 }

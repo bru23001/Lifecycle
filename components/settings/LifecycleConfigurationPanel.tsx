@@ -9,19 +9,11 @@ import type { LifecyclePhaseSetting } from "@/types/settings.types";
 
 export function LifecycleConfigurationPanel({
   phases,
-  totalPhases,
-  totalGates,
-  totalArtifacts,
-  activeTemplates,
   lastUpdatedLabel,
   onAddPhase,
   onEditPhase,
 }: {
   phases: LifecyclePhaseSetting[];
-  totalPhases: number;
-  totalGates: number;
-  totalArtifacts: number;
-  activeTemplates: number;
   lastUpdatedLabel: string;
   onAddPhase: () => void;
   onEditPhase: (phaseId: string) => void;
@@ -65,8 +57,13 @@ export function LifecycleConfigurationPanel({
       </div>
 
       {activeTab === "lifecycle-phases" ? (
-        <>
-          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+        <div
+          role="tabpanel"
+          id="lifecycle-tabpanel-lifecycle-phases"
+          aria-labelledby="lifecycle-tab-lifecycle-phases"
+          className="mt-4 flex flex-1 flex-col"
+        >
+          <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
             Define and manage lifecycle phases and their order.
           </div>
           <div className="mt-4 overflow-x-auto">
@@ -125,27 +122,14 @@ export function LifecycleConfigurationPanel({
               </table>
             )}
           </div>
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-auto flex items-center justify-between pt-4">
             <Button type="button" variant="outline" size="sm" onClick={onAddPhase}>
               <Plus className="size-3.5" aria-hidden />
               Add Phase
             </Button>
             <p className="text-xs text-slate-500">Last updated: {lastUpdatedLabel}</p>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              ["Total Phases", totalPhases],
-              ["Total Gates", totalGates],
-              ["Total Artifacts", totalArtifacts],
-              ["Active Templates", activeTemplates],
-            ].map(([label, value]) => (
-              <article key={label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
-              </article>
-            ))}
-          </div>
-        </>
+        </div>
       ) : (
         <div
           role="tabpanel"

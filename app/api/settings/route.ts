@@ -15,6 +15,25 @@ function isSection(value: string | null): value is SettingsSectionId {
   );
 }
 
+function eventTypeForSection(section: SettingsSectionId): SettingsActivity["eventType"] {
+  switch (section) {
+    case "lifecycle_configuration":
+      return "lifecycle_updated";
+    case "template_registry":
+      return "template_updated";
+    case "gate_rules":
+      return "gate_rule_modified";
+    case "roles_permissions":
+      return "role_changed";
+    case "export_settings":
+      return "export_settings_changed";
+    case "local_storage_settings":
+      return "storage_settings_changed";
+    default:
+      return "lifecycle_updated";
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sectionParam = searchParams.get("section");
@@ -35,10 +54,11 @@ export async function PUT(request: Request) {
 
   const saveActivity: SettingsActivity = {
     id: `activity-${Date.now()}`,
-    eventType: "export_settings_changed",
-    title: "Settings saved",
+    eventType: eventTypeForSection(incoming.activeSection),
+    title: `Settings saved (${incoming.activeSection.replaceAll("_", " ")})`,
     actorName: incoming.user.name,
     timestampLabel: "Just now",
+    href: incoming.navigationItems.find((item) => item.section === incoming.activeSection)?.href,
   };
   const nextData: SettingsPageData = {
     ...incoming,

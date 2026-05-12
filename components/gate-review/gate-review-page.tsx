@@ -28,9 +28,8 @@ import { GateReviewActionBar } from "./GateReviewActionBar";
 import { GateReviewContent } from "./GateReviewContent";
 import { GateReviewGrid } from "./GateReviewGrid";
 import { GateReviewHeader, type GateReviewHeaderChecklist } from "./GateReviewHeader";
-import { GateOverview } from "./GateOverview";
+import { GateOverviewSidebar } from "./GateOverviewSidebar";
 import { NextPhaseUnlock } from "./NextPhaseUnlock";
-import { PhaseProgressCard } from "./PhaseProgressCard";
 import { RequiredInputs } from "./RequiredInputs";
 
 function EvidencePreviewDialog({
@@ -183,8 +182,12 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
       40,
       Math.min(100, initial.gateReviewHeader.readinessPercent - notReviewed * 4),
     );
-    return { ...initial.gateReviewHeader, readinessPercent };
-  }, [initial.gateReviewHeader, criteria]);
+    return {
+      ...initial.gateReviewHeader,
+      readinessPercent,
+      projectCode: initial.gateReviewHeader.projectCode ?? initial.project.code,
+    };
+  }, [initial.gateReviewHeader, initial.project.code, criteria]);
 
   const checklist: GateReviewHeaderChecklist = useMemo(
     () => ({
@@ -349,7 +352,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
               ]}
             />
             <div className="mt-4">
-              <GateReviewHeader data={headerData} checklist={checklist} />
+              <GateReviewHeader data={headerData} checklist={checklist} approvers={initial.approvers} />
             </div>
           </div>
 
@@ -368,52 +371,78 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
             <GateReviewGrid
               activePane={mobilePane}
               className="min-h-0 flex-1"
-              overviewColumn={
-                <>
-                  <GateOverview data={initial.gateOverview} />
-                  <PhaseProgressCard data={initial.gateOverview} />
-                </>
-              }
+              overviewColumn={<GateOverviewSidebar data={initial.gateOverview} />}
               inputsEvidenceColumn={
-                <>
-                  <RequiredInputs
-                    projectId={initial.project.id}
-                    gateId={initial.gateReviewHeader.gateId}
-                    inputs={initial.requiredInputs}
-                  />
-                  <CompletionEvidence
-                    projectId={initial.project.id}
-                    gateId={initial.gateReviewHeader.gateId}
-                    evidence={initial.completionEvidence}
-                    onPreview={onPreview}
-                  />
-                </>
+                <div className="flex h-full min-h-0 flex-col gap-6 max-xl:h-auto">
+                  <div className="flex min-h-[280px] flex-1 basis-0 flex-col xl:min-h-0">
+                    <RequiredInputs
+                      projectId={initial.project.id}
+                      gateId={initial.gateReviewHeader.gateId}
+                      inputs={initial.requiredInputs}
+                    />
+                  </div>
+                  <div className="flex min-h-[280px] flex-1 basis-0 flex-col xl:min-h-0">
+                    <CompletionEvidence
+                      projectId={initial.project.id}
+                      gateId={initial.gateReviewHeader.gateId}
+                      evidence={initial.completionEvidence}
+                      onPreview={onPreview}
+                    />
+                  </div>
+                </div>
               }
               decisionColumn={
-                <>
-                  <DecisionCriteria summary={decisionCriteriaSummary} onChangeAssessment={onChangeAssessment} />
-                  <ApproverReview
-                    projectId={initial.project.id}
-                    gateId={initial.gateReviewHeader.gateId}
-                    approvers={initial.approvers}
-                    onOpenComments={onOpenComments}
-                  />
-                  <DecisionRecord
-                    record={initial.decisionRecord}
-                    draftDecision={draftDecision}
-                    onSelectDecision={setDraftDecision}
-                    comments={comments}
-                    onCommentsChange={setComments}
-                    conditions={conditions}
-                    onAddCondition={() => setConditions((c) => [...c, ""])}
-                    onRemoveCondition={(i) => setConditions((c) => c.filter((_, j) => j !== i))}
-                    onConditionChange={(i, v) =>
-                      setConditions((c) => c.map((row, j) => (j === i ? v : row)))
-                    }
-                    decisionRecordRef={decisionRecordRef}
-                  />
-                  <NextPhaseUnlock state={nextPhaseUnlock} />
-                </>
+                <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-4 max-xl:h-auto xl:min-h-0 xl:gap-5">
+                  <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden xl:min-h-[180px]">
+                    <section
+                      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card"
+                      aria-label="Decision criteria and approver review"
+                    >
+                      <div className="lifecycle-scroll min-h-0 flex-1 overflow-y-auto overflow-x-auto px-8 pb-8 pt-8">
+                        <DecisionCriteria
+                          projectId={initial.project.id}
+                          gateId={initial.gateReviewHeader.gateId}
+                          summary={decisionCriteriaSummary}
+                          onChangeAssessment={onChangeAssessment}
+                          embedded
+                        />
+                        <ApproverReview
+                          projectId={initial.project.id}
+                          gateId={initial.gateReviewHeader.gateId}
+                          approvers={initial.approvers}
+                          onOpenComments={onOpenComments}
+                          embedded
+                        />
+                      </div>
+                    </section>
+                  </div>
+                  <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden xl:min-h-[180px]">
+                    <section
+                      ref={decisionRecordRef}
+                      tabIndex={-1}
+                      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm outline-none dark:border-border dark:bg-card"
+                      aria-label="Decision record and next phase unlock"
+                    >
+                      <div className="lifecycle-scroll min-h-0 flex-1 overflow-y-auto overflow-x-auto px-8 pb-8 pt-8">
+                        <DecisionRecord
+                          record={initial.decisionRecord}
+                          draftDecision={draftDecision}
+                          onSelectDecision={setDraftDecision}
+                          comments={comments}
+                          onCommentsChange={setComments}
+                          conditions={conditions}
+                          onAddCondition={() => setConditions((c) => [...c, ""])}
+                          onRemoveCondition={(i) => setConditions((c) => c.filter((_, j) => j !== i))}
+                          onConditionChange={(i, v) =>
+                            setConditions((c) => c.map((row, j) => (j === i ? v : row)))
+                          }
+                          embedded
+                        />
+                        <NextPhaseUnlock state={nextPhaseUnlock} embedded />
+                      </div>
+                    </section>
+                  </div>
+                </div>
               }
             />
           </div>

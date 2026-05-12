@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Check, Lock, XCircle } from "lucide-react";
+import { Check, LockKeyhole, XCircle } from "lucide-react";
 
 import type { NextPhaseUnlockState } from "@/types/gate-review.types";
 import { cn } from "@/lib/utils";
 
-export function NextPhaseUnlock({ state }: { state: NextPhaseUnlockState }) {
+export function NextPhaseUnlock({ state, embedded = false }: { state: NextPhaseUnlockState; embedded?: boolean }) {
   const statusLabel =
     state.unlockStatus === "unlocked"
       ? "Unlocked"
@@ -14,56 +14,32 @@ export function NextPhaseUnlock({ state }: { state: NextPhaseUnlockState }) {
           ? "Blocked"
           : "Locked";
 
-  return (
-    <section
-      className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm dark:border-border dark:bg-card"
-      aria-label="Next phase unlock"
-    >
-      <header className="border-b border-[#e5e7eb] px-5 py-4 dark:border-border">
-        <h3 className="text-base font-semibold text-[#111827] dark:text-foreground">Next Phase Unlock</h3>
-      </header>
+  const summaryLine =
+    state.unlockStatus === "unlocked"
+      ? `Phase ${state.nextPhaseNumber}: ${state.nextPhaseName} is available.`
+      : `If approved, Phase ${state.nextPhaseNumber}: ${state.nextPhaseName} will be unlocked. Artifacts will be carried forward to the next phase.`;
 
-      <div className="space-y-4 px-5 py-5">
-        <div className="flex items-start gap-3">
-          <div
-            className={cn(
-              "grid size-10 shrink-0 place-items-center rounded-xl border",
-              state.unlockStatus === "blocked" && "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
-              state.unlockStatus === "unlocked" &&
-                "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
-              (state.unlockStatus === "locked" || state.unlockStatus === "ready") &&
-                "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200",
-            )}
-            aria-hidden
-          >
-            {state.unlockStatus === "unlocked" ? (
-              <Check className="size-5" />
-            ) : state.unlockStatus === "blocked" ? (
-              <XCircle className="size-5" />
-            ) : (
-              <Lock className="size-5" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#111827] dark:text-foreground">{statusLabel}</p>
-            <p className="sr-only">
-              Unlock status {statusLabel}. Next phase {state.nextPhaseName}. Can unlock:{" "}
-              {state.canUnlock ? "yes" : "no"}.
-            </p>
-            <p className="mt-1 text-sm text-[#475569] dark:text-muted-foreground">
-              Phase {state.nextPhaseNumber}: {state.nextPhaseName}
-            </p>
-          </div>
-        </div>
+  const body = (
+    <>
+      <div className="min-w-0 flex-1">
+        <h2 className="text-xl font-semibold text-slate-950 dark:text-foreground">Next Phase Unlock</h2>
 
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#64748b] dark:text-muted-foreground">
+        <p className="sr-only">
+          Unlock status {statusLabel}. Next phase {state.nextPhaseName}. Can unlock: {state.canUnlock ? "yes" : "no"}.
+        </p>
+
+        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-muted-foreground">{summaryLine}</p>
+
+        <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-foreground/90">{statusLabel}</p>
+
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
             Requirements
           </p>
           <ul className="mt-2 space-y-1 text-sm">
             {state.requirements.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2">
-                <span className="text-[#475569] dark:text-muted-foreground">{r.label}</span>
+                <span className="text-slate-600 dark:text-muted-foreground">{r.label}</span>
                 <span
                   className={cn(
                     "text-xs font-semibold",
@@ -80,11 +56,11 @@ export function NextPhaseUnlock({ state }: { state: NextPhaseUnlockState }) {
         </div>
 
         {state.carriedForwardArtifacts.length > 0 ? (
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#64748b] dark:text-muted-foreground">
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
               Carried forward
             </p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#475569] dark:text-muted-foreground">
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-muted-foreground">
               {state.carriedForwardArtifacts.map((a) => (
                 <li key={a}>{a}</li>
               ))}
@@ -95,9 +71,9 @@ export function NextPhaseUnlock({ state }: { state: NextPhaseUnlockState }) {
         <Link
           href={state.nextPhaseHref}
           className={cn(
-            "inline-flex w-full items-center justify-center rounded-lg border px-4 py-2.5 text-center text-sm font-semibold transition",
+            "mt-6 inline-flex w-full max-w-md items-center justify-center rounded-lg border px-4 py-2.5 text-center text-sm font-semibold transition sm:w-auto",
             state.canUnlock
-              ? "border-[#2563eb] bg-[#2563eb] text-white hover:bg-blue-700"
+              ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700"
               : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:border-border dark:bg-muted dark:text-muted-foreground",
           )}
           aria-disabled={!state.canUnlock}
@@ -108,6 +84,47 @@ export function NextPhaseUnlock({ state }: { state: NextPhaseUnlockState }) {
           Open next phase workspace
         </Link>
       </div>
+
+      <div
+        className={cn(
+          "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border sm:mt-1",
+          state.unlockStatus === "blocked" && "border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300",
+          state.unlockStatus === "unlocked" &&
+            "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+          (state.unlockStatus === "locked" || state.unlockStatus === "ready") &&
+            "border-transparent text-slate-500 dark:text-muted-foreground",
+        )}
+        aria-hidden
+      >
+        {state.unlockStatus === "unlocked" ? (
+          <Check className="h-8 w-8" />
+        ) : state.unlockStatus === "blocked" ? (
+          <XCircle className="h-8 w-8" />
+        ) : (
+          <LockKeyhole className="h-10 w-10 stroke-[1.8]" />
+        )}
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div
+        className="mt-8 flex flex-col gap-6 border-t border-slate-100 pt-8 sm:flex-row sm:items-start sm:justify-between dark:border-border"
+        role="region"
+        aria-label="Next phase unlock"
+      >
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <section
+      className="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-8 shadow-sm sm:flex-row sm:items-start sm:justify-between dark:border-border dark:bg-card"
+      aria-label="Next phase unlock"
+    >
+      {body}
     </section>
   );
 }

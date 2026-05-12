@@ -1,9 +1,9 @@
 import {
-  buildJsonEvidence,
-  buildMarkdownPreview,
   computeValidationSummary,
   initialScoreMatrix,
 } from "@/lib/template-wizard-computed";
+import { toJsonEvidence } from "@/templates/renderJsonEvidence";
+import { toMarkdown } from "@/templates/renderMarkdown";
 import type { TemplateWizardData } from "@/types/template-wizard.types";
 
 export type DemoTemplateRouteId = "a-3-1" | "a-3-2" | "a-3-3";
@@ -239,22 +239,22 @@ export function buildTemplateWizardSeed(args: {
     minute: "2-digit",
   });
 
-  const markdownPreview = buildMarkdownPreview(
+  const markdownPreview = toMarkdown({
     wizardHeader,
-    selectedTemplate.sections,
+    sections: selectedTemplate.sections,
     formValues,
     generatedAtLabel,
-  );
+  });
 
-  const jsonEvidence = buildJsonEvidence(
+  const jsonEvidence = toJsonEvidence({
     wizardHeader,
     selectedTemplate,
-    args.projectId,
-    "Alex Developer",
-    selectedTemplate.sections,
+    projectId: args.projectId,
+    generatedBy: "Alex Developer",
+    sections: selectedTemplate.sections,
     formValues,
     validationSummary,
-  );
+  });
 
   const artifactSaveState = {
     artifactId: "artifact-a-3-2",

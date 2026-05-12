@@ -9,9 +9,11 @@ import type { GateRuleSetting } from "@/types/settings.types";
 export function GateRulesPanel({
   data,
   onCreateRule,
+  onUpdateRule,
 }: {
   data: GateRuleSetting[];
   onCreateRule: () => void;
+  onUpdateRule: (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => void;
 }) {
   const [activeTab, setActiveTab] = useState("gate-model");
 
@@ -36,7 +38,9 @@ export function GateRulesPanel({
             key={id}
             type="button"
             role="tab"
+            id={`gate-rules-tab-${id}`}
             aria-selected={activeTab === id}
+            aria-controls={`gate-rules-tabpanel-${id}`}
             onClick={() => setActiveTab(id)}
             className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
               activeTab === id
@@ -49,7 +53,12 @@ export function GateRulesPanel({
         ))}
       </div>
       {activeTab === "gate-model" ? (
-        <div className="mt-4 overflow-x-auto">
+        <div
+          role="tabpanel"
+          id="gate-rules-tabpanel-gate-model"
+          aria-labelledby="gate-rules-tab-gate-model"
+          className="mt-4 overflow-x-auto"
+        >
           {data.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p>No gate rules are configured.</p>
@@ -68,6 +77,7 @@ export function GateRulesPanel({
                   <th className="pb-2">Required Approvers</th>
                   <th className="pb-2">Decision Rule</th>
                   <th className="pb-2">Status</th>
+                  <th className="pb-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,9 +88,58 @@ export function GateRulesPanel({
                     <td className="py-2">Phase {row.relatedPhaseNumber}</td>
                     <td className="py-2">{row.requiredInputIds.length}</td>
                     <td className="py-2">{row.requiredApproverRoles.join(", ")}</td>
-                    <td className="py-2">{row.decisionRule}</td>
                     <td className="py-2">
-                      <Badge {...settingsStatusBadgeMap[row.status]} />
+                      <select
+                        className="h-8 rounded border border-slate-200 bg-white px-2 text-xs"
+                        value={row.decisionRule}
+                        onChange={(event) =>
+                          onUpdateRule(row.id, (current) => ({
+                            ...current,
+                            decisionRule: event.target.value as GateRuleSetting["decisionRule"],
+                          }))
+                        }
+                        aria-label={`Decision rule for ${row.gateCode}`}
+                      >
+                        <option value="single_approver">single_approver</option>
+                        <option value="majority">majority</option>
+                        <option value="unanimous">unanimous</option>
+                        <option value="role_based">role_based</option>
+                      </select>
+                    </td>
+                    <td className="py-2">
+                      <select
+                        className="h-8 rounded border border-slate-200 bg-white px-2 text-xs"
+                        value={row.status}
+                        onChange={(event) =>
+                          onUpdateRule(row.id, (current) => ({
+                            ...current,
+                            status: event.target.value as GateRuleSetting["status"],
+                          }))
+                        }
+                        aria-label={`Status for ${row.gateCode}`}
+                      >
+                        <option value="active">Active</option>
+                        <option value="draft">Draft</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </td>
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          className="h-8 w-16 rounded border border-slate-200 px-2 text-xs"
+                          value={row.requiredEvidenceCount}
+                          onChange={(event) =>
+                            onUpdateRule(row.id, (current) => ({
+                              ...current,
+                              requiredEvidenceCount: Math.max(1, Number(event.target.value) || 1),
+                            }))
+                          }
+                          aria-label={`Required evidence count for ${row.gateCode}`}
+                        />
+                        <Badge {...settingsStatusBadgeMap[row.status]} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -89,7 +148,12 @@ export function GateRulesPanel({
           )}
         </div>
       ) : (
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+        <div
+          role="tabpanel"
+          id={`gate-rules-tabpanel-${activeTab}`}
+          aria-labelledby={`gate-rules-tab-${activeTab}`}
+          className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+        >
           This tab is available for configuration in the next iteration.
         </div>
       )}

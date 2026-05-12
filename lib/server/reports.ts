@@ -163,12 +163,13 @@ export async function loadReportsPageData(
     inBounds(a.createdAt, bounds),
   );
 
+  // Artifact pipeline counts feed evidence-severity heuristics on the
+  // missing-evidence summary. Drafts roll into "high" severity, in-review into
+  // "medium". The rolled-up artifact-completion / evidence-completeness
+  // dashboards are no longer surfaced in the six-report spec.
   const templateIds = Object.keys(templateRegistry);
-  const totalRequired = templateIds.length;
-  let completed = 0;
   let inReview = 0;
   let draft = 0;
-  let blocked = 0;
 
   const latestByTemplate = new Map<string, (typeof project.artifacts)[0]>();
   for (const a of artifactsScoped) {
@@ -183,18 +184,14 @@ export async function loadReportsPageData(
       continue;
     }
     if (isArtifactBodyApproved(art.dataJson)) {
-      completed += 1;
-    } else if (art.status === "Submitted" || art.status === "InReview") {
+      continue;
+    }
+    if (art.status === "Submitted" || art.status === "InReview") {
       inReview += 1;
     } else if (art.status === "Draft") {
       draft += 1;
-    } else {
-      blocked += 1;
     }
   }
-
-  const completionPercent =
-    totalRequired > 0 ? Math.round((completed / totalRequired) * 100) : 0;
 
   const traceLinksScoped = project.traceLinks.filter((t) =>
     inBounds(t.createdAt, bounds),
@@ -218,13 +215,8 @@ export async function loadReportsPageData(
     evidenceItems = evidenceItems.filter((e) => e.phaseNumber === f.phaseNumber);
   }
 
-  const linked = evidenceItems.filter((e) => e.status === "linked").length;
   const partial = evidenceItems.filter((e) => e.status === "partially_linked").length;
   const unlinked = evidenceItems.filter((e) => e.status === "unlinked").length;
-  const evTotal = Math.max(evidenceItems.length, 1);
-  const overallEvidencePercent = Math.round(
-    ((linked + partial * 0.5) / evTotal) * 100,
-  );
 
   const blockingGates = await countBlockingGates(projectId, focusPhase, gateScope);
 
@@ -325,35 +317,8 @@ export async function loadReportsPageData(
         averageDecisionDays: undefined,
         lastDecisionLabel,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/gate-decisions`,
+        viewHref: `${basePath}/gate-decision`,
         exportPdfHref: `/api/projects/${projectId}/reports/export?key=gateDecision&format=json${exportQuery}`,
-      },
-      artifactCompletion: {
-        reportId: "report-artifact-completion",
-        totalRequired,
-        completed,
-        inReview,
-        draft,
-        blocked,
-        completionPercent,
-        lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/artifact-completion`,
-        exportPdfHref: `/api/projects/${projectId}/reports/export?key=artifactCompletion&format=json${exportQuery}`,
-      },
-      evidenceCompleteness: {
-        reportId: "report-evidence-completeness",
-        overallPercent: overallEvidencePercent,
-        completeItems: linked,
-        partialItems: partial,
-        missingItems: unlinked,
-        critical: blockingGates > 2 ? 2 : blockingGates,
-        high: Math.min(7, draft),
-        medium: Math.min(8, inReview),
-        low: Math.min(5, partial),
-        blockingGates,
-        lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/evidence-completeness`,
-        exportCsvHref: `/api/projects/${projectId}/reports/export?key=evidenceCompleteness&format=json${exportQuery}`,
       },
       traceability: {
         reportId: "report-traceability",
@@ -366,6 +331,20 @@ export async function loadReportsPageData(
         lastGeneratedLabel: nowLabel,
         viewHref: `${basePath}/traceability`,
         exportPdfHref: `/api/projects/${projectId}/reports/export?key=traceability&format=json${exportQuery}`,
+      },
+      missingEvidence: {
+        reportId: "report-missing-evidence",
+        missingItems: unlinked,
+        orphanedItems,
+        incompleteItems: partial,
+        critical: blockingGates > 2 ? 2 : blockingGates,
+        high: Math.min(7, draft),
+        medium: Math.min(8, inReview),
+        low: Math.min(5, partial),
+        blockingGates,
+        lastGeneratedLabel: nowLabel,
+        viewHref: `${basePath}/missing-evidence`,
+        exportCsvHref: `/api/projects/${projectId}/reports/export?key=missingEvidence&format=json${exportQuery}`,
       },
       approvalHistory: {
         reportId: "report-approval-history",
@@ -391,7 +370,8 @@ export async function loadReportsPageData(
         estimatedSizeLabel,
         estimatedFileCount,
         lastGeneratedLabel: nowLabel,
-        configureHref: `${basePath}/evidence-package/configure`,
+        viewHref: `${basePath}/full-project-evidence-package`,
+        configureHref: `${basePath}/full-project-evidence-package/configure`,
         exportPackageHref: `/api/projects/${projectId}/reports/export?key=fullProjectEvidencePackage&format=json${exportQuery}`,
       },
     },

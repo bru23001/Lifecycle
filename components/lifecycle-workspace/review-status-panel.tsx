@@ -17,9 +17,9 @@ export function ReviewStatusPanel({
   gateSubmissionState: GateSubmissionState;
 }) {
   return (
-    <div className="review-status-panel space-y-4">
-      <CompletionChecklist items={checklistItems} />
+    <div data-pane="status" className="review-status-panel">
       <ValidationWarnings warnings={validationWarnings} />
+      <CompletionChecklist items={checklistItems} />
       <SubmitGateReviewCard state={gateSubmissionState} />
     </div>
   );
