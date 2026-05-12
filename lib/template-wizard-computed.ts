@@ -15,6 +15,24 @@ function isNonEmptyString(v: unknown): boolean {
   return typeof v === "string" && v.trim().length > 0;
 }
 
+function evidenceLinkFieldStats(
+  sections: TemplateSection[],
+  values: Record<string, unknown>,
+): { required: number; complete: number } {
+  let required = 0;
+  let complete = 0;
+  for (const section of sections) {
+    for (const field of section.fields) {
+      if (field.type !== "evidence_link" || field.delegateToWorkspace) continue;
+      if (!field.required) continue;
+      required++;
+      const v = values[field.name];
+      if (isNonEmptyString(v) || (Array.isArray(v) && v.length > 0)) complete++;
+    }
+  }
+  return { required, complete };
+}
+
 function scoreMatrixFromUnknown(v: unknown): WizardScoreMatrix | null {
   if (!v || typeof v !== "object") return null;
   const o = v as WizardScoreMatrix;
@@ -57,6 +75,7 @@ export function requiredFieldsStats(
 
   for (const section of sections) {
     for (const field of section.fields) {
+      if (field.delegateToWorkspace) continue;
       if (!field.required) continue;
       total++;
       const v = values[field.name];
@@ -73,6 +92,10 @@ export function requiredFieldsStats(
         ) {
           complete++;
         }
+      } else if (field.type === "evidence_link") {
+        if (isNonEmptyString(v) || (Array.isArray(v) && v.length > 0)) complete++;
+      } else if (field.type === "checkbox") {
+        if (v === true) complete++;
       } else if (isNonEmptyString(v) || typeof v === "number") {
         complete++;
       }
@@ -90,6 +113,7 @@ export function estimateSectionProgress(
   let weighted = 0;
   let weightSum = 0;
   for (const field of section.fields) {
+    if (field.delegateToWorkspace) continue;
     if (!field.required) continue;
     weightSum += 1;
     const v = values[field.name];
@@ -98,6 +122,10 @@ export function estimateSectionProgress(
       if (!m) continue;
       const { filledCells, totalCells } = matrixCompleteness(m);
       if (totalCells > 0) weighted += filledCells / totalCells;
+    } else if (field.type === "evidence_link") {
+      if (isNonEmptyString(v) || (Array.isArray(v) && v.length > 0)) weighted += 1;
+    } else if (field.type === "checkbox") {
+      if (v === true) weighted += 1;
     } else if (isNonEmptyString(v) || typeof v === "number") {
       weighted += 1;
     }
@@ -118,6 +146,7 @@ export function sectionCompletion(
   values: Record<string, unknown>,
 ): boolean {
   for (const field of section.fields) {
+    if (field.delegateToWorkspace) continue;
     if (!field.required) continue;
     const v = values[field.name];
     if (field.type === "score_matrix") {
@@ -126,6 +155,10 @@ export function sectionCompletion(
       const w = totalWeight(m);
       const { filledCells, totalCells, missingComments } = matrixCompleteness(m);
       if (w < 99 || w > 101 || filledCells !== totalCells || missingComments > 0) return false;
+    } else if (field.type === "evidence_link") {
+      if (!isNonEmptyString(v) && !(Array.isArray(v) && v.length > 0)) return false;
+    } else if (field.type === "checkbox") {
+      if (v !== true) return false;
     } else if (!isNonEmptyString(v) && typeof v !== "number") {
       return false;
     }
@@ -141,6 +174,7 @@ export function buildValidationIssues(
 
   for (const section of sections) {
     for (const field of section.fields) {
+      if (field.delegateToWorkspace) continue;
       if (!field.required) continue;
       const v = values[field.name];
       if (field.type === "score_matrix") {
@@ -184,9 +218,29 @@ export function buildValidationIssues(
             message: "At least one scoring justification is missing in Section 2.",
           });
         }
+      } else if (field.type === "evidence_link") {
+        if (!isNonEmptyString(v) && !(Array.isArray(v) && v.length > 0)) {
+          issues.push({
+            id: `req-${section.id}-${field.name}`,
+            severity: "error",
+            sectionId: section.id,
+            fieldName: field.name,
+            message: `${field.label}: link or enter at least one evidence id.`,
+          });
+        }
+      } else if (field.type === "checkbox") {
+        if (v !== true) {
+          issues.push({
+            id: `req-${section.id}-${field.name}`,
+            severity: "error",
+            sectionId: section.id,
+            fieldName: field.name,
+            message: `${field.label} must be checked.`,
+          });
+        }
       } else if (!isNonEmptyString(v) && typeof v !== "number") {
         const severity: ValidationIssue["severity"] =
-          field.name === "recommendedOption" ? "error" : "warning";
+          field.type === "select" && field.required ? "error" : "warning";
         issues.push({
           id: `req-${section.id}-${field.name}`,
           severity,
@@ -216,14 +270,16 @@ export function computeValidationSummary(
       ? Math.round((sectionsComplete / sections.length) * 100)
       : wizardHeader.completionPercent;
 
+  const evLinks = evidenceLinkFieldStats(sections, values);
+
   return {
     completionPercent,
     requiredFieldsTotal: rf.total,
     requiredFieldsComplete: rf.complete,
     sectionsTotal: sections.length,
     sectionsComplete,
-    evidenceLinksRequired: 2,
-    evidenceLinksComplete: 1,
+    evidenceLinksRequired: evLinks.required,
+    evidenceLinksComplete: evLinks.complete,
     exportReady: errorCount === 0 && warningCount === 0,
     issues,
     warningCount,
@@ -270,12 +326,17 @@ export function buildMarkdownPreview(
     lines.push("");
     for (const field of section.fields) {
       const v = values[field.name];
-      const text =
-        typeof v === "string"
-          ? v.trim()
-          : v === undefined || v === null
-            ? ""
-            : JSON.stringify(v);
+      let text: string;
+      if (field.type === "checkbox") {
+        text = v === true ? "Yes" : v === false ? "No" : "";
+      } else {
+        text =
+          typeof v === "string"
+            ? v.trim()
+            : v === undefined || v === null
+              ? ""
+              : JSON.stringify(v);
+      }
       if (!text) {
         lines.push(`- **${field.label}:** _[required]_`);
       } else {
@@ -303,11 +364,18 @@ export function buildJsonEvidence(
   sections: TemplateSection[],
   values: Record<string, unknown>,
   validation: ValidationSummary,
+  options?: {
+    persistedArtifactId?: string | null;
+    evidenceLinks?: JsonEvidence["evidenceLinks"];
+    generatedAt?: string;
+  },
 ): JsonEvidence {
-  const now = new Date().toISOString();
+  const now = options?.generatedAt ?? new Date().toISOString();
+  const artifactId =
+    options?.persistedArtifactId?.trim() || `draft-${selectedTemplate.id}`;
 
   return {
-    artifactId: `artifact-${selectedTemplate.id}`,
+    artifactId,
     projectId,
     phaseId: `phase-${wizardHeader.phaseNumber}`,
     phaseNumber: wizardHeader.phaseNumber,
@@ -331,9 +399,7 @@ export function buildJsonEvidence(
       exportReady: validation.exportReady,
       issues: validation.issues,
     },
-    evidenceLinks: [
-      { evidenceId: "ev-001", linkedToSectionId: "section-2", linkedToFieldName: SCORE_MATRIX_KEY },
-    ],
+    evidenceLinks: options?.evidenceLinks ?? [],
   };
 }
 

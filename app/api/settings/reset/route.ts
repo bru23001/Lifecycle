@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { resetSettingsStore } from "@/lib/settings-storage";
+import { resetSettingsPageData } from "@/lib/server/settings";
 import type { SettingsSectionId } from "@/types/settings.types";
 
 function resolveSection(value: unknown): SettingsSectionId {
@@ -20,6 +20,6 @@ function resolveSection(value: unknown): SettingsSectionId {
 export async function POST(request: Request) {
   const body = (await request.json()) as { section?: SettingsSectionId };
   const section = resolveSection(body?.section);
-  const data = await resetSettingsStore(section);
+  const data = await resetSettingsPageData(section);
   return NextResponse.json({ data });
 }

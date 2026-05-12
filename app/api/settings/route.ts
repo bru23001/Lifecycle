@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { recordAudit } from "@/lib/server/audit";
+import { loadSettingsPageData, saveSettingsPageData } from "@/lib/server/settings";
 import { computeActionState } from "@/lib/settings-validation";
-import { readSettingsStore, writeSettingsStore } from "@/lib/settings-storage";
 import type { SettingsActivity, SettingsPageData, SettingsSectionId } from "@/types/settings.types";
 
 function isSection(value: string | null): value is SettingsSectionId {
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sectionParam = searchParams.get("section");
   const section = isSection(sectionParam) ? sectionParam : undefined;
-  const data = await readSettingsStore(section);
+  const data = await loadSettingsPageData(section);
   return NextResponse.json({ data });
 }
 
@@ -65,6 +66,16 @@ export async function PUT(request: Request) {
     recentActivity: [saveActivity, ...incoming.recentActivity].slice(0, 20),
   };
 
-  await writeSettingsStore(nextData);
-  return NextResponse.json({ data: nextData });
+  await saveSettingsPageData(nextData);
+  await recordAudit({
+    action: "settings.saved",
+    subjectKind: "settings",
+    subjectId: incoming.activeSection,
+    projectId: null,
+    metadata: {
+      section: incoming.activeSection,
+    },
+  });
+  const fresh = await loadSettingsPageData(incoming.activeSection);
+  return NextResponse.json({ data: fresh });
 }

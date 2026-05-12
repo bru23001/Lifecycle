@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
@@ -53,37 +53,10 @@ export function SettingsPage({
   const [data, setData] = useState<SettingsPageData>(initial);
   const [baseline, setBaseline] = useState<SettingsPageData>(initial);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localStoragePathError, setLocalStoragePathError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const run = async () => {
-      try {
-        const response = await fetch(`/api/settings?section=${initial.activeSection}`, {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error("Could not load settings data.");
-        }
-        const payload = (await response.json()) as { data: SettingsPageData };
-        if (!active) return;
-        setData(payload.data);
-        setBaseline(payload.data);
-      } catch {
-        if (!active) return;
-        setErrorMessage("Unable to load settings from backend. Using local defaults.");
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    };
-    void run();
-    return () => {
-      active = false;
-    };
-  }, [initial.activeSection]);
 
   const hasUnsavedChanges = snapshotForDirtyCheck(data) !== snapshotForDirtyCheck(baseline);
   const actionState = useMemo(

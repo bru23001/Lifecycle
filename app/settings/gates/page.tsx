@@ -1,6 +1,7 @@
 import { SettingsPage } from "@/components/settings/settings-page";
-import { buildSettingsPageData } from "@/data/settings.mock";
+import { loadSettingsPageData } from "@/lib/server/settings";
 
-export default function SettingsGatesPage() {
-  return <SettingsPage initial={buildSettingsPageData("gate_rules")} />;
+export default async function SettingsGatesPage() {
+  const initial = await loadSettingsPageData("gate_rules");
+  return <SettingsPage initial={initial} />;
 }

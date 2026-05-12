@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { readSettingsStore, writeSettingsStore } from "@/lib/settings-storage";
+import { loadSettingsPageData, saveSettingsPageData } from "@/lib/server/settings";
+import { validateSettingsPageData } from "@/lib/settings-validation";
 import type { SettingsActivity, SettingsPageData } from "@/types/settings.types";
 
 type PartialImport = Partial<
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid import payload." }, { status: 400 });
   }
 
-  const current = await readSettingsStore();
+  const current = await loadSettingsPageData();
   const importActivity: SettingsActivity = {
     id: `activity-${Date.now()}`,
     eventType: "lifecycle_updated",
@@ -42,6 +43,12 @@ export async function POST(request: Request) {
     recentActivity: [importActivity, ...current.recentActivity].slice(0, 20),
   };
 
-  await writeSettingsStore(merged);
-  return NextResponse.json({ data: merged });
+  const blockers = validateSettingsPageData(merged);
+  if (blockers.length > 0) {
+    return NextResponse.json({ error: "Validation failed.", blockers }, { status: 400 });
+  }
+
+  await saveSettingsPageData(merged);
+  const fresh = await loadSettingsPageData(merged.activeSection);
+  return NextResponse.json({ data: fresh });
 }

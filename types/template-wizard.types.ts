@@ -53,6 +53,8 @@ export type DynamicField = {
   label: string;
   type: DynamicFieldType;
   required: boolean;
+  /** When true, wizard validation skips this field (edit in full workspace). */
+  delegateToWorkspace?: boolean;
   placeholder?: string;
   helpText?: string;
   options?: { label: string; value: string }[];
@@ -159,6 +161,10 @@ export type TemplateWizardData = {
     code: string;
     name: string;
   };
+  /** When set, JSON evidence uses this id instead of a synthetic draft id. */
+  persistedArtifactId?: string;
+  /** Seed evidence links from the database (client preview merges with live form state). */
+  persistedEvidenceLinks?: JsonEvidence["evidenceLinks"];
   wizardHeader: WizardHeaderData;
   templateSelections: TemplateSelectionItem[];
   selectedTemplate: {

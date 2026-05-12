@@ -161,6 +161,36 @@ function FieldControl({
         </select>
       ) : null}
 
+      {field.type === "date" ? (
+        <input
+          id={inputId}
+          type="date"
+          className="h-10 w-full max-w-xs rounded-lg border bg-background px-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive"
+          value={typeof value === "string" ? value : ""}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          aria-required={field.required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
+        />
+      ) : null}
+
+      {field.type === "checkbox" ? (
+        <div className="flex items-center gap-2">
+          <input
+            id={inputId}
+            type="checkbox"
+            className="h-4 w-4 rounded border border-input accent-primary"
+            checked={value === true}
+            onChange={(e) => onChange(e.target.checked)}
+            onBlur={onBlur}
+            aria-required={field.required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={describedBy}
+          />
+        </div>
+      ) : null}
+
       {error ? (
         <p id={errId} className="text-sm font-medium text-destructive" role="alert">
           {error}

@@ -1,6 +1,7 @@
 import { SettingsPage } from "@/components/settings/settings-page";
-import { buildSettingsPageData } from "@/data/settings.mock";
+import { loadSettingsPageData } from "@/lib/server/settings";
 
-export default function SettingsLifecyclePage() {
-  return <SettingsPage initial={buildSettingsPageData("lifecycle_configuration")} />;
+export default async function SettingsLifecyclePage() {
+  const initial = await loadSettingsPageData("lifecycle_configuration");
+  return <SettingsPage initial={initial} />;
 }

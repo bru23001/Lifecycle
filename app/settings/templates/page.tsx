@@ -1,6 +1,7 @@
 import { SettingsPage } from "@/components/settings/settings-page";
-import { buildSettingsPageData } from "@/data/settings.mock";
+import { loadSettingsPageData } from "@/lib/server/settings";
 
-export default function SettingsTemplatesPage() {
-  return <SettingsPage initial={buildSettingsPageData("template_registry")} />;
+export default async function SettingsTemplatesPage() {
+  const initial = await loadSettingsPageData("template_registry");
+  return <SettingsPage initial={initial} />;
 }

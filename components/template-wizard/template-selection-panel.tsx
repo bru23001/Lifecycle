@@ -86,7 +86,7 @@ export function TemplateSelectionPanel({
           value={selectedTemplateId}
           onChange={(e) => {
             const next = e.target.value;
-            router.push(`/projects/${projectId}/templates/${next}`);
+            router.push(`/projects/${projectId}/templates/${encodeURIComponent(next)}`);
           }}
           aria-label="Select lifecycle template"
         >

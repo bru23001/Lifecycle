@@ -7,6 +7,7 @@ import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenti
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import {
   computeValidationSummary,
+  deriveSectionStatus,
 } from "@/lib/template-wizard-computed";
 import type { TemplateWizardData, ValidationIssue } from "@/types/template-wizard.types";
 import { toJsonEvidence } from "@/templates/renderJsonEvidence";
@@ -25,7 +26,6 @@ function downloadFile(filename: string, content: string, mime: string) {
 
 export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData }) {
   const router = useRouter();
-  const sections = initial.selectedTemplate.sections;
   const storageKey = useMemo(
     () => `template-wizard-draft:${initial.project.id}:${initial.selectedTemplate.id}`,
     [initial.project.id, initial.selectedTemplate.id],
@@ -49,6 +49,15 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
   const [formValues, setFormValues] = useState<Record<string, unknown>>(initialFormValues);
   const [autosaveLabel, setAutosaveLabel] = useState<string | null>(
     initial.wizardHeader.lastSavedLabel ?? null,
+  );
+
+  const sections = useMemo(
+    () =>
+      initial.selectedTemplate.sections.map((s) => ({
+        ...s,
+        status: deriveSectionStatus(s, formValues),
+      })),
+    [initial.selectedTemplate.sections, formValues],
   );
 
   const validationSummary = useMemo(
@@ -104,12 +113,17 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
         sections,
         formValues,
         validationSummary,
+        persistedArtifactId: initial.persistedArtifactId ?? initial.artifactSaveState.artifactId,
+        evidenceLinks: initial.persistedEvidenceLinks,
       }),
     [
       wizardHeader,
       initial.selectedTemplate,
       initial.project.id,
       initial.user.name,
+      initial.persistedArtifactId,
+      initial.artifactSaveState.artifactId,
+      initial.persistedEvidenceLinks,
       sections,
       formValues,
       validationSummary,

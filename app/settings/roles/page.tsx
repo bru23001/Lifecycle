@@ -1,6 +1,7 @@
 import { SettingsPage } from "@/components/settings/settings-page";
-import { buildSettingsPageData } from "@/data/settings.mock";
+import { loadSettingsPageData } from "@/lib/server/settings";
 
-export default function SettingsRolesPage() {
-  return <SettingsPage initial={buildSettingsPageData("roles_permissions")} />;
+export default async function SettingsRolesPage() {
+  const initial = await loadSettingsPageData("roles_permissions");
+  return <SettingsPage initial={initial} />;
 }
