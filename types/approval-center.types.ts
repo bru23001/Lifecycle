@@ -36,7 +36,9 @@ export type ApprovalDetail = {
   phaseName?: string;
   gateCode?: string;
   gateName?: string;
-  status: "pending" | "in_review" | "approved" | "rejected" | "changes_requested" | "overdue" | "blocked";
+  /** Deep link to the canonical gate review route (when `approvalType` is `gate_review`). */
+  gateReviewHref?: string;
+  status: "pending" | "in_review" | "approved" | "rejected" | "changes_requested" | "superseded" | "overdue" | "blocked";
   submittedBy: string;
   submittedOnLabel: string;
   dueDateLabel?: string;

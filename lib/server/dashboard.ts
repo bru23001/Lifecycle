@@ -8,6 +8,7 @@ import { ALL_GATES } from "@/lib/server/helpers";
 import {
   WORKSPACE_PHASE_MAX,
   gateHeaderDisplayName,
+  workspacePhaseProgressPercent,
 } from "@/lib/workspacePhases";
 import type { DashboardData } from "@/types/dashboard.types";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
@@ -19,10 +20,7 @@ const DEFAULT_DASHBOARD_TIP: DashboardData["tip"] = {
 };
 
 function percentForPhase(phase: number): number {
-  return Math.min(
-    100,
-    Math.max(10, Math.round((phase / WORKSPACE_PHASE_MAX) * 100)),
-  );
+  return workspacePhaseProgressPercent(phase);
 }
 
 function decisionLabel(decision: string | undefined): "Approved" | "Changes Requested" | "Pending" {
@@ -72,7 +70,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     // Leave empty when DB access fails; UI shows empty states.
   }
 
-  const realProjects = projects.map((project, index) => {
+  const realProjects = projects.map((project) => {
     const latestByGate = indexLatestGateDecisions(
       project.gateDecisions.map((d) => ({
         gateId: d.gateId,
@@ -86,10 +84,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       name: project.name,
       phase: project.currentPhase,
       gate: nextOpenGateForPhase(project.currentPhase, latestByGate),
-      status:
-        project.currentPhase <= 3 && index === 2
-          ? ("Blocked" as const)
-          : ("In Progress" as const),
+      status: "In Progress" as const,
       progressPercent: percentForPhase(project.currentPhase),
       artifactsCount: project._count.artifacts,
       latestByGate,

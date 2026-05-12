@@ -31,6 +31,8 @@ export type TemplateSelectionItem = {
   status: "not_started" | "in_progress" | "complete" | "approved";
   completionPercent: number;
   href: string;
+  /** Template depth: `scaffold` shows a UI badge (late gates). */
+  maturity?: "full" | "scaffold";
 };
 
 export type TemplateSectionStatus = "not_started" | "in_progress" | "complete" | "invalid";

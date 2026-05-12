@@ -84,6 +84,7 @@ function mapPrismaToDetailStatus(status: string): ApprovalDetail["status"] {
     status === "approved" ||
     status === "rejected" ||
     status === "changes_requested" ||
+    status === "superseded" ||
     status === "overdue" ||
     status === "blocked"
   ) {
@@ -197,6 +198,7 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
   if (row.approvalType === "gate_review" && row.gateId && row.project) {
     const gate = row.gateId as GateId;
     const anchorPhase = gateAnchorPhase(gate);
+    const gateReviewHref = `/projects/${row.project.id}/gates/${gate.toLowerCase()}/review`;
     const detail: ApprovalDetail = {
       id,
       approvalCode: gate,
@@ -209,6 +211,7 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
       phaseName: workspacePhaseMeta(anchorPhase).title,
       gateCode: gate,
       gateName: gateHeaderDisplayName(gate),
+      gateReviewHref,
       status: detailStatus,
       submittedBy: submittedLabel,
       submittedOnLabel: formatDateTimeLabel(row.updatedAt),
@@ -227,7 +230,7 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
       requiredChanges: [],
       conditions: [],
       canSubmit: false,
-      blockers: ["Use Gate Review to record a formal decision."],
+      blockers: [],
     };
     const history = buildHistory(row, submittedLabel);
     const base: ApprovalPackage = {
@@ -242,7 +245,7 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
           "Open the gate review screen to evaluate evidence and record a decision.",
         canSaveReview: true,
         canSubmitDecision: false,
-        submitBlockers: ["Record decision from Gate Review workflow."],
+        submitBlockers: [],
       },
     };
     return { ...base, actionState: evaluateDecisionState(decisionDraft, base) };

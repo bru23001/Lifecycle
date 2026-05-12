@@ -297,6 +297,7 @@ export async function loadTemplateWizardData(
       status: selectionStatusForArtifact(art, t, itemNav),
       completionPercent: pct,
       href: `/projects/${project.id}/templates/${slug}`,
+      maturity: t.maturity ?? "full",
     };
   });
 

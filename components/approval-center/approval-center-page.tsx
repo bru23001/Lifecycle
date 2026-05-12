@@ -11,6 +11,7 @@ import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { Button } from "@/components/ui/button";
 import { createCommentHistoryEvent, createDecisionHistoryEvent, evaluateDecisionState } from "@/lib/approval-decision";
+import { recordApprovalDecision } from "@/app/actions/recordApprovalDecision";
 import type {
   ApprovalCenterData,
   ApprovalDecisionDraft,
@@ -172,7 +173,7 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
     setCommentDraft("");
   };
 
-  const onSubmitDecision = () => {
+  const onSubmitDecision = async () => {
     if (!selectedPackage) return;
     const selectedDecision = decisionDraft.decision;
     const state = evaluateDecisionState(decisionDraft, selectedPackage);
@@ -181,52 +182,80 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
       return;
     }
 
-    setPackages((prev) => {
-      const current = prev[selectedPackage.detail.id];
-      if (!current) return prev;
-      const nextStatus =
+    if (selectedPackage.detail.id === "approval-none") return;
+
+    if (selectedPackage.detail.approvalType === "gate_review") {
+      decisionPanelRef.current?.focus();
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const result = await recordApprovalDecision({
+        approvalId: selectedPackage.detail.id,
+        decision: selectedDecision,
+        comments: decisionDraft.comments,
+        requiredChanges: decisionDraft.requiredChanges,
+      });
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+      setPackages((prev) => {
+        const current = prev[selectedPackage.detail.id];
+        if (!current) return prev;
+        const nextStatus =
+          selectedDecision === "approve"
+            ? "approved"
+            : selectedDecision === "request_changes"
+              ? "changes_requested"
+              : "rejected";
+        return {
+          ...prev,
+          [selectedPackage.detail.id]: {
+            ...current,
+            detail: { ...current.detail, status: nextStatus },
+            decisionDraft: {
+              ...decisionDraft,
+              canSubmit: true,
+              blockers: [],
+            },
+            history: [createDecisionHistoryEvent(selectedDecision, initial.user.name), ...current.history],
+            actionState: {
+              ...state,
+              canSubmitDecision: false,
+              submitBlockers: ["Decision recorded."],
+            },
+          },
+        };
+      });
+      const nextQueueTab: Exclude<ApprovalQueueTab, "history"> =
         selectedDecision === "approve"
           ? "approved"
           : selectedDecision === "request_changes"
             ? "changes_requested"
             : "rejected";
-      return {
+      setPendingApprovals((prev) =>
+        prev.map((row) =>
+          row.id === selectedPackage.detail.id
+            ? {
+                ...row,
+                status: selectedDecision === "approve" ? "pending" : "in_review",
+                queueTab: nextQueueTab,
+              }
+            : row,
+        ),
+      );
+      setDecisionDraft((prev) => ({
         ...prev,
-        [selectedPackage.detail.id]: {
-          ...current,
-          detail: { ...current.detail, status: nextStatus },
-          decisionDraft: {
-            ...decisionDraft,
-            canSubmit: true,
-            blockers: [],
-          },
-          history: [createDecisionHistoryEvent(selectedDecision, initial.user.name), ...current.history],
-          actionState: {
-            ...state,
-            canSubmitDecision: false,
-            submitBlockers: ["Decision already finalized for this approval package."],
-          },
-        },
-      };
-    });
-    const nextQueueTab: Exclude<ApprovalQueueTab, "history"> =
-      selectedDecision === "approve" ? "approved" : selectedDecision === "request_changes" ? "changes_requested" : "rejected";
-    setPendingApprovals((prev) =>
-      prev.map((row) =>
-        row.id === selectedPackage.detail.id
-          ? {
-              ...row,
-              status: selectedDecision === "approve" ? "pending" : "in_review",
-              queueTab: nextQueueTab,
-            }
-          : row,
-      ),
-    );
-    setDecisionDraft((prev) => ({
-      ...prev,
-      canSubmit: true,
-      blockers: [],
-    }));
+        canSubmit: true,
+        blockers: [],
+      }));
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onSaveReview = () => {
@@ -265,12 +294,28 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-3 pt-4 min-[901px]:px-8">
           <Breadcrumbs
             items={[
-              { label: "Home", href: "/" },
+              { label: "Home", href: "/dashboard" },
               { label: "Approval Center", href: "/approvals" },
-              {
-                label: "Gate Review",
-                href: `/projects/${selectedPackage?.detail.projectId ?? "sip-001"}/gates/g2/review`,
-              },
+              ...(selectedPackage?.detail.approvalType === "gate_review" &&
+              selectedPackage.detail.projectId &&
+              selectedPackage.detail.gateCode
+                ? [
+                    {
+                      label: "Gate Review",
+                      href:
+                        selectedPackage.detail.gateReviewHref ??
+                        `/projects/${selectedPackage.detail.projectId}/gates/${selectedPackage.detail.gateCode.toLowerCase()}/review`,
+                    },
+                  ]
+                : selectedPackage?.detail.approvalType === "artifact_review" &&
+                    selectedPackage.requiredInputs[0]?.linkedObjectHref
+                  ? [
+                      {
+                        label: "Artifact",
+                        href: selectedPackage.requiredInputs[0].linkedObjectHref,
+                      },
+                    ]
+                  : []),
               { label: selectedPackage?.detail.title ?? "Select an approval" },
             ]}
           />

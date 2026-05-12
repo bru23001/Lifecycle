@@ -13,7 +13,7 @@ npm run seed
 npm run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) (`npm run dev` binds port 3001).
+Open [http://localhost:3001/dashboard](http://localhost:3001/dashboard) (`/` redirects here; `npm run dev` binds port **3001**).
 
 ## Seed Data
 
@@ -40,11 +40,12 @@ Copy `.env.example` to `.env` and set `SEED_FULL_GLOBAL_RESET=0` when you want r
 - `npm run repair-workspace-phases` — UPDATE rows with out-of-range phases back into 1–14 (repair script)
 - `npm run seed-smoke` — verify seeded `demo` project has requirements/features/trace links (run after `seed`)
 - `npm run validate` — `lint` → `typecheck` → `build` (repeatable local/CI gate)
-- `npm run ci` — full pipeline: `validate` → `check-templates` → `phase-model-check` → `prisma migrate deploy` → `db-phase-sanity` → `seed` → `seed-smoke` → `data-integrity-check`
+- `npm run test` / `npm run test:cov` — Vitest (coverage targets core modules; see `vitest.config.ts`)
+- `npm run ci` — full pipeline: `validate` → `check-templates` → `phase-model-check` → **`test:cov`** → `prisma migrate deploy` → `db-phase-sanity` → `seed` → `seed-smoke` → `data-integrity-check`
 - `npm run data-integrity-check` — verify `demo` trace links point at real requirement/feature rows
 - `npm run route-smoke` — HTTP checks against a **running** server (`BASE_URL`, default `http://127.0.0.1:3001`)
 - `npm run release-snapshot` — write `vault/releases/<timestamp>/release-report.json` (local only; folder is gitignored)
-- `npm run pre-release` — **solo release gate**: validate → templates → migrate → seed → seed-smoke → data integrity → ephemeral `next start` on port **3010** → route-smoke → release snapshot
+- `npm run pre-release` — **solo release gate**: validate → templates → **backup** → migrate → seed → seed-smoke → data integrity → ephemeral `next start` on port **3010** → route-smoke → release snapshot (`SKIP_BACKUP=1` or `PRE_RELEASE_FAST=1` skips backup)
 - `npm run pre-release:fast` — same without migrate, HTTP smoke, or snapshot (quick sanity check)
 
 ## Release readiness (solo)
@@ -57,9 +58,10 @@ Copy `.env.example` to `.env` and set `SEED_FULL_GLOBAL_RESET=0` when you want r
 
 | Variable | Effect |
 |----------|--------|
-| `PRE_RELEASE_FAST=1` | Skips migrate, route smoke, release snapshot (via `npm run pre-release:fast`, **cross-platform** via `cross-env`) |
+| `PRE_RELEASE_FAST=1` | Skips migrate, route smoke, release snapshot, **and backup** (via `npm run pre-release:fast`, **cross-platform** via `cross-env`) |
 | `SKIP_ROUTE_SMOKE=1` | Full pre-release but no ephemeral server / HTTP checks |
 | `SKIP_RELEASE_SNAPSHOT=1` | Full pre-release but no `vault/releases/` write |
+| `SKIP_BACKUP=1` | Skips `vault/backups/` snapshot at start of pre-release |
 | `SMOKE_PORT` | Port for temporary `next start` during route smoke (default **3010**) |
 | `BASE_URL` | Used only by **`npm run route-smoke`** when testing an already-running server |
 | `CI` / `PRE_CI_CLEAN` | When **`CI=true`** (many CI runners) or **`PRE_CI_CLEAN=1`**, `npm run ci` runs **`npm run clean` first** (`scripts/ci-prep.ts`) to reduce intermittent Next.js `.next` chunk drift. |
@@ -73,9 +75,37 @@ Copy `.env.example` to `.env` and set `SEED_FULL_GLOBAL_RESET=0` when you want r
 | Child `next start` left running | Use Ctrl+C once — handlers send **SIGTERM** to the smoke server; **`SIGKILL`** (`kill -9`) on the parent cannot run cleanup (OS limitation). |
 | Prisma / seed errors | Run `npx prisma migrate deploy` and `npm run seed` manually; confirm `file:./dev.db` path is writable. |
 | Build failures | Run `npm run validate` alone (lint + types + build). `npm run build` retries once after `npm run clean` when logs match known transient Next signatures (missing `./NNNN.js` chunks, `PageNotFoundError` during page collection). If it still fails, run `npm run build:direct` for a single-shot log, or `npm run clean && npm run build:direct`. |
-| Dev-only chunk/module-not-found errors (`./1331.js`, `vendor-chunks/*`) | Stop dev server and rerun `npm run dev` (the `predev` hook now clears `.next` before startup). |
+| Dev-only chunk/module-not-found errors (`./1331.js`, `vendor-chunks/*`) | Stop dev server and rerun `npm run dev` (or `npm run dev:clean`). |
 | Empty / wrong demo data | Re-run `npm run seed` then `npm run seed-smoke`. |
 | CI build flakes despite retry | Ensure the runner sets **`CI=true`** so `ci-prep` clears `.next`, or set **`PRE_CI_CLEAN=1`** once; confirm Node/npm versions match local. |
+
+## Operations
+
+- **Runbooks:** `docs/runbooks/` — release, restore, incident, data retention.
+- **ADRs:** `docs/adr/` — solo identity, SQLite, server actions, 14-phase model.
+- **Health / metrics:** `GET /api/healthz` · `GET /api/metrics` (Prometheus text; in-process counters from middleware).
+- **Structured logs:** JSON via `pino` (`lib/server/logger.ts`); set `LOG_LEVEL` in `.env`.
+
+## Architecture (solo data plane)
+
+```mermaid
+flowchart LR
+  subgraph clients [Browser]
+    UI[AppRouter_UI]
+  end
+  subgraph next [Next.js]
+    SA[ServerActions]
+    MW[Middleware_XRequestID]
+  end
+  subgraph data [Persistence]
+    DB[(SQLite_dev.db)]
+    Vault[vault_exports]
+  end
+  UI --> SA
+  UI --> MW
+  SA --> DB
+  SA --> Vault
+```
 
 ## Notes
 

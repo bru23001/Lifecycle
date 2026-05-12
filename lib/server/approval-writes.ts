@@ -127,7 +127,7 @@ export async function closeSupersededArtifactApprovals(
   if (stale.length === 0) return;
   await tx.approval.updateMany({
     where: { id: { in: stale.map((s) => s.id) } },
-    data: { status: "approved" },
+    data: { status: "superseded" },
   });
 }
 

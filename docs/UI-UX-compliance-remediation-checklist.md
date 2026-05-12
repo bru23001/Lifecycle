@@ -12,6 +12,6 @@
 | 18–19 | Evidence Center | Coverage summaries + **Evidence by Artifact** panel with mock data | **Pass** |
 | 20–21 | Approval Center | Tabs: Pending, My reviews, Approved, Rejected, Changes requested, History (timeline); filters apply per queue | **Pass** |
 
-**Quality gates:** `npm run lint` — Pass · `npx tsc --noEmit` — Pass (after `.next/types` generated).
+**Quality gates:** `npm run lint` — Pass · `npx tsc --noEmit` — Pass · `npm run test:cov` — Pass (targeted coverage per `vitest.config.ts`).
 
-**Residual deltas:** Backend automation remains mocked per plan; deep process orchestration is out of scope.
+**Residual deltas (2026-05-12):** Approval Center persists **artifact** decisions via `recordApprovalDecision`; gate decisions remain on Gate Review. Evidence Center remains mock-backed where noted in UI-UX scope.

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/server/audit";
+import { logInfo } from "@/lib/server/logger";
 import { appendGateReviewOutcome } from "@/lib/server/approval-writes";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { evaluateGateForProject } from "@/lib/gateRules";
@@ -152,6 +153,15 @@ export async function recordGateReview(
       newPhase,
       evidencePass,
     },
+  });
+
+  logInfo({
+    message: "gate_review.recorded",
+    projectId,
+    gateId,
+    decision,
+    newPhase,
+    evidencePass,
   });
 
   return { ok: true, newPhase };

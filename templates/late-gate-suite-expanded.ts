@@ -48,6 +48,7 @@ function mkLateGateTemplate(
     title,
     phase,
     gate,
+    maturity: "scaffold",
     schema: docSchema,
     sections,
     toMarkdown: (data) =>

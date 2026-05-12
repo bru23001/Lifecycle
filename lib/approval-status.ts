@@ -10,6 +10,7 @@ export const approvalStatusBadgeMap: Record<
   approved: { label: "Approved", tone: "green" },
   rejected: { label: "Rejected", tone: "red" },
   changes_requested: { label: "Changes Requested", tone: "amber" },
+  superseded: { label: "Superseded", tone: "gray" },
   overdue: { label: "Overdue", tone: "red" },
   blocked: { label: "Blocked", tone: "red" },
 };

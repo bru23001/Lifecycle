@@ -20,6 +20,11 @@ export function evaluateDecisionState(
   approval: ApprovalPackage,
 ): ApprovalActionState {
   const blockers: string[] = [];
+
+  if (approval.detail.approvalType === "gate_review") {
+    blockers.push("Record the formal decision in Gate Review (evidence checks and phase advance).");
+  }
+
   const incompleteInputs = approval.requiredInputs.filter(
     (row) => row.status === "missing" || row.status === "incomplete",
   );

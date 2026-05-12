@@ -3,9 +3,10 @@
  * `validate` runs `npm run build`, which uses `scripts/next-build-reliable.ts` (one clean retry on known transient Next.js chunk/page flakes).
  *
  * Environment:
- * - PRE_RELEASE_FAST=1 — skip migrate, route smoke (no server), release snapshot
+ * - PRE_RELEASE_FAST=1 — skip migrate, route smoke (no server), release snapshot, backup
  * - SKIP_ROUTE_SMOKE=1 — skip spawning next start + HTTP checks
  * - SKIP_RELEASE_SNAPSHOT=1 — skip vault/releases write
+ * - SKIP_BACKUP=1 — skip `scripts/backup.ts` (vault/backups snapshot)
  * - SMOKE_PORT=3010 — port for ephemeral next start (default 3010)
  */
 import "dotenv/config";
@@ -81,6 +82,7 @@ async function main() {
     process.env.SKIP_ROUTE_SMOKE === "1" || fast;
   const skipSnapshot =
     process.env.SKIP_RELEASE_SNAPSHOT === "1" || fast;
+  const skipBackup = process.env.SKIP_BACKUP === "1" || fast;
 
   const report: PreReleaseReport = {
     steps: [],
@@ -112,6 +114,18 @@ async function main() {
 
   await step("validate", () => runNpm("validate"));
   await step("check-templates", () => runNpm("check-templates"));
+
+  if (!skipBackup) {
+    await step("backup", () => {
+      execSync("npx tsx scripts/backup.ts", {
+        cwd: root,
+        stdio: "inherit",
+        env: process.env,
+      });
+    });
+  } else {
+    console.log("[pre-release] SKIP backup (PRE_RELEASE_FAST or SKIP_BACKUP)");
+  }
 
   if (!fast) {
     await step("migrate-deploy", () => runMigrateDeploy());

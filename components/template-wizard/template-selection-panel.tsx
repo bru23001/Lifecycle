@@ -113,7 +113,14 @@ export function TemplateSelectionPanel({
                   )}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold">{t.templateCode}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="block truncate font-semibold">{t.templateCode}</span>
+                      {t.maturity === "scaffold" ? (
+                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-900">
+                          Scaffold
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">{t.name}</span>
                   </span>
                   <span className="shrink-0 text-xs font-semibold text-muted-foreground">

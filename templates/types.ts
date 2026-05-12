@@ -99,6 +99,8 @@ export type LifecycleTemplate<
   title: string;
   phase: number;
   gate?: LifecycleGateId;
+  /** `scaffold` = minimal fields for late gates; surfaced in Template Wizard. */
+  maturity?: "full" | "scaffold";
   /** Phase 7 templates gated by applicability toggles on Project */
   applicabilityKey?: "data" | "apis" | "ui";
   schema: TSchema;
@@ -112,6 +114,7 @@ export type AnyLifecycleTemplate = {
   title: string;
   phase: number;
   gate?: LifecycleGateId;
+  maturity?: "full" | "scaffold";
   applicabilityKey?: "data" | "apis" | "ui";
   schema: z.ZodObject<z.ZodRawShape>;
   sections: TemplateSection[];

@@ -58,6 +58,7 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
 
   const checks: { path: string; needle: string }[] = [
     { path: "/", needle: welcomeNeedle },
+    { path: "/dashboard", needle: welcomeNeedle },
     { path: "/projects", needle: "Project List" },
     { path: `/projects/${id}`, needle: "Lifecycle Workspace" },
     { path: `/projects/${id}/requirements`, needle: "Requirements" },
@@ -78,6 +79,9 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: `/projects/${id}/reports/evidence-package/configure`, needle: "Configure Evidence Package" },
     { path: `/projects/${id}/reports/schedule`, needle: "Schedule Reports" },
     { path: `/projects/${id}/traceability`, needle: "Traceability Matrix" },
+    { path: "/approvals", needle: "Approval Center" },
+    { path: "/settings", needle: "Settings" },
+    { path: "/api/healthz", needle: `"ok":true` },
     { path: `/projects/${id}/traceability/gate-evidence`, needle: "Traceability Matrix" },
     { path: `/projects/${id}/traceability/phase-evidence`, needle: "Traceability Matrix" },
     { path: `/projects/${id}/traceability/phase-artifacts`, needle: "Traceability Matrix" },

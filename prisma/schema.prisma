@@ -158,7 +158,7 @@ model Approval {
   gateId         String?
   artifactId     String?
   artifact       Artifact? @relation(fields: [artifactId], references: [id], onDelete: SetNull)
-  status         String   @default("pending") // pending | in_review | approved | changes_requested
+  status         String   @default("pending") // pending | in_review | approved | changes_requested | rejected | superseded
   priority       String   @default("medium")
   submittedById  String?
   submittedBy    User?    @relation("ApprovalSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)

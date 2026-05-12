@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { recordAudit } from "@/lib/server/audit";
-import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/server/current-user";
+import { prisma } from "@/lib/prisma";
 
 function slugify(input: string): string {
   return input

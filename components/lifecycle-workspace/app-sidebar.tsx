@@ -96,7 +96,7 @@ export function AppSidebar({
   };
 
   const navItems: AppSidebarItem[] = [
-    { label: "Dashboard", href: "/", icon: Home, active: active === "dashboard" },
+    { label: "Dashboard", href: "/dashboard", icon: Home, active: active === "dashboard" },
     { label: "Projects", href: "/projects", icon: FolderOpen, active: active === "projects" },
     {
       label: "Lifecycle Workspace",

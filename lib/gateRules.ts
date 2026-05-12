@@ -7,6 +7,8 @@
 import { prisma } from "@/lib/prisma";
 import { mergeApplicabilityRecords, parseApplicability } from "@/lib/applicability";
 import { loadGateEvidenceBundle } from "@/lib/gateEvidence";
+import type { G3StructuredWaiver } from "@/lib/waiver";
+import { parseStructuredG3Waiver } from "@/lib/waiver";
 import { getTemplate } from "@/templates/registry";
 
 export type GateId =
@@ -232,8 +234,15 @@ function g3PrcsMetadataOk(data: Record<string, unknown>): boolean {
   );
 }
 
+function hasStructuredG3Waiver(waiver: G3StructuredWaiver | null | undefined): boolean {
+  return waiver != null && waiver.rationale.trim().length >= 10;
+}
+
 /** G3 — Project Selected: A-3.1, A-3.2, A-3.3, A-4 or waiver, complexity / Unknown plan, PRCS metadata (§5). */
-export function evaluateG3(evidence: GateEvidenceBundle): GateEvaluationResult {
+export function evaluateG3(
+  evidence: GateEvidenceBundle,
+  structuredWaiver?: G3StructuredWaiver | null,
+): GateEvaluationResult {
   const checks: GateEvidenceCheck[] = [];
   const gateId: GateId = "G3";
 
@@ -324,17 +333,21 @@ export function evaluateG3(evidence: GateEvidenceBundle): GateEvaluationResult {
 
   const parsed4 = parseTemplate("A-4", evidence["A-4"]);
   const a4Approved = hasApprovedA4(parsed4);
-  const waiverOk = hasApprovedWaiverOnScorecard(a31);
+  const structuredWaiverOk = hasStructuredG3Waiver(structuredWaiver);
+  const legacyWaiverOk = hasApprovedWaiverOnScorecard(a31);
+  const waiverOk = structuredWaiverOk || legacyWaiverOk;
   const businessFieldOk = a4Approved || waiverOk;
   pushCheck(checks, {
     id: "g3.a4_or_waiver",
     ok: businessFieldOk,
-    templateId: a4Approved ? "A-4" : "A-3.1",
+    templateId: a4Approved ? "A-4" : structuredWaiverOk ? "waiverGranted" : "A-3.1",
     message: businessFieldOk
       ? a4Approved
         ? "Business Field Report (A-4) is present and Approved."
-        : "Approved waiver for Business Field Report (A-4) is documented on A-3.1."
-      : "G3 requires Template A-4 (Approved) or an approved waiver recorded on A-3.1 (related report reference + waivers text).",
+        : structuredWaiverOk
+          ? "Approved waiver for Business Field Report (A-4) is recorded in project applicability (waiverGranted)."
+          : "Approved waiver for Business Field Report (A-4) is documented on A-3.1."
+      : "G3 requires Template A-4 (Approved), a structured waiver in applicabilityJson.waiverGranted, or legacy waiver text on A-3.1.",
   });
 
   const pass = checks.every((c) => c.ok);
@@ -675,8 +688,13 @@ export async function evaluateGateForProject(
     case "G1":
     case "G2":
     case "G3": {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { applicabilityJson: true },
+      });
       const bundle = await loadGateEvidenceBundle(projectId, gateId);
-      return evaluateGate(gateId, bundle);
+      const structuredWaiver = parseStructuredG3Waiver(project?.applicabilityJson ?? {});
+      return evaluateG3(bundle, structuredWaiver);
     }
     case "G4":
       return evaluateG4Project(projectId);

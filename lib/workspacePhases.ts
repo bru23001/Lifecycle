@@ -17,6 +17,12 @@ export function clampWorkspacePhase(phase: number): number {
   );
 }
 
+/** Progress percent for dashboard / shell (10–100 by phase). */
+export function workspacePhaseProgressPercent(phase: number): number {
+  const p = clampWorkspacePhase(phase);
+  return Math.min(100, Math.max(10, Math.round((p / WORKSPACE_PHASE_MAX) * 100)));
+}
+
 /** Fourteen milestones shown in the Lifecycle Workspace navigator (UI layer). */
 export type WorkspacePhaseMeta = {
   index: number;

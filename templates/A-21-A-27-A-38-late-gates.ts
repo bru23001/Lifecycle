@@ -38,6 +38,7 @@ export const a21ReleaseReadinessTemplate: LifecycleTemplate<typeof a21Schema> = 
   title: "Release Readiness Checklist",
   phase: 13,
   gate: "G8",
+  maturity: "scaffold",
   schema: a21Schema,
   sections: a21Sections,
   toMarkdown: (data) =>
@@ -64,6 +65,7 @@ export const a27DeploymentChecklistTemplate: LifecycleTemplate<typeof a27Schema>
   title: "Deployment Checklist",
   phase: 14,
   gate: "G9",
+  maturity: "scaffold",
   schema: a27Schema,
   sections: [
     {
@@ -109,6 +111,7 @@ export const a38PostReleaseReviewTemplate: LifecycleTemplate<typeof a38Schema> =
   title: "Post-Release Review",
   phase: 14,
   gate: "G10",
+  maturity: "scaffold",
   schema: a38Schema,
   sections: [
     {

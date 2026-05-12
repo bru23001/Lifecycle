@@ -49,3 +49,4 @@ vault/**/*.md
 
 # Local release snapshots (npm run pre-release / release-snapshot)
 vault/releases/
+vault/backups/
