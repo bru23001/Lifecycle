@@ -1,15 +1,19 @@
-import { Info, Save, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+"use client";
 
+import { useState } from "react";
+import { Info, Save, ShieldCheck } from "lucide-react";
+
+import { SubmitGateReviewModal } from "@/components/lifecycle-workspace/submit-gate-review-modal";
 import type { GateSubmissionState } from "@/components/lifecycle-workspace/submit-gate-review-types";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export type SubmitGateReviewCardProps = {
   state: GateSubmissionState;
 };
 
 export function SubmitGateReviewCard({ state }: SubmitGateReviewCardProps) {
+  const [open, setOpen] = useState(false);
+
   const submitDisabled = !state.canSubmit;
   const submitLabel = state.canSubmit
     ? "Submit for Gate Review"
@@ -41,27 +45,16 @@ export function SubmitGateReviewCard({ state }: SubmitGateReviewCardProps) {
         </ul>
       ) : null}
 
-      {state.canSubmit ? (
-        <Link
-          href={state.submitHref}
-          className={cn(
-            buttonVariants({ variant: "default", size: "lg" }),
-            "mt-4 w-full bg-[#2563eb] hover:bg-[#1d4ed8]",
-          )}
-        >
-          {submitLabel}
-        </Link>
-      ) : (
-        <Button
-          type="button"
-          className="mt-4 w-full bg-[#2563eb] hover:bg-[#1d4ed8]"
-          size="lg"
-          disabled={submitDisabled}
-          aria-describedby="submit-gate-helper"
-        >
-          {submitLabel}
-        </Button>
-      )}
+      <Button
+        type="button"
+        className="mt-4 w-full bg-[#2563eb] hover:bg-[#1d4ed8]"
+        size="lg"
+        disabled={submitDisabled}
+        onClick={() => setOpen(true)}
+        aria-describedby="submit-gate-helper"
+      >
+        {submitLabel}
+      </Button>
 
       <Button type="button" variant="outline" className="mt-2 w-full gap-2" size="default">
         <Save className="size-4" />
@@ -76,6 +69,8 @@ export function SubmitGateReviewCard({ state }: SubmitGateReviewCardProps) {
           ? "Complete checklist items and resolve blocking warnings before submitting."
           : "Work-in-progress saves automatically to your draft workspace until you submit."}
       </p>
+
+      <SubmitGateReviewModal open={open} state={state} onClose={() => setOpen(false)} />
     </section>
   );
 }
