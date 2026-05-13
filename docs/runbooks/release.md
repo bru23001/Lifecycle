@@ -15,7 +15,7 @@ npm run pre-release
 ## What runs
 
 1. `validate` — lint, typecheck, production build.
-2. `check-templates` — registry structural validation (strict-default warnings are INFO via `--quiet-defaults`).
+2. `check-templates` — registry structural validation (strict-default warnings are INFO via `--strict-forms-expected`).
 3. `backup` — `vault/backups/<timestamp>/` with `dev.db`, `vault-copy/`, `manifest.json`, checksum (skipped if `SKIP_BACKUP=1` or `PRE_RELEASE_FAST=1`).
 4. `migrate-deploy` — Prisma migrations (skipped if `PRE_RELEASE_FAST=1`).
 5. `seed` / `seed-smoke` / `data-integrity-check`.

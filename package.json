@@ -8,7 +8,7 @@
     "dev": "next dev -p 3001",
     "dev:clean": "npm run clean && npm run db:generate && next dev -p 3001",
     "typecheck": "tsc --noEmit",
-    "check-templates": "tsx scripts/check-templates.ts --quiet-defaults",
+    "check-templates": "tsx scripts/check-templates.ts --strict-forms-expected",
     "phase-model-check": "tsx scripts/phase-model-check.ts",
     "db-phase-sanity": "tsx scripts/db-phase-sanity.ts",
     "repair-workspace-phases": "tsx scripts/repair-workspace-phases.ts",
@@ -21,6 +21,7 @@
     "seed-smoke": "tsx scripts/seed-smoke.ts",
     "data-integrity-check": "tsx scripts/data-integrity-check.ts",
     "route-smoke": "tsx scripts/route-smoke.ts",
+    "ci-route-smoke": "tsx scripts/ci-route-smoke.ts",
     "release-snapshot": "tsx scripts/release-snapshot.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,13 +29,14 @@
     "prepare": "husky || true",
     "pre-release": "tsx scripts/pre-release.ts",
     "pre-release:fast": "cross-env PRE_RELEASE_FAST=1 tsx scripts/pre-release.ts",
-    "ci": "tsx scripts/ci-prep.ts && npm run validate && npm run check-templates && npm run phase-model-check && npm run test:cov && cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 npx prisma migrate deploy && npm run db-phase-sanity && npm run seed && npm run seed-smoke && npm run data-integrity-check",
+    "ci": "tsx scripts/ci-prep.ts && npm run validate && npm run check-templates && npm run phase-model-check && npm run test:cov && cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 npx prisma migrate deploy && npm run db-phase-sanity && npm run seed && npm run seed-smoke && npm run data-integrity-check && npm run restore-smoke",
     "db:generate": "cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 prisma generate",
     "db:migrate": "cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 prisma migrate dev",
     "db:push": "cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 prisma db push",
     "db:studio": "cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 prisma studio",
     "seed": "tsx prisma/seed.ts",
-    "postinstall": "cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 prisma generate"
+    "postinstall": "cross-env PRISMA_HIDE_UPDATE_MESSAGE=1 prisma generate",
+    "restore-smoke": "tsx scripts/restore-smoke.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

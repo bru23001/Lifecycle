@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/server/audit";
 import { OPEN_APPROVAL_STATUSES } from "@/lib/server/approval-writes";
 import { requireCurrentUser } from "@/lib/server/current-user";
 import { logInfo } from "@/lib/server/logger";
+import { getRequestIdFromHeaders } from "@/lib/server/request-context";
 
 const inputSchema = z.object({
   approvalId: z.string().min(1),
@@ -98,8 +99,10 @@ export async function recordApprovalDecision(
     },
   });
 
+  const requestId = await getRequestIdFromHeaders();
   logInfo({
     message: "approval.decision_recorded",
+    request_id: requestId,
     approvalId,
     projectId: row.projectId,
     decision,

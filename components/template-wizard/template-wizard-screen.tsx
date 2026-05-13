@@ -246,58 +246,59 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
   const phaseSummary = `Phase ${wizardHeader.phaseNumber} · ${wizardHeader.phaseName}`;
 
   return (
-    <AuthenticatedAppShell
-      projectId={initial.project.id}
-      projectName={initial.project.name}
-      phaseSummary={phaseSummary}
-      phaseProgressPct={wizardHeader.completionPercent}
-      navActive="artifacts"
-    >
-      <TopHeader
-        title="Template Wizard"
-        userInitials={initial.user.initials}
-        userName={initial.user.name}
-        userRole={initial.user.role}
-        autosaveLabel={autosaveLabel}
-        notificationCount={6}
-      />
-      <TemplateWizardContent
-        project={initial.project}
-        wizardHeader={wizardHeader}
-        templateSelections={initial.templateSelections}
-        selectedTemplateId={initial.selectedTemplate.id}
-        sections={sections}
-        activeSection={activeSection}
-        activeIndex={activeIndex}
-        formValues={formValues}
-        sectionErrors={sectionErrors}
-        validationSummary={validationSummary}
-        markdownPreview={markdownPreview}
-        jsonEvidence={jsonEvidence}
-        autosaveLabel={autosaveLabel}
-        onSelectSection={setActiveSectionId}
-        onFieldChange={onFieldChange}
-        onIssueClick={onIssueClick}
-        onPrevSection={goPrev}
-        onNextSection={goNext}
-        onSaveSection={saveDraft}
-        onRegenerateMarkdown={bumpAutosave}
-        onSaveDraft={saveDraft}
-        onExportMarkdown={exportMd}
-        onExportJson={exportJson}
-        onCancel={() => router.push(`/projects/${initial.project.id}/workspace`)}
-        onSaveArtifact={() => {
-          saveDraft();
-        }}
-        onMarkComplete={() => {
-          if (!markCompleteDisabledReason) {
-            setAutosaveLabel("Marked complete · saved");
+    <div className="contents" data-route-smoke="template-wizard">
+      <AuthenticatedAppShell
+        projectId={initial.project.id}
+        projectName={initial.project.name}
+        phaseSummary={phaseSummary}
+        phaseProgressPct={wizardHeader.completionPercent}
+        navActive="artifacts"
+      >
+        <TopHeader
+          title="Template Wizard"
+          userInitials={initial.user.initials}
+          userName={initial.user.name}
+          userRole={initial.user.role}
+          autosaveLabel={autosaveLabel}
+        />
+        <TemplateWizardContent
+          project={initial.project}
+          wizardHeader={wizardHeader}
+          templateSelections={initial.templateSelections}
+          selectedTemplateId={initial.selectedTemplate.id}
+          sections={sections}
+          activeSection={activeSection}
+          activeIndex={activeIndex}
+          formValues={formValues}
+          sectionErrors={sectionErrors}
+          validationSummary={validationSummary}
+          markdownPreview={markdownPreview}
+          jsonEvidence={jsonEvidence}
+          autosaveLabel={autosaveLabel}
+          onSelectSection={setActiveSectionId}
+          onFieldChange={onFieldChange}
+          onIssueClick={onIssueClick}
+          onPrevSection={goPrev}
+          onNextSection={goNext}
+          onSaveSection={saveDraft}
+          onRegenerateMarkdown={bumpAutosave}
+          onSaveDraft={saveDraft}
+          onExportMarkdown={exportMd}
+          onExportJson={exportJson}
+          onCancel={() => router.push(`/projects/${initial.project.id}/workspace`)}
+          onSaveArtifact={() => {
             saveDraft();
-          }
-        }}
-        saveArtifactDisabledReason={saveArtifactDisabledReason}
-        markCompleteDisabledReason={markCompleteDisabledReason}
-      />
-    </AuthenticatedAppShell>
+          }}
+          onMarkComplete={() => {
+            if (!markCompleteDisabledReason) {
+              setAutosaveLabel("Marked complete · saved");
+              saveDraft();
+            }
+          }}
+          saveArtifactDisabledReason={saveArtifactDisabledReason}
+          markCompleteDisabledReason={markCompleteDisabledReason}
+        />
+      </AuthenticatedAppShell>
+    </div>
   );
 }

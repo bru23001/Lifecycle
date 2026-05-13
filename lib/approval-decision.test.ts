@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluateDecisionState } from "@/lib/approval-decision";
+import {
+  createCommentHistoryEvent,
+  createDecisionHistoryEvent,
+  evaluateDecisionState,
+} from "@/lib/approval-decision";
 import type { ApprovalDecisionDraft, ApprovalPackage } from "@/types/approval-center.types";
 
 function basePackage(overrides: Partial<ApprovalPackage> = {}): ApprovalPackage {
@@ -106,5 +110,76 @@ describe("evaluateDecisionState", () => {
     });
     const state = evaluateDecisionState(pkg.decisionDraft, pkg);
     expect(state.canSubmitDecision).toBe(true);
+  });
+
+  it("blocks approve when required inputs are incomplete", () => {
+    const pkg = basePackage({
+      detail: { ...basePackage().detail, approvalType: "artifact_review", gateCode: undefined },
+      requiredInputs: [
+        {
+          id: "ri-1",
+          inputCode: "A-1",
+          name: "CRS",
+          description: "",
+          status: "incomplete",
+        },
+      ],
+      decisionDraft: {
+        ...basePackage().decisionDraft,
+        decision: "approve",
+      },
+    });
+    const state = evaluateDecisionState(pkg.decisionDraft, pkg);
+    expect(state.canSubmitDecision).toBe(false);
+    expect(state.submitBlockers.some((b) => b.includes("critical required inputs"))).toBe(true);
+  });
+
+  it("blocks reject without reason", () => {
+    const pkg = basePackage({
+      detail: { ...basePackage().detail, approvalType: "artifact_review", gateCode: undefined },
+      decisionDraft: {
+        ...basePackage().decisionDraft,
+        decision: "reject",
+        comments: "Not acceptable",
+        requiredChanges: [""],
+      },
+    });
+    const state = evaluateDecisionState(pkg.decisionDraft, pkg);
+    expect(state.canSubmitDecision).toBe(false);
+  });
+
+  it("blocks when no decision selected", () => {
+    const pkg = basePackage({
+      detail: { ...basePackage().detail, approvalType: "artifact_review", gateCode: undefined },
+      decisionDraft: {
+        ...basePackage().decisionDraft,
+        decision: undefined,
+      },
+    });
+    const state = evaluateDecisionState(pkg.decisionDraft, pkg);
+    expect(state.canSubmitDecision).toBe(false);
+    expect(state.submitBlockers.some((b) => b.includes("Select a decision"))).toBe(true);
+  });
+});
+
+describe("approval decision history events", () => {
+  it("creates comment history payload", () => {
+    const event = createCommentHistoryEvent("Solo");
+    expect(event.eventType).toBe("comment_added");
+    expect(event.actorName).toBe("Solo");
+  });
+
+  it("creates history payload per decision", () => {
+    expect(createDecisionHistoryEvent("approve", "Solo").eventType).toBe("approved");
+    expect(createDecisionHistoryEvent("request_changes", "Solo").eventType).toBe(
+      "changes_requested",
+    );
+    expect(createDecisionHistoryEvent("reject", "Solo").eventType).toBe("rejected");
+  });
+
+  it("throws for unsupported decision payload", () => {
+    expect(() => createDecisionHistoryEvent("unknown" as never, "Solo")).toThrow(
+      /Unsupported decision type/,
+    );
   });
 });

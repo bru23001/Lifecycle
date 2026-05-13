@@ -8,6 +8,7 @@ import {
   summarizeRequirementTraceParts,
 } from "@/lib/registerTraceLabels";
 import { prisma } from "@/lib/prisma";
+import { projectTemplateWizardHref } from "@/lib/projects-url";
 
 export const dynamic = "force-dynamic";
 
@@ -117,7 +118,7 @@ export default async function RequirementsPage({
             <h1 className="text-2xl font-semibold tracking-tight">Requirements</h1>
           </div>
           <Link
-            href={`/projects/${id}/form/A-1`}
+            href={projectTemplateWizardHref(id, "A-1")}
             className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
           >
             Edit CRS / SRS / NFR (forms)

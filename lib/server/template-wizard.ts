@@ -19,6 +19,7 @@ import type {
   WizardArtifactStatus,
   WizardHeaderData,
 } from "@/types/template-wizard.types";
+import { projectTemplateWizardHref } from "@/lib/projects-url";
 import { workspacePhaseMeta, workspacePhasePurpose } from "@/lib/workspacePhases";
 
 /** Deep links for repeater/refPicker fields that are edited in the workspace, not the slim wizard. */
@@ -288,7 +289,6 @@ export async function loadTemplateWizardData(
     const data = asRecord(art?.dataJson ?? {});
     const itemNav: TemplateWizardNavContext = { projectId: project.id, workspacePhase: t.phase };
     const pct = selectionCompletionForTemplate(t, data, itemNav);
-    const slug = encodeURIComponent(t.templateId);
     return {
       id: t.templateId,
       templateCode: t.templateId,
@@ -296,7 +296,7 @@ export async function loadTemplateWizardData(
       required: true,
       status: selectionStatusForArtifact(art, t, itemNav),
       completionPercent: pct,
-      href: `/projects/${project.id}/templates/${slug}`,
+      href: projectTemplateWizardHref(project.id, t.templateId),
       maturity: t.maturity ?? "full",
     };
   });

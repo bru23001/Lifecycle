@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   BarChart3,
+  Bell,
   CheckCircle2,
   ChevronRight,
   FileText,
@@ -23,11 +24,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import lifecycleLogoCollapsed from "@/lifecycle-logo-blanco.png";
 import lifecycleLogo from "@/lifecycle-logo-largo-blanco.png";
-import {
-  WORKSPACE_PHASE_MIN,
-} from "@/lib/workspacePhases";
 import { cn } from "@/lib/utils";
-import { nextOpenGateForPhase } from "@/lib/gateStatus";
 
 export type AppSidebarActive =
   | "dashboard"
@@ -38,6 +35,7 @@ export type AppSidebarActive =
   | "artifacts"
   | "evidence"
   | "approvals"
+  | "notifications"
   | "reports"
   | "settings";
 
@@ -57,6 +55,7 @@ export function AppSidebar({
   workspaceHref,
   gatesHref,
   projectCurrentPhase,
+  continueWorkingHref,
   className,
   id = "app-sidebar",
   collapsed: controlledCollapsed,
@@ -71,6 +70,8 @@ export function AppSidebar({
   gatesHref?: string;
   /** Workspace phase 1–14; drives default Gates link when `gatesHref` is not set. */
   projectCurrentPhase?: number | null;
+  /** Overrides the sidebar card CTA when continuing the next required action. */
+  continueWorkingHref?: string;
   className?: string;
   id?: string;
   collapsed?: boolean;
@@ -79,13 +80,17 @@ export function AppSidebar({
   const [uncontrolledCollapsed, setUncontrolledCollapsed] = useState(false);
   const collapsed = controlledCollapsed ?? uncontrolledCollapsed;
   const hasProject = Boolean(projectId);
-  const resolvedWorkspaceHref = workspaceHref ?? (hasProject ? `/projects/${projectId}/workspace` : "/projects");
-  const phaseForGatesNav = projectCurrentPhase ?? WORKSPACE_PHASE_MIN;
+  const resolvedWorkspaceHref =
+    workspaceHref ??
+    (hasProject
+      ? projectCurrentPhase != null
+        ? `/projects/${projectId}/workspace?phase=${projectCurrentPhase}`
+        : `/projects/${projectId}/workspace`
+      : "/projects");
+  const continueCardHref = continueWorkingHref ?? resolvedWorkspaceHref;
   const resolvedGatesHref =
     gatesHref ??
-    (hasProject
-      ? `/projects/${projectId}/gates/${nextOpenGateForPhase(phaseForGatesNav).toLowerCase()}/review`
-      : "/projects");
+    (hasProject ? `/projects/${projectId}/gates` : "/projects");
 
   const toggleCollapsed = () => {
     const nextValue = !collapsed;
@@ -129,6 +134,7 @@ export function AppSidebar({
       active: active === "traceability",
     },
     { label: "Approvals", href: "/approvals", icon: CheckCircle2, active: active === "approvals" },
+    { label: "Notifications", href: "/notifications", icon: Bell, active: active === "notifications" },
     {
       label: "Reports",
       href: hasProject ? `/projects/${projectId}/reports` : "/projects",
@@ -186,22 +192,51 @@ export function AppSidebar({
           <div className="mb-3 rounded-[9px] border border-white/10 bg-[#0d1b2f] p-[11px]">
             <p className="text-[11px] font-medium text-slate-300">Continue Working</p>
             <p className="mt-[16px] truncate text-[12px] font-semibold">{projectName}</p>
-            {phaseSummary ? (
-              <p className="mt-1 truncate text-[9px] text-slate-400">{phaseSummary}</p>
-            ) : null}
-            <div className="mt-[11px] h-[6px] rounded-full bg-slate-700">
-              <div
-                className="h-[6px] rounded-full bg-[#2563eb]"
-                style={{ width: `${Math.max(0, Math.min(100, phaseProgressPct ?? 0))}%` }}
-              />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {projectCurrentPhase != null ? (
+                <Link
+                  href={resolvedWorkspaceHref}
+                  className="inline-flex shrink-0 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-semibold text-slate-200 hover:bg-white/10"
+                >
+                  Phase {projectCurrentPhase}
+                </Link>
+              ) : null}
+              {phaseSummary ? (
+                <Link
+                  href={resolvedWorkspaceHref}
+                  className="min-w-0 flex-1 truncate text-left text-[9px] text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+                >
+                  {phaseSummary}
+                </Link>
+              ) : null}
             </div>
             <Link
               href={resolvedWorkspaceHref}
+              className="mt-[11px] block rounded-full outline-none ring-offset-[#0d1b2f] focus-visible:ring-2 focus-visible:ring-[#2563eb]"
+              aria-label="Open current phase in lifecycle workspace"
+            >
+              <div className="h-[6px] rounded-full bg-slate-700">
+                <div
+                  className="h-[6px] rounded-full bg-[#2563eb]"
+                  style={{ width: `${Math.max(0, Math.min(100, phaseProgressPct ?? 0))}%` }}
+                />
+              </div>
+            </Link>
+            <Link
+              href={continueCardHref}
               className="mt-[12px] flex h-[36px] items-center justify-between rounded-[6px] bg-[#2563eb] px-3 text-[11px] font-semibold text-white"
             >
-              Open Project
+              {continueWorkingHref ? "Continue" : "Open Project"}
               <ChevronRight className="size-[13px]" aria-hidden />
             </Link>
+            {continueWorkingHref ? (
+              <Link
+                href={resolvedWorkspaceHref}
+                className="mt-2 block text-center text-[10px] font-semibold text-slate-300 underline-offset-2 hover:text-white hover:underline"
+              >
+                Open current phase
+              </Link>
+            ) : null}
           </div>
         ) : null}
 

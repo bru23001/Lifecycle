@@ -1,5 +1,6 @@
 import type { RequiredTemplate } from "@/components/lifecycle-workspace/required-templates-types";
 import type { TemplateRow } from "@/components/lifecycle-workspace/current-phase-main-panel";
+import { projectTemplateWizardHref } from "@/lib/projects-url";
 
 function mapTemplateStatus(
   row: TemplateRow["status"],
@@ -26,6 +27,6 @@ export function mapTemplateRowsToRequiredTemplates(
     status: mapTemplateStatus(row.status),
     progressPercent: row.progressPct,
     lastUpdatedLabel: row.lastUpdated === "—" ? undefined : row.lastUpdated,
-    href: `/projects/${projectId}/form/${encodeURIComponent(row.id)}`,
+    href: projectTemplateWizardHref(projectId, row.id),
   }));
 }

@@ -44,7 +44,7 @@ export type LifecycleStatusSummary = {
   blockersCount: number;
   lastGeneratedLabel: string;
   viewHref: string;
-  exportPdfHref: string;
+  exportHref: string;
 };
 
 export type GateDecisionSummary = {
@@ -59,7 +59,7 @@ export type GateDecisionSummary = {
   lastDecisionLabel?: string;
   lastGeneratedLabel: string;
   viewHref: string;
-  exportPdfHref: string;
+  exportHref: string;
 };
 
 export type TraceabilityReportSummary = {
@@ -72,7 +72,7 @@ export type TraceabilityReportSummary = {
   criticalGaps: number;
   lastGeneratedLabel: string;
   viewHref: string;
-  exportPdfHref: string;
+  exportHref: string;
 };
 
 /**
@@ -92,7 +92,7 @@ export type MissingEvidenceSummary = {
   blockingGates: number;
   lastGeneratedLabel: string;
   viewHref: string;
-  exportCsvHref: string;
+  exportHref: string;
 };
 
 export type ApprovalHistorySummary = {
@@ -106,7 +106,16 @@ export type ApprovalHistorySummary = {
   lastApprovalLabel?: string;
   lastGeneratedLabel: string;
   viewHref: string;
-  exportPdfHref: string;
+  exportHref: string;
+};
+
+export type EvidencePackageSectionCounts = {
+  artifacts: number;
+  evidenceFiles: number;
+  gateDecisions: number;
+  traceabilityLinks: number;
+  approvalRecords: number;
+  auditEntries: number;
 };
 
 export type FullProjectEvidencePackageSummary = {
@@ -117,12 +126,14 @@ export type FullProjectEvidencePackageSummary = {
   includesTraceabilityLinks: boolean;
   includesApprovalRecords: boolean;
   includesAuditManifest: boolean;
+  /** Row/file counts per section for configure UI and scoped export estimates. */
+  sectionCounts: EvidencePackageSectionCounts;
   estimatedSizeLabel: string;
   estimatedFileCount: number;
   lastGeneratedLabel?: string;
   viewHref: string;
   configureHref: string;
-  exportPackageHref: string;
+  exportHref: string;
 };
 
 export type ReportsActionState = {

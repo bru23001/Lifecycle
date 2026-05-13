@@ -1,4 +1,5 @@
 import { ReportChrome } from "@/components/reports/report-chrome";
+import { ReportDetailExportActions } from "@/components/reports/report-detail-export-actions";
 import { loadReportsPageData } from "@/lib/server/reports";
 
 export default async function GateDecisionsReportPage({
@@ -31,6 +32,8 @@ export default async function GateDecisionsReportPage({
         </ul>
         <p className="mt-4 text-xs text-slate-500">Last generated: {r.lastGeneratedLabel}</p>
       </section>
+
+      <ReportDetailExportActions exportHref={r.exportHref} exportLabel="Download gate decision export" />
     </ReportChrome>
   );
 }

@@ -588,7 +588,7 @@ function emptyLibrary(
   };
   return {
     user: viewer,
-    project: { id: projectId, code, name: projectName },
+    project: { id: projectId, code, name: projectName, currentPhase: p },
     artifactListItems: [],
     selectedArtifact: {
       detail: placeholderDetail,
@@ -690,6 +690,7 @@ export async function loadArtifactLibraryData(
       id: projectId,
       code,
       name: project.name,
+      currentPhase: project.currentPhase,
     },
     artifactListItems,
     selectedArtifact,

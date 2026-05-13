@@ -7,6 +7,18 @@ export const NEW_PROJECT_LIFECYCLE_MODELS = [
 
 export type NewProjectLifecycleModel = (typeof NEW_PROJECT_LIFECYCLE_MODELS)[number];
 
+/** Business area (stored in `applicabilityJson.projectMetadata.businessArea`). */
+export const NEW_PROJECT_BUSINESS_AREAS = [
+  "Security",
+  "Platform engineering",
+  "Product",
+  "Operations",
+  "Compliance",
+  "Other",
+] as const;
+
+export type NewProjectBusinessArea = (typeof NEW_PROJECT_BUSINESS_AREAS)[number];
+
 /** Workflow status at creation (stored in `applicabilityJson.projectMetadata.workflowStatus`). */
 export const NEW_PROJECT_WORKFLOW_STATUSES = [
   "Not Started",

@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { ReportChrome } from "@/components/reports/report-chrome";
+import { ReportDetailExportActions } from "@/components/reports/report-detail-export-actions";
 import { loadReportsPageData } from "@/lib/server/reports";
 
 export default async function TraceabilityReportDetailPage({
@@ -29,6 +32,15 @@ export default async function TraceabilityReportDetailPage({
         </ul>
         <p className="mt-4 text-xs text-slate-500">Last generated: {r.lastGeneratedLabel}</p>
       </section>
+
+      <ReportDetailExportActions exportHref={r.exportHref} exportLabel="Download traceability export">
+        <Link
+          href={`/projects/${data.project.id}/traceability`}
+          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+        >
+          Open traceability matrix
+        </Link>
+      </ReportDetailExportActions>
     </ReportChrome>
   );
 }

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { GateId } from "@/lib/gateRules";
-import { getGateVisualState, indexLatestGateDecisions } from "@/lib/gateStatus";
+import {
+  gateAuditTooltip,
+  getGateVisualState,
+  indexLatestGateDecisions,
+  nextOpenGateForPhase,
+} from "@/lib/gateStatus";
 
 describe("getGateVisualState", () => {
   const cases: Array<{ phase: number; gate: GateId; want: ReturnType<typeof getGateVisualState> }> = [
@@ -31,5 +36,52 @@ describe("getGateVisualState", () => {
       },
     ]);
     expect(getGateVisualState(12, "G7", m)).toBe("done");
+  });
+
+  it("applies late-gate readiness sequence for G8→G10", () => {
+    const g8Passed = indexLatestGateDecisions([
+      {
+        gateId: "G8",
+        decision: "Accepted",
+        evidencePassSnapshot: true,
+        createdAt: new Date(),
+      },
+    ]);
+    const g9Passed = indexLatestGateDecisions([
+      {
+        gateId: "G9",
+        decision: "Accepted",
+        evidencePassSnapshot: true,
+        createdAt: new Date(),
+      },
+    ]);
+    expect(getGateVisualState(13, "G8")).toBe("ready");
+    expect(getGateVisualState(14, "G9", g8Passed)).toBe("ready");
+    expect(getGateVisualState(14, "G10", g9Passed)).toBe("ready");
+  });
+});
+
+describe("gate decision helpers", () => {
+  it("indexes latest decision per gate from sorted rows", () => {
+    const first = new Date("2026-01-02T00:00:00.000Z");
+    const older = new Date("2026-01-01T00:00:00.000Z");
+    const rows = [
+      { gateId: "G2", decision: "Accepted", evidencePassSnapshot: true, createdAt: first },
+      { gateId: "G2", decision: "Rejected", evidencePassSnapshot: false, createdAt: older },
+    ];
+    const latest = indexLatestGateDecisions(rows);
+    expect(latest.get("G2")?.decision).toBe("Accepted");
+  });
+
+  it("computes next open gate and audit tooltip", () => {
+    expect(nextOpenGateForPhase(1)).toBe("G1");
+    const text = gateAuditTooltip("G2", {
+      gateId: "G2",
+      decision: "Accepted",
+      evidencePassSnapshot: true,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
+    expect(text).toContain("Accepted");
+    expect(text).toContain("2026-01-02");
   });
 });

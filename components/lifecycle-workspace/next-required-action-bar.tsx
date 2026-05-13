@@ -9,11 +9,16 @@ export function NextRequiredActionBar({
   description,
   ctaLabel,
   href,
+  secondaryHref,
+  secondaryLabel = "Open current phase",
 }: {
   label?: string;
   description: string;
   ctaLabel: string;
   href: string;
+  /** Optional second action (e.g. open workspace at current phase when primary is “next required”). */
+  secondaryHref?: string;
+  secondaryLabel?: string;
 }) {
   const heading = label ?? "Next required action";
 
@@ -27,16 +32,29 @@ export function NextRequiredActionBar({
           <span className="font-medium">{heading}:</span> {description}
         </span>
       </p>
-      <Link
-        href={href}
-        className={cn(
-          buttonVariants({ variant: "default", size: "default" }),
-          "shrink-0 gap-1 bg-[#2563eb] hover:bg-[#1d4ed8]",
-        )}
-      >
-        {ctaLabel}
-        <ChevronRight className="size-4" />
-      </Link>
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        {secondaryHref ? (
+          <Link
+            href={secondaryHref}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "default" }),
+              "gap-1 border-slate-300 bg-background text-foreground hover:bg-muted/60",
+            )}
+          >
+            {secondaryLabel}
+          </Link>
+        ) : null}
+        <Link
+          href={href}
+          className={cn(
+            buttonVariants({ variant: "default", size: "default" }),
+            "gap-1 bg-[#2563eb] hover:bg-[#1d4ed8]",
+          )}
+        >
+          {ctaLabel}
+          <ChevronRight className="size-4" />
+        </Link>
+      </div>
     </div>
   );
 }

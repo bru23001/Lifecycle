@@ -18,6 +18,8 @@ export type ProjectListItem = {
   progressPercent: number;
   status: ProjectStatus;
   updatedLabel: string;
+  /** Incomplete or unlinked evidence items (for list badges and sort). */
+  missingEvidenceCount: number;
 };
 
 export type SelectedProjectHeader = {
@@ -53,6 +55,8 @@ export type SelectedProjectActivity = {
   title: string;
   meta: string;
   timeLabel: string;
+  /** Deep link when activity is tied to a gate, artifact, etc. */
+  href?: string;
 };
 
 export type SelectedProjectGateStatus = {
@@ -66,6 +70,15 @@ export type SelectedProjectBlocker = {
   id: string;
   message: string;
   severity: "warning" | "error";
+  target:
+    | { kind: "workspace-phase"; phaseNumber: number }
+    | { kind: "artifact"; artifactId: string }
+    | { kind: "template"; templateId: string }
+    | { kind: "evidence-overview"; phaseNumber?: number; gateId?: string }
+    | { kind: "evidence"; evidenceId: string }
+    | { kind: "gate-review"; gateId: string }
+    | { kind: "traceability" };
+  href: string;
 };
 
 export type SelectedProjectSnapshotItem = {
@@ -91,6 +104,8 @@ export type ProjectScreenAuditEntry = {
   actorLabel: string | null;
   /** When true, row appears on the Lifecycle Timeline tab. */
   lifecycleRelevant: boolean;
+  /** When set, row links to artifact detail or related workspace routes. */
+  href?: string;
 };
 
 export type SelectedProject = {

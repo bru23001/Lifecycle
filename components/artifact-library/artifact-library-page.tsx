@@ -6,6 +6,7 @@ import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenti
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
+import { workspacePhaseProgressPercent } from "@/lib/workspacePhases";
 import type { ArtifactLibraryData, ArtifactListItem } from "@/types/artifact-library.types";
 
 import { ArtifactContentTabs } from "./ArtifactContentTabs";
@@ -39,9 +40,11 @@ function applyFilters(
 export function ArtifactLibraryPage({
   data,
   selectedArtifactId,
+  view = "library",
 }: {
   data: ArtifactLibraryData;
   selectedArtifactId?: string;
+  view?: "library" | "detail";
 }) {
   const [search, setSearch] = useState("");
   const [phaseFilter, setPhaseFilter] = useState("all");
@@ -52,24 +55,28 @@ export function ArtifactLibraryPage({
     [data.artifactListItems, search, phaseFilter, statusFilter],
   );
 
-  const [mobilePane, setMobilePane] = useState<"list" | "detail" | "context">("detail");
+  const [mobilePane, setMobilePane] = useState<"list" | "detail" | "context">(() =>
+    view === "detail" ? "detail" : "list",
+  );
+
+  const headerTitle = view === "detail" ? "Artifact Detail" : "Artifact Library";
 
   return (
     <AuthenticatedAppShell
       projectId={data.project.id}
       projectName={data.project.name}
-      phaseSummary={`Phase ${data.selectedArtifact.detail.phaseNumber}: ${data.selectedArtifact.detail.phaseName}`}
-      phaseProgressPct={data.selectedArtifact.quickInfo.overallProgressPercent}
+      phaseSummary={`Phase ${data.project.currentPhase} of 14 · ${data.selectedArtifact.detail.phaseName}`}
+      phaseProgressPct={workspacePhaseProgressPercent(data.project.currentPhase)}
       navActive="artifacts"
       gatesHref={data.selectedArtifact.linkedGate.reviewHref}
     >
       <TopHeader
-        title="Artifact Library"
+        title={headerTitle}
         userInitials={data.user.initials}
         userName={data.user.name}
         userRole={data.user.role}
       />
-      <ArtifactLibraryContent>
+      <ArtifactLibraryContent data-testid={view === "detail" ? "artifact-detail-screen" : undefined}>
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4 min-[901px]:px-8">
           <Breadcrumbs
             items={[
@@ -123,8 +130,8 @@ export function ArtifactLibraryPage({
               <ArtifactQuickInfo info={data.selectedArtifact.quickInfo} />
               <ExportPackageCard
                 exportPackage={data.selectedArtifact.exportPackage}
-                markdown={data.selectedArtifact.markdownView}
-                json={data.selectedArtifact.jsonEvidence}
+                markdown={data.selectedArtifact.markdownView.markdown}
+                jsonEvidence={data.selectedArtifact.jsonEvidence}
               />
             </>
           }

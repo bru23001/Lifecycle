@@ -10,8 +10,9 @@ import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { Button } from "@/components/ui/button";
-import { createCommentHistoryEvent, createDecisionHistoryEvent, evaluateDecisionState } from "@/lib/approval-decision";
 import { recordApprovalDecision } from "@/app/actions/recordApprovalDecision";
+import { createCommentHistoryEvent, createDecisionHistoryEvent, evaluateDecisionState } from "@/lib/approval-decision";
+import { NOTIFICATIONS_HUB_HREF } from "@/lib/notifications-hub";
 import type {
   ApprovalCenterData,
   ApprovalDecisionDraft,
@@ -287,7 +288,8 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
         userInitials={initial.user.initials}
         userName={initial.user.name}
         userRole={initial.user.role}
-        notificationCount={6}
+        notificationCount={Math.min(initial.pendingApprovals.length, 9)}
+        notificationHref={NOTIFICATIONS_HUB_HREF}
       />
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">

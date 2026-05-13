@@ -406,7 +406,6 @@ export function SettingsPage({
         userInitials={data.user.initials}
         userName={data.user.name}
         userRole={data.user.role}
-        notificationCount={1}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <SettingsContent
@@ -425,7 +424,7 @@ export function SettingsPage({
           onSectionChange={handleSectionChange}
           onAddPhase={handleAddPhase}
           onEditPhase={handleEditPhase}
-          onCreateTemplate={() => router.push("/projects?new=1&intent=create-template")}
+          onCreateTemplate={() => router.push("/projects/new?intent=create-template")}
           onCreateRule={handleCreateRule}
           onCreateRole={handleCreateRole}
           onTestExport={() => setErrorMessage("Test export queued for backend processing.")}

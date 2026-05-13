@@ -2,7 +2,7 @@
  * Validates lifecycle template registry structure (sections, unique fields, schema presence).
  * Empty default values often fail strict Zod schemas — that is expected; we warn only.
  * Run: npm run check-templates
- * Flags: `--quiet-defaults` — log empty-default schema misses as INFO (CI-friendly).
+ * Flags: `--strict-forms-expected` — log expected empty-default schema misses as INFO (CI-friendly).
  */
 import { buildTemplateDefaultValues } from "@/lib/templateDefaultValues";
 import {
@@ -38,7 +38,9 @@ function assertUniqueFieldNames(templateId: string, names: string[]): string | n
 
 function main() {
   const quietDefaults =
+    process.argv.includes("--strict-forms-expected") ||
     process.argv.includes("--quiet-defaults") ||
+    process.env.CHECK_TEMPLATES_STRICT_FORMS_EXPECTED === "1" ||
     process.env.CHECK_TEMPLATES_QUIET_DEFAULTS === "1";
 
   const ids = getTemplateIds();

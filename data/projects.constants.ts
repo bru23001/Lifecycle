@@ -46,7 +46,7 @@ export function emptyPlaceholderSelectedProject(): SelectedProject {
     nextRequiredAction: {
       description: "Create a project to track lifecycle phases, gates, artifacts, and evidence in one place.",
       ctaLabel: "New project",
-      href: "/projects?new=1",
+      href: "/projects/new",
     },
     gatesNavHref: null,
   };

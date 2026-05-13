@@ -7,6 +7,7 @@ import {
   indexLatestGateDecisions,
   type GateDecisionRow,
 } from "@/lib/gateStatus";
+import { reportDetailPath } from "@/lib/reports-detail-paths";
 import { mergeReportsFilters, reportsFiltersToSearchParams } from "@/lib/reports-url";
 import { clampWorkspacePhase, workspacePhaseMeta } from "@/lib/workspacePhases";
 import { templateRegistry } from "@/templates/registry";
@@ -218,9 +219,17 @@ export async function loadReportsPageData(
   const partial = evidenceItems.filter((e) => e.status === "partially_linked").length;
   const unlinked = evidenceItems.filter((e) => e.status === "unlinked").length;
 
-  const [userDisplay, blockingGates] = await Promise.all([
+  const auditWhere: { projectId: string; createdAt?: { gte: Date; lte: Date } } = {
+    projectId,
+  };
+  if (bounds) {
+    auditWhere.createdAt = { gte: bounds.from, lte: bounds.to };
+  }
+
+  const [userDisplay, blockingGates, auditEntriesCount] = await Promise.all([
     getCurrentUserDisplay(),
     countBlockingGates(projectId, focusPhase, gateScope),
+    prisma.auditEntry.count({ where: auditWhere }),
   ]);
 
   const phasesCompleted = Math.max(0, focusPhase - 1);
@@ -263,6 +272,8 @@ export async function loadReportsPageData(
 
   const code = projectDisplayCode(project.vaultFolder, project.slug);
   const basePath = `/projects/${projectId}/reports`;
+  const detail = (segment: Parameters<typeof reportDetailPath>[1]) =>
+    reportDetailPath(projectId, segment);
   const nowLabel = formatDateTimeLabel(new Date());
 
   const filterQs = reportsFiltersToSearchParams({
@@ -306,8 +317,8 @@ export async function loadReportsPageData(
         upcomingGateCode: upcomingGate,
         blockersCount,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/lifecycle-status`,
-        exportPdfHref: `/api/projects/${projectId}/reports/export?key=lifecycleStatus&format=json${exportQuery}`,
+        viewHref: detail("lifecycleStatus"),
+        exportHref: `/api/projects/${projectId}/reports/export?key=lifecycleStatus&format=pdf${exportQuery}`,
       },
       gateDecision: {
         reportId: "report-gate-decisions",
@@ -320,8 +331,8 @@ export async function loadReportsPageData(
         averageDecisionDays: undefined,
         lastDecisionLabel,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/gate-decision`,
-        exportPdfHref: `/api/projects/${projectId}/reports/export?key=gateDecision&format=json${exportQuery}`,
+        viewHref: detail("gateDecisions"),
+        exportHref: `/api/projects/${projectId}/reports/export?key=gateDecision&format=pdf${exportQuery}`,
       },
       traceability: {
         reportId: "report-traceability",
@@ -332,8 +343,8 @@ export async function loadReportsPageData(
         orphanedItems,
         criticalGaps: blockingGates > 0 ? Math.min(3, blockingGates) : 0,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/traceability`,
-        exportPdfHref: `/api/projects/${projectId}/reports/export?key=traceability&format=json${exportQuery}`,
+        viewHref: detail("traceability"),
+        exportHref: `/api/projects/${projectId}/reports/export?key=traceability&format=pdf${exportQuery}`,
       },
       missingEvidence: {
         reportId: "report-missing-evidence",
@@ -346,8 +357,8 @@ export async function loadReportsPageData(
         low: Math.min(5, partial),
         blockingGates,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/missing-evidence`,
-        exportCsvHref: `/api/projects/${projectId}/reports/export?key=missingEvidence&format=json${exportQuery}`,
+        viewHref: detail("missingEvidence"),
+        exportHref: `/api/projects/${projectId}/reports/export?key=missingEvidence&format=csv${exportQuery}`,
       },
       approvalHistory: {
         reportId: "report-approval-history",
@@ -359,8 +370,8 @@ export async function loadReportsPageData(
         averageReviewTimeHours: undefined,
         lastApprovalLabel: lastDecisionLabel,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/approval-history`,
-        exportPdfHref: `/api/projects/${projectId}/reports/export?key=approvalHistory&format=json${exportQuery}`,
+        viewHref: detail("approvalHistory"),
+        exportHref: `/api/projects/${projectId}/reports/export?key=approvalHistory&format=pdf${exportQuery}`,
       },
       fullProjectEvidencePackage: {
         reportId: "report-full-evidence-package",
@@ -370,12 +381,20 @@ export async function loadReportsPageData(
         includesTraceabilityLinks: traceLinksScoped.length > 0,
         includesApprovalRecords: decisionsFiltered.length > 0,
         includesAuditManifest: true,
+        sectionCounts: {
+          artifacts: artifactsScoped.length,
+          evidenceFiles: evidenceItems.length,
+          gateDecisions: decisionsFiltered.length,
+          traceabilityLinks: traceLinksScoped.length,
+          approvalRecords: decisionsFiltered.length,
+          auditEntries: auditEntriesCount,
+        },
         estimatedSizeLabel,
         estimatedFileCount,
         lastGeneratedLabel: nowLabel,
-        viewHref: `${basePath}/full-project-evidence-package`,
-        configureHref: `${basePath}/full-project-evidence-package/configure`,
-        exportPackageHref: `/api/projects/${projectId}/reports/export?key=fullProjectEvidencePackage&format=json${exportQuery}`,
+        viewHref: detail("evidencePackage"),
+        configureHref: `${detail("evidencePackage")}/configure`,
+        exportHref: `/api/projects/${projectId}/reports/export?key=fullProjectEvidencePackage&format=zip${exportQuery}`,
       },
     },
     actionState: {

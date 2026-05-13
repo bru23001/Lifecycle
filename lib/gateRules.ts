@@ -685,8 +685,14 @@ export async function evaluateGateForProject(
   gateId: GateId,
 ): Promise<GateEvaluationResult> {
   switch (gateId) {
-    case "G1":
-    case "G2":
+    case "G1": {
+      const bundle = await loadGateEvidenceBundle(projectId, gateId);
+      return evaluateG1(bundle);
+    }
+    case "G2": {
+      const bundle = await loadGateEvidenceBundle(projectId, gateId);
+      return evaluateG2(bundle);
+    }
     case "G3": {
       const project = await prisma.project.findUnique({
         where: { id: projectId },

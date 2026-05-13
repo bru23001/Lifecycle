@@ -26,6 +26,7 @@ import {
 import { mapEvidenceRowsToAttachments } from "@/lib/mapEvidenceAttachments";
 import { mapTemplateRowsToRequiredTemplates } from "@/lib/mapRequiredTemplates";
 import { displayFromCurrentUser, getCurrentUser } from "@/lib/server/current-user";
+import { projectTemplateWizardHref } from "@/lib/projects-url";
 import { getTemplatesForPhase } from "@/templates/registry";
 import type { LifecycleWorkspaceScreenData } from "@/types/lifecycle-workspace.types";
 
@@ -94,7 +95,7 @@ function buildValidationWarnings(
       severity: "warning",
       relatedObjectType: "template",
       relatedObjectId: "A-3.2",
-      href: `/projects/${projectId}/form/${encodeURIComponent("A-3.2")}`,
+      href: projectTemplateWizardHref(projectId, "A-3.2"),
     });
   }
   const a31 = rows.find((r) => r.id === "A-3.1");
@@ -105,16 +106,19 @@ function buildValidationWarnings(
       severity: "warning",
       relatedObjectType: "template",
       relatedObjectId: "A-3.1",
-      href: `/projects/${projectId}/form/${encodeURIComponent("A-3.1")}`,
+      href: projectTemplateWizardHref(projectId, "A-3.1"),
     });
   }
   const drafts = rows.filter((r) => r.status === "In Progress");
   if (drafts.length > 0 && out.length < 3) {
+    const firstDraft = drafts[0]!;
     out.push({
       id: "warn-drafts",
       message: `${drafts.length} template(s) still in draft — finalize before gate submission.`,
       severity: "warning",
       relatedObjectType: "template",
+      relatedObjectId: firstDraft.id,
+      href: projectTemplateWizardHref(projectId, firstDraft.id),
     });
   }
   return out.slice(0, 5);
@@ -266,7 +270,7 @@ export default async function LifecycleWorkspacePage({
       label: `Complete ${t.title}`,
       isDone: () => t.status === "Completed",
       required: true,
-      href: `/projects/${project.id}/form/${encodeURIComponent(t.id)}`,
+      href: projectTemplateWizardHref(project.id, t.id),
     })),
     {
       id: "evidence-pkg",
@@ -356,7 +360,7 @@ export default async function LifecycleWorkspacePage({
   };
 
   const currentPhaseWorkspace: CurrentPhaseWorkspaceData = {
-    title: "Current Phase Workspace",
+    title: hasPhaseParam ? `Phase ${activeWsPhase} workspace` : "Current Phase Workspace",
     instructions: [
       phaseSummary,
       "",
@@ -400,7 +404,7 @@ export default async function LifecycleWorkspacePage({
   const firstIncompleteTemplate = templateRows.find((t) => t.status !== "Completed");
   let nextHref = `/projects/${project.id}/workspace#completion-checklist`;
   if (firstIncompleteTemplate) {
-    nextHref = `/projects/${project.id}/form/${encodeURIComponent(firstIncompleteTemplate.id)}`;
+    nextHref = projectTemplateWizardHref(project.id, firstIncompleteTemplate.id);
   } else if (evidenceRows.length === 0) {
     nextHref = `/projects/${project.id}/workspace#evidence-attachments`;
   } else if (validationWarnings.some((w) => w.severity !== "info")) {

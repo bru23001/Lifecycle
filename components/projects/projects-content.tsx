@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   AlertCircle,
-  ArrowUpDown,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -22,13 +22,18 @@ import {
 } from "lucide-react";
 
 import { PROJECT_DETAIL_TABS } from "@/data/projects.constants";
+import { ProjectListToolbar } from "@/components/projects/project-list-toolbar";
 import { ProjectAuditTrailTab, ProjectLifecycleTimelineTab } from "@/components/projects/project-audit-tabs";
+import type { ParsedProjectsListQuery } from "@/lib/projects-list-query";
+import { projectsListHref } from "@/lib/projects-url";
+import { resolveProjectBlockersOverviewHref } from "@/lib/project-blockers";
 import type {
   ProjectDetailTab,
   ProjectListItem,
   ProjectsScreenData,
   SelectedProject,
 } from "@/types/projects.types";
+import { cn } from "@/lib/utils";
 
 function statusBadgeClass(status: ProjectListItem["status"]): string {
   if (status === "Blocked") return "bg-rose-50 text-rose-700";
@@ -42,8 +47,9 @@ type SummaryCard = {
   title: string;
   value: string;
   detail: string;
-  icon: "file" | "shield" | "network";
-  iconColor: "blue" | "green" | "slate";
+  icon: "file" | "shield" | "network" | "evidence";
+  iconColor: "blue" | "green" | "slate" | "amber";
+  href?: string;
 };
 
 type ActivityItem = {
@@ -53,6 +59,7 @@ type ActivityItem = {
   text: string;
   author: string;
   time: string;
+  href?: string;
 };
 
 type GateItem = {
@@ -73,6 +80,7 @@ function SummaryIcon({
     blue: "bg-blue-50 text-blue-600",
     green: "bg-emerald-50 text-emerald-600",
     slate: "bg-slate-100 text-slate-600",
+    amber: "bg-amber-50 text-amber-600",
   };
   const iconClasses = "h-7 w-7 stroke-[2.2]";
 
@@ -86,6 +94,7 @@ function SummaryIcon({
       {icon === "file" && <FileText className={iconClasses} />}
       {icon === "shield" && <ShieldCheck className={iconClasses} />}
       {icon === "network" && <Network className={iconClasses} />}
+      {icon === "evidence" && <SearchCheck className={iconClasses} />}
     </div>
   );
 }
@@ -150,18 +159,29 @@ export function ProjectListPanel({
   selectedTab,
   currentPage,
   totalPages,
+  listFilters,
 }: {
   projects: ProjectsScreenData["projects"];
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
   currentPage: number;
   totalPages: number;
+  listFilters: ParsedProjectsListQuery;
 }) {
   const perPage = 6;
   const start = (currentPage - 1) * perPage;
   const visibleProjects = projects.slice(start, start + perPage);
   const previousPage = Math.max(1, currentPage - 1);
   const nextPage = Math.min(totalPages, currentPage + 1);
+
+  const pageHref = (pageNum: number) =>
+    projectsListHref({
+      selectedProjectId,
+      selectedTab,
+      currentPage: pageNum,
+      listFilters,
+    });
+
   return (
     <aside className="cc-card-standard flex h-full min-h-0 flex-col p-0 dark:bg-card">
       <div className="flex h-[52px] items-center justify-between border-b border-slate-100 px-4">
@@ -171,35 +191,27 @@ export function ProjectListPanel({
             {projects.length}
           </span>
         </div>
-        <button
-          type="button"
-          className="inline-flex size-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
-          aria-label="Sort project list"
-        >
-          <ArrowUpDown className="size-4" />
-        </button>
       </div>
-      <div className="border-b border-slate-100 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="cc-card-meta flex-1 rounded-md border border-slate-200 bg-[var(--app-bg)] px-3 py-2">
-            Search projects...
+      <Suspense
+        fallback={
+          <div className="border-b border-slate-100 px-4 py-3">
+            <div className="h-9 rounded-md border border-slate-200 bg-slate-50/80" />
           </div>
-          <button
-            type="button"
-            className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50"
-            aria-label="Filter projects"
-          >
-            <SearchCheck className="size-4" />
-          </button>
-        </div>
-      </div>
+        }
+      >
+        <ProjectListToolbar
+          selectedProjectId={selectedProjectId}
+          selectedTab={selectedTab}
+          currentPage={currentPage}
+        />
+      </Suspense>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
         {visibleProjects.map((project) => {
           const active = project.id === selectedProjectId;
           return (
             <Link
               key={project.id}
-              href={`/projects?selected=${project.id}&tab=${selectedTab}&page=${currentPage}`}
+              href={`/projects/${project.id}`}
               className={`block rounded-lg border p-3 ${
                 active
                   ? "border-[#2563eb] border-l-[3px] bg-blue-50/30 shadow-[0_0_0_1px_rgba(37,99,235,0.08)]"
@@ -218,6 +230,11 @@ export function ProjectListPanel({
               </div>
               <p className="cc-card-meta mt-1">
                 {project.code} · Phase {project.currentPhase}
+                {project.missingEvidenceCount > 0 ? (
+                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-900">
+                    {project.missingEvidenceCount} evidence gap{project.missingEvidenceCount === 1 ? "" : "s"}
+                  </span>
+                ) : null}
               </p>
               <p className="cc-card-meta mt-1">Updated {project.updatedLabel}</p>
               <div className="mt-2 flex items-center gap-2">
@@ -235,7 +252,7 @@ export function ProjectListPanel({
       </div>
       <div className="flex items-center justify-center gap-3 border-t border-slate-100 px-4 py-3 text-slate-500">
         <Link
-          href={`/projects?selected=${selectedProjectId}&tab=${selectedTab}&page=${previousPage}`}
+          href={pageHref(previousPage)}
           className={`inline-flex size-6 items-center justify-center rounded-md hover:bg-slate-100 ${
             currentPage <= 1 ? "pointer-events-none opacity-40" : ""
           }`}
@@ -248,7 +265,7 @@ export function ProjectListPanel({
         </span>
         <span className="cc-card-meta font-semibold">{totalPages > 1 ? totalPages : 1}</span>
         <Link
-          href={`/projects?selected=${selectedProjectId}&tab=${selectedTab}&page=${nextPage}`}
+          href={pageHref(nextPage)}
           className={`inline-flex size-6 items-center justify-center rounded-md hover:bg-slate-100 ${
             currentPage >= totalPages ? "pointer-events-none opacity-40" : ""
           }`}
@@ -261,13 +278,7 @@ export function ProjectListPanel({
   );
 }
 
-export function ProjectDetailHeader({
-  selectedProject,
-  newProjectOpenHref,
-}: {
-  selectedProject: SelectedProject;
-  newProjectOpenHref: string;
-}) {
+export function ProjectDetailHeader({ selectedProject }: { selectedProject: SelectedProject }) {
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -284,7 +295,7 @@ export function ProjectDetailHeader({
         </p>
       </div>
       <Link
-        href={newProjectOpenHref}
+        href="/projects/new"
         className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2563eb] px-4 text-[12px] font-semibold text-white"
       >
         <Plus className="size-4" />
@@ -297,9 +308,13 @@ export function ProjectDetailHeader({
 export function ProjectTabs({
   selectedProjectId,
   selectedTab,
+  currentPage,
+  listFilters,
 }: {
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
+  currentPage: number;
+  listFilters: ParsedProjectsListQuery;
 }) {
   return (
     <div className="mb-4 flex flex-wrap gap-5 border-b border-slate-200">
@@ -308,7 +323,12 @@ export function ProjectTabs({
         return (
           <Link
             key={tab.id}
-            href={`/projects?selected=${selectedProjectId}&tab=${tab.id}`}
+            href={projectsListHref({
+              selectedProjectId,
+              selectedTab: tab.id,
+              currentPage,
+              listFilters,
+            })}
             className={`relative pb-3 text-[12px] font-semibold ${
               active ? "text-[#1d4ed8]" : "text-slate-500 hover:text-slate-700"
             }`}
@@ -322,7 +342,15 @@ export function ProjectTabs({
   );
 }
 
-function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProject }) {
+function ProjectOverviewTab({
+  selectedProject,
+  listFilters,
+  currentPage,
+}: {
+  selectedProject: SelectedProject;
+  listFilters: ParsedProjectsListQuery;
+  currentPage: number;
+}) {
   const phaseTitles = [
     "Idea Capture",
     "Problem Definition",
@@ -358,14 +386,23 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
   const summaryCards: SummaryCard[] = selectedProject.metrics.map((metric) => {
     const isGateMetric = metric.label.includes("Gate");
     const isTraceMetric = metric.label.includes("Trace");
+    const isEvidenceMetric = metric.id === "evidence";
 
     return {
       id: metric.id,
       title: metric.label,
       value: metric.value,
       detail: metric.note,
-      icon: isGateMetric ? "shield" : isTraceMetric ? "network" : "file",
-      iconColor: isGateMetric ? "green" : isTraceMetric ? "slate" : "blue",
+      icon: isGateMetric ? "shield" : isTraceMetric ? "network" : isEvidenceMetric ? "evidence" : "file",
+      iconColor: isGateMetric ? "green" : isTraceMetric ? "slate" : isEvidenceMetric ? "amber" : "blue",
+      href:
+        metric.id === "artifacts"
+          ? `/projects/${selectedProject.header.id}/artifacts`
+          : metric.id === "evidence"
+            ? `/projects/${selectedProject.header.id}/evidence`
+            : metric.id === "trace"
+              ? `/projects/${selectedProject.header.id}/traceability`
+            : undefined,
     };
   });
   const recentActivity: ActivityItem[] = selectedProject.recentActivity
@@ -395,6 +432,7 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
         text,
         author: item.meta.split("·")[0]?.trim() ?? item.meta,
         time: item.timeLabel,
+        href: item.href,
       };
     });
   const gateStatus: GateItem[] = selectedProject.gateStatuses
@@ -418,7 +456,12 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
             Lifecycle Progress
           </h3>
           <Link
-            href={`/projects?selected=${selectedProject.header.id}&tab=lifecycle-timeline`}
+            href={projectsListHref({
+              selectedProjectId: selectedProject.header.id,
+              selectedTab: "lifecycle-timeline",
+              currentPage,
+              listFilters,
+            })}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
           >
             View Full Timeline
@@ -484,11 +527,8 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
         {summaryCards.map((card) => {
           const isPositive = /(complete|passed)/i.test(card.detail);
 
-          return (
-            <article
-              key={card.id}
-              className="cc-card-standard flex min-h-[160px] items-start gap-6 p-7"
-            >
+          const body = (
+            <>
               <SummaryIcon icon={card.icon} color={card.iconColor} />
 
               <div className="space-y-4">
@@ -503,6 +543,21 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
                   {card.detail}
                 </p>
               </div>
+            </>
+          );
+
+          return (
+            <article key={card.id} className="cc-card-standard flex min-h-[160px] items-start gap-6 p-7">
+              {card.href ? (
+                <Link
+                  href={card.href}
+                  className="flex w-full items-start gap-6 outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                >
+                  {body}
+                </Link>
+              ) : (
+                body
+              )}
             </article>
           );
         })}
@@ -513,7 +568,7 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
           <header className="flex items-center justify-between px-7 py-6">
             <h2 className="cc-card-title">Recent Activity</h2>
             <Link
-              href={`/projects?selected=${selectedProject.header.id}&tab=audit-trail`}
+              href={`/projects/${selectedProject.header.id}?tab=audit_trail`}
               className="cc-card-link"
             >
               View all activity
@@ -521,33 +576,45 @@ function ProjectOverviewTab({ selectedProject }: { selectedProject: SelectedProj
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {recentActivity.map((item) => (
-              <div
-                key={item.id}
-                className="grid grid-cols-[44px_1fr_auto] gap-5 border-t border-slate-100 px-7 py-5"
-              >
-                <ActivityIcon icon={item.icon} color={item.iconColor} />
+            {recentActivity.map((item) => {
+              const rowClass = cn(
+                "grid grid-cols-[44px_1fr_auto] gap-5 border-t border-slate-100 px-7 py-5",
+                item.href &&
+                  "transition hover:bg-slate-50 focus-within:bg-slate-50 focus-visible:outline-none dark:hover:bg-slate-800/40 dark:focus-within:bg-slate-800/40",
+              );
+              const inner = (
+                <>
+                  <ActivityIcon icon={item.icon} color={item.iconColor} />
 
-                <div>
-                  <p className="cc-card-text">{item.text}</p>
-                  <p className="cc-card-meta mt-1">by {item.author}</p>
+                  <div>
+                    <p className="cc-card-text">{item.text}</p>
+                    <p className="cc-card-meta mt-1">by {item.author}</p>
+                  </div>
+
+                  <time className="cc-card-meta whitespace-nowrap font-medium">{item.time}</time>
+                </>
+              );
+              return item.href ? (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={cn(rowClass, "focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2")}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div key={item.id} className={rowClass}>
+                  {inner}
                 </div>
-
-                <time className="cc-card-meta whitespace-nowrap font-medium">
-                  {item.time}
-                </time>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </article>
 
         <article className="cc-card-standard flex min-h-0 flex-col overflow-hidden p-0">
           <header className="flex items-center justify-between px-7 py-6">
             <h2 className="cc-card-title">Gate Status Summary</h2>
-            <Link
-              href={`/projects?selected=${selectedProject.header.id}&tab=gates`}
-              className="cc-card-link"
-            >
+            <Link href={`/projects/${selectedProject.header.id}?tab=gates`} className="cc-card-link">
               View all gates
             </Link>
           </header>
@@ -605,11 +672,23 @@ function GenericDataTab({
 export function ActiveTabContent({
   selectedProject,
   selectedTab,
+  listFilters,
+  currentPage,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
+  listFilters: ParsedProjectsListQuery;
+  currentPage: number;
 }) {
-  if (selectedTab === "overview") return <ProjectOverviewTab selectedProject={selectedProject} />;
+  if (selectedTab === "overview") {
+    return (
+      <ProjectOverviewTab
+        selectedProject={selectedProject}
+        listFilters={listFilters}
+        currentPage={currentPage}
+      />
+    );
+  }
   if (selectedTab === "profile") {
     return <GenericDataTab selectedProject={selectedProject} title="Project Profile" description="Project identity, ownership, classification, and governance metadata." />;
   }
@@ -631,18 +710,30 @@ export function ActiveTabContent({
 export function ProjectDetailPanel({
   selectedProject,
   selectedTab,
-  newProjectOpenHref,
+  listFilters,
+  currentPage,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
-  newProjectOpenHref: string;
+  listFilters: ParsedProjectsListQuery;
+  currentPage: number;
 }) {
   return (
     <section className="cc-card-standard flex h-full min-h-0 flex-col overflow-hidden bg-[var(--app-bg)] p-6">
-      <ProjectDetailHeader selectedProject={selectedProject} newProjectOpenHref={newProjectOpenHref} />
-      <ProjectTabs selectedProjectId={selectedProject.header.id} selectedTab={selectedTab} />
+      <ProjectDetailHeader selectedProject={selectedProject} />
+      <ProjectTabs
+        selectedProjectId={selectedProject.header.id}
+        selectedTab={selectedTab}
+        currentPage={currentPage}
+        listFilters={listFilters}
+      />
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <ActiveTabContent selectedProject={selectedProject} selectedTab={selectedTab} />
+        <ActiveTabContent
+          selectedProject={selectedProject}
+          selectedTab={selectedTab}
+          listFilters={listFilters}
+          currentPage={currentPage}
+        />
       </div>
     </section>
   );
@@ -655,10 +746,18 @@ export function ProjectContextPanel({
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
 }) {
+  const blockersOverviewHref = resolveProjectBlockersOverviewHref(
+    selectedProject.header.id,
+    selectedProject.blockers,
+  );
   const blockers = selectedProject.blockers.map((blocker) => ({
     id: blocker.id,
     text: blocker.message,
-    icon: blocker.message.toLowerCase().includes("gate") ? "alert" : "file",
+    href: blocker.href,
+    icon:
+      blocker.target.kind === "gate-review" || blocker.target.kind === "traceability"
+        ? "alert"
+        : "file",
   }));
   const layoutRowsClass =
     selectedTab === "overview"
@@ -695,6 +794,8 @@ export function ProjectContextPanel({
                   <Clock3 className="size-3.5" />
                 ) : action.id.includes("gate") ? (
                   <ShieldCheck className="size-3.5" />
+                ) : action.id.includes("evidence") ? (
+                  <SearchCheck className="size-3.5" />
                 ) : action.id.includes("trace") ? (
                   <GitBranch className="size-3.5" />
                 ) : action.id.includes("audit") ? (
@@ -718,26 +819,25 @@ export function ProjectContextPanel({
             <h2 className="cc-card-title">
               Blockers / Missing Evidence
             </h2>
-            <Link
-              href={`/projects?selected=${selectedProject.header.id}&tab=artifacts`}
-              className="cc-card-link"
-            >
-              View all
-            </Link>
+            <Link href={blockersOverviewHref} className="cc-card-link">View all blockers</Link>
           </header>
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
             {blockers.map((blocker) => (
-              <div key={blocker.id} className="flex items-center gap-3">
+              <Link
+                key={blocker.id}
+                href={blocker.href}
+                className="group flex items-center gap-3 rounded-md px-1 py-1 hover:bg-red-50"
+              >
                 {blocker.icon === "file" ? (
                   <FileText className="h-4 w-4 text-red-500" />
                 ) : (
                   <AlertCircle className="h-4 w-4 text-red-500" />
                 )}
-                <p className="cc-card-meta font-semibold text-red-500">
+                <p className="cc-card-meta font-semibold text-red-500 group-hover:underline">
                   {blocker.text}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </article>
@@ -752,18 +852,20 @@ export function ProjectsContent({
   selectedTab,
   currentPage,
   totalPages,
-  hasProjects,
-  newProjectOpenHref,
+  repositoryHasProjects,
+  hasVisibleProjects,
+  listFilters,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
   selectedTab: ProjectDetailTab;
   currentPage: number;
   totalPages: number;
-  hasProjects: boolean;
-  newProjectOpenHref: string;
+  repositoryHasProjects: boolean;
+  hasVisibleProjects: boolean;
+  listFilters: ParsedProjectsListQuery;
 }) {
-  if (!hasProjects) {
+  if (!repositoryHasProjects) {
     return (
       <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col items-center justify-center overflow-hidden px-5 pb-8 pt-4 min-[901px]:px-8">
         <section className="cc-card-standard flex max-w-md flex-col items-center gap-4 p-10 text-center">
@@ -775,7 +877,7 @@ export function ProjectsContent({
             Create a project to manage lifecycle phases, gate reviews, artifacts, and traceability in one workspace.
           </p>
           <Link
-            href={newProjectOpenHref}
+            href="/projects/new"
             className="inline-flex h-10 items-center gap-2 rounded-md bg-[#2563eb] px-4 text-sm font-semibold text-white"
           >
             <Plus className="size-4" />
@@ -786,6 +888,27 @@ export function ProjectsContent({
     );
   }
 
+  if (!hasVisibleProjects) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col items-center justify-center overflow-hidden px-5 pb-8 pt-4 min-[901px]:px-8">
+        <section className="cc-card-standard flex max-w-lg flex-col items-center gap-4 p-10 text-center">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-950">No projects match your filters</h2>
+          <p className="text-sm leading-relaxed text-slate-600">
+            Try clearing search, widening the date range, or removing filters to see the full catalog again.
+          </p>
+          <Link
+            href="/projects"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Reset catalog
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
+  const showFooter = Boolean(data.selectedProject.header.id);
+
   return (
     <div className="mx-auto flex w-full max-w-[1920px] flex-1 min-h-0 flex-col overflow-hidden px-5 pb-5 min-[901px]:px-8">
       <div className="split-detail-grid min-h-0 flex-1 overflow-hidden">
@@ -795,11 +918,13 @@ export function ProjectsContent({
           selectedTab={selectedTab}
           currentPage={currentPage}
           totalPages={totalPages}
+          listFilters={listFilters}
         />
         <ProjectDetailPanel
           selectedProject={data.selectedProject}
           selectedTab={selectedTab}
-          newProjectOpenHref={newProjectOpenHref}
+          listFilters={listFilters}
+          currentPage={currentPage}
         />
         <div className="h-full min-h-0">
           <ProjectContextPanel
@@ -809,16 +934,18 @@ export function ProjectsContent({
         </div>
       </div>
 
-      <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-[#eff6ff] px-4 py-3 text-[11px] text-slate-700">
-        <span className="font-medium">{data.selectedProject.nextRequiredAction.description}</span>
-        <Link
-          href={data.selectedProject.nextRequiredAction.href}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2563eb] px-3 text-[11px] font-semibold text-white"
-        >
-          {data.selectedProject.nextRequiredAction.ctaLabel}
-          <ChevronRight className="size-3.5" />
-        </Link>
-      </footer>
+      {showFooter ? (
+        <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-[#eff6ff] px-4 py-3 text-[11px] text-slate-700">
+          <span className="font-medium">{data.selectedProject.nextRequiredAction.description}</span>
+          <Link
+            href={data.selectedProject.nextRequiredAction.href}
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2563eb] px-3 text-[11px] font-semibold text-white"
+          >
+            {data.selectedProject.nextRequiredAction.ctaLabel}
+            <ChevronRight className="size-3.5" />
+          </Link>
+        </footer>
+      ) : null}
     </div>
   );
 }

@@ -21,7 +21,7 @@ All notable changes to this project are documented in this file.
 ### Changed
 
 - Home route `/` redirects to `/dashboard` (canonical dashboard URL).
-- `check-templates` defaults to `--quiet-defaults` in npm script (INFO instead of WARN for expected empty-default schema misses).
+- `check-templates` defaults to `--strict-forms-expected` in npm script (INFO instead of WARN for expected empty-default schema misses).
 - Dashboard removes demo “Blocked” row injection; `createProject` sets `ownerId` to the solo user.
 
 ### Fixed

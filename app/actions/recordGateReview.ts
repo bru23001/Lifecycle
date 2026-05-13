@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/server/audit";
 import { logInfo } from "@/lib/server/logger";
 import { appendGateReviewOutcome } from "@/lib/server/approval-writes";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { getRequestIdFromHeaders } from "@/lib/server/request-context";
 import { evaluateGateForProject } from "@/lib/gateRules";
 import {
   canOpenGateReview,
@@ -155,8 +156,10 @@ export async function recordGateReview(
     },
   });
 
+  const requestId = await getRequestIdFromHeaders();
   logInfo({
     message: "gate_review.recorded",
+    request_id: requestId,
     projectId,
     gateId,
     decision,

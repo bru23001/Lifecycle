@@ -7,28 +7,28 @@ export function ArtifactLibraryGrid({
   detailPanel,
   contextPanel,
   activePane,
-  className,
 }: {
   listPanel: ReactNode;
   detailPanel: ReactNode;
   contextPanel: ReactNode;
   activePane: "list" | "detail" | "context";
-  className?: string;
 }) {
   return (
-    <div
-      data-active-pane={activePane}
-      className={cn("artifact-library mx-auto w-full max-w-[1920px] flex-1 min-h-0 overflow-hidden", className)}
-    >
-      <div data-pane="list" className="artifact-list-panel">
+    <div className="mx-auto flex w-full max-w-[1920px] flex-1 flex-col gap-0 px-5 pb-10 min-[901px]:px-8">
+      <div className="hidden min-h-0 gap-6 lg:grid lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(260px,320px)] lg:items-start lg:pt-4">
+        <div className="min-h-0 space-y-4">{listPanel}</div>
+        <div className="min-h-0 space-y-4">{detailPanel}</div>
+        <div className="min-h-0 space-y-4">{contextPanel}</div>
+      </div>
+      <div className={cn("min-h-0 flex-1 space-y-4 pt-2 lg:hidden", activePane === "list" ? "block" : "hidden")}>
         {listPanel}
       </div>
-      <div data-pane="detail" className="artifact-detail-panel">
+      <div className={cn("min-h-0 flex-1 space-y-4 pt-2 lg:hidden", activePane === "detail" ? "block" : "hidden")}>
         {detailPanel}
       </div>
-      <aside data-pane="context" className="artifact-context-panel">
+      <div className={cn("min-h-0 flex-1 space-y-4 pt-2 lg:hidden", activePane === "context" ? "block" : "hidden")}>
         {contextPanel}
-      </aside>
+      </div>
     </div>
   );
 }

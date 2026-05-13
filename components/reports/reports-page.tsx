@@ -367,7 +367,6 @@ export function ReportsPage({ initial }: { initial: ReportsPageData }) {
         userInitials={data.user.initials}
         userName={data.user.name}
         userRole={data.user.role}
-        notificationCount={6}
         actionButtonLabel={`Export All Reports (${exportFormatLabel[allExportFormat]})`}
         actionButtonAriaLabel="Export all report outputs"
         onActionButtonClick={() => runExport(() => exportAllReports(data, allExportFormat))}

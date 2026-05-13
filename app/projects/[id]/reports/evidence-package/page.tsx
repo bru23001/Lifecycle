@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { ReportChrome } from "@/components/reports/report-chrome";
+import { ReportDetailExportActions } from "@/components/reports/report-detail-export-actions";
 import { loadReportsPageData } from "@/lib/server/reports";
 
 export default async function EvidencePackageReportPage({
@@ -32,23 +31,34 @@ export default async function EvidencePackageReportPage({
         </dl>
         <h3 className="mt-6 text-sm font-semibold text-slate-800">Includes</h3>
         <ul className="mt-2 space-y-1 text-sm text-slate-700">
-          <li>Markdown artifacts: {r.includesArtifacts ? "Yes" : "No"}</li>
-          <li>JSON evidence: {r.includesEvidenceFiles ? "Yes" : "No"}</li>
-          <li>Gate decisions: {r.includesGateDecisions ? "Yes" : "No"}</li>
-          <li>Traceability: {r.includesTraceabilityLinks ? "Yes" : "No"}</li>
-          <li>Approval records: {r.includesApprovalRecords ? "Yes" : "No"}</li>
-          <li>Audit manifest: {r.includesAuditManifest ? "Yes" : "No"}</li>
+          <li>
+            Markdown artifacts: {r.includesArtifacts ? "Yes" : "No"} ({r.sectionCounts.artifacts})
+          </li>
+          <li>
+            JSON evidence: {r.includesEvidenceFiles ? "Yes" : "No"} ({r.sectionCounts.evidenceFiles})
+          </li>
+          <li>
+            Gate decisions: {r.includesGateDecisions ? "Yes" : "No"} ({r.sectionCounts.gateDecisions})
+          </li>
+          <li>
+            Traceability: {r.includesTraceabilityLinks ? "Yes" : "No"} ({r.sectionCounts.traceabilityLinks})
+          </li>
+          <li>
+            Approval records: {r.includesApprovalRecords ? "Yes" : "No"} ({r.sectionCounts.approvalRecords})
+          </li>
+          <li>
+            Audit manifest: {r.includesAuditManifest ? "Yes" : "No"} ({r.sectionCounts.auditEntries} events)
+          </li>
         </ul>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href={r.configureHref}
-            className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Configure package
-          </Link>
-        </div>
-        <p className="mt-4 text-xs text-slate-500">Last generated: {r.lastGeneratedLabel ?? "—"}</p>
+        <p className="mt-6 text-xs text-slate-500">Last generated: {r.lastGeneratedLabel ?? "—"}</p>
       </section>
+
+      <ReportDetailExportActions
+        exportHref={r.exportHref}
+        exportLabel="Download package export"
+        configureHref={r.configureHref}
+        configureLabel="Configure package"
+      />
     </ReportChrome>
   );
 }

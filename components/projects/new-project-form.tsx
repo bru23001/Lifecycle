@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import {
+  NEW_PROJECT_BUSINESS_AREAS,
   NEW_PROJECT_LIFECYCLE_MODELS,
   NEW_PROJECT_WORKFLOW_STATUSES,
 } from "@/data/new-project.constants";
@@ -92,6 +93,33 @@ export function NewProjectForm({
       <section className="space-y-4">
         <h2 className="text-sm font-semibold tracking-tight text-slate-900">Lifecycle & ownership</h2>
         <div className="grid gap-4 min-[640px]:grid-cols-2">
+          <div>
+            <label
+              htmlFor="new-project-business-area"
+              className="text-[11px] font-semibold text-slate-600"
+            >
+              Business area <span className="text-rose-600">*</span>
+            </label>
+            <select
+              id="new-project-business-area"
+              name="businessArea"
+              required
+              defaultValue=""
+              className={fieldClass(Boolean(state.fieldErrors?.businessArea))}
+            >
+              <option value="" disabled>
+                Select area…
+              </option>
+              {NEW_PROJECT_BUSINESS_AREAS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            {state.fieldErrors?.businessArea ? (
+              <p className="mt-1 text-[11px] text-rose-600">{state.fieldErrors.businessArea}</p>
+            ) : null}
+          </div>
           <div>
             <label
               htmlFor="new-project-lifecycle"

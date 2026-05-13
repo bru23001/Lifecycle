@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+  NEW_PROJECT_BUSINESS_AREAS,
   NEW_PROJECT_LIFECYCLE_MODELS,
   NEW_PROJECT_WORKFLOW_STATUSES,
 } from "@/data/new-project.constants";
@@ -28,6 +29,10 @@ export type CreateProjectState = {
   fieldErrors?: Partial<Record<string, string>>;
 };
 
+function isBusinessArea(value: string): value is (typeof NEW_PROJECT_BUSINESS_AREAS)[number] {
+  return (NEW_PROJECT_BUSINESS_AREAS as readonly string[]).includes(value);
+}
+
 function isLifecycleModel(value: string): value is (typeof NEW_PROJECT_LIFECYCLE_MODELS)[number] {
   return (NEW_PROJECT_LIFECYCLE_MODELS as readonly string[]).includes(value);
 }
@@ -41,6 +46,7 @@ export async function createProject(
   formData: FormData,
 ): Promise<CreateProjectState> {
   const name = String(formData.get("name") ?? "").trim();
+  const businessArea = String(formData.get("businessArea") ?? "").trim();
   const codeSlug = String(formData.get("codeSlug") ?? "").trim();
   const owner = String(formData.get("owner") ?? "").trim();
   const lifecycleModel = String(formData.get("lifecycleModel") ?? "").trim();
@@ -52,6 +58,10 @@ export async function createProject(
 
   const fieldErrors: CreateProjectState["fieldErrors"] = {};
   if (!name) fieldErrors.name = "Project name is required.";
+  if (!businessArea) fieldErrors.businessArea = "Business area is required.";
+  else if (!isBusinessArea(businessArea)) {
+    fieldErrors.businessArea = "Select a valid business area.";
+  }
   if (!codeSlug) fieldErrors.codeSlug = "Project code / slug is required.";
   if (!owner) fieldErrors.owner = "Owner is required.";
   if (!lifecycleModel) fieldErrors.lifecycleModel = "Lifecycle model is required.";
@@ -82,6 +92,7 @@ export async function createProject(
   const applicabilityJson = {
     projectMetadata: {
       owner,
+      businessArea,
       lifecycleModel,
       workflowStatus,
       scope,

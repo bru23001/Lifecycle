@@ -384,6 +384,21 @@ export function EvidenceExportBundleCard({
         Export selected evidence with metadata and traceability information.
       </p>
 
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Link
+          href={`/projects/${exportBundle.projectId}/reports/evidence-package`}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+        >
+          Open evidence package report
+        </Link>
+        <Link
+          href={`/projects/${exportBundle.projectId}/reports/evidence-package/configure`}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+        >
+          Configure export package
+        </Link>
+      </div>
+
       <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <ExportAction
           label="Export Selected"

@@ -56,13 +56,17 @@ export function buildSelectedProjectFromListItem(project: ProjectListItem): Sele
       { key: "Business Area", value: "Security" },
       { key: "Owner", value: project.owner },
       { key: "Phase", value: `Phase ${project.currentPhase} of 14` },
+      {
+        key: "Missing evidence",
+        value: project.missingEvidenceCount > 0 ? String(project.missingEvidenceCount) : "None",
+      },
     ],
     quickActions: [
       { id: "qa-profile", label: "Edit Project Profile", href: "/projects" },
       { id: "qa-lifecycle", label: "View Lifecycle Timeline", href: "/projects" },
       { id: "qa-gate", label: "Open Gate Review", href: "/projects" },
       { id: "qa-artifacts", label: "Manage Artifacts", href: "/projects" },
-      { id: "qa-trace", label: "View Traceability Matrix", href: "/projects" },
+      { id: "qa-trace", label: "View Traceability Matrix", href: `/projects/${project.id}/traceability` },
       { id: "qa-audit", label: "View Audit Trail", href: "/projects" },
       { id: "qa-export", label: "Export Project Package", href: "/projects" },
     ],

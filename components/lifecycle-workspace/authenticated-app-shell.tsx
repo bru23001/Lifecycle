@@ -28,6 +28,12 @@ export function AuthenticatedAppShell(props: {
   gatesHref?: string;
   /** Workspace phase 1–14 for default Gates link when `gatesHref` is omitted. */
   projectCurrentPhase?: number | null;
+  /**
+   * When set, the sidebar "Continue Working" CTA uses this href (e.g. next approval,
+   * template form, or workspace anchor) instead of the default workspace URL.
+   */
+  continueWorkingHref?: string | null;
+  workspaceHref?: string;
   children: React.ReactNode;
 }) {
   const {
@@ -38,6 +44,8 @@ export function AuthenticatedAppShell(props: {
     navActive = "lifecycle",
     gatesHref,
     projectCurrentPhase,
+    continueWorkingHref,
+    workspaceHref,
     children,
   } = props;
   const [collapsed, setCollapsed] = useState(false);
@@ -68,8 +76,10 @@ export function AuthenticatedAppShell(props: {
           projectName={projectName}
           phaseSummary={phaseSummary}
           phaseProgressPct={phaseProgressPct}
+          workspaceHref={workspaceHref}
           gatesHref={gatesHref}
           projectCurrentPhase={projectCurrentPhase}
+          continueWorkingHref={continueWorkingHref ?? undefined}
           collapsed={collapsed}
           onCollapsedChange={setCollapsed}
           className="sticky top-0 h-dvh min-h-0 max-h-dvh min-w-0"

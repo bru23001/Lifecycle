@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { ProjectsPage as ProjectsScreenPage } from "@/components/projects/projects-page";
 import {
   PROJECT_DETAIL_TABS,
@@ -11,10 +13,21 @@ import {
 } from "@/lib/project-applicability-metadata";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import { indexLatestGateDecisions, nextOpenGateForPhase } from "@/lib/gateStatus";
+import { buildProjectBlockers } from "@/lib/project-blockers";
+import { buildSelectedProjectRecentActivity } from "@/lib/project-recent-activity";
+import { OPEN_APPROVAL_STATUSES } from "@/lib/server/approval-writes";
 import { getProjectAuditScreenEntries } from "@/lib/server/project-audit-screen";
-import { projectsCloseNewModalHref, projectsListHref } from "@/lib/projects-url";
+import { normalizeProjectDetailTabQueryParam } from "@/lib/normalize-project-detail-tab-query";
+import {
+  parseProjectsListQuery,
+  rowMatchesListQuery,
+  sortProjectListRows,
+  stripProjectListFilterRow,
+  type ProjectListFilterRow,
+} from "@/lib/projects-list-query";
+import { projectAuditTrailListHref, projectsListHref } from "@/lib/projects-url";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
-import type { ProjectDetailTab, ProjectListItem, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
+import type { ProjectDetailTab, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +45,8 @@ function formatProjectCode(slug: string, vaultFolder: string): string {
 }
 
 function parseDetailTab(rawTab: string | undefined): ProjectDetailTab {
-  const tab = PROJECT_DETAIL_TABS.find((item) => item.id === rawTab);
+  const normalized = normalizeProjectDetailTabQueryParam(rawTab);
+  const tab = PROJECT_DETAIL_TABS.find((item) => item.id === normalized);
   return tab?.id ?? "overview";
 }
 
@@ -42,24 +56,23 @@ function timeAgoHours(hours: number): string {
 }
 
 type PageProps = {
-  searchParams: Promise<{
-    selected?: string | string[];
-    tab?: string | string[];
-    page?: string | string[];
-    new?: string | string[];
-    intent?: string | string[];
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const selected = searchParamFirst(sp.selected);
-  const tab = searchParamFirst(sp.tab);
+  const tab = normalizeProjectDetailTabQueryParam(searchParamFirst(sp.tab));
   const page = searchParamFirst(sp.page);
   const newRaw = searchParamFirst(sp.new);
   const intentRaw = searchParamFirst(sp.intent);
-  const newProjectModalOpen = newRaw === "1" || newRaw === "true";
-  const newProjectIntent = intentRaw?.trim() ? intentRaw.trim() : null;
+  if (newRaw === "1" || newRaw === "true") {
+    const q = new URLSearchParams();
+    if (intentRaw?.trim()) q.set("intent", intentRaw.trim());
+    redirect(`/projects/new${q.size > 0 ? `?${q}` : ""}`);
+  }
+
+  const listQuery = parseProjectsListQuery(sp);
 
   const screenUser = await getCurrentUserDisplay();
 
@@ -71,7 +84,24 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       _count: {
         select: { artifacts: true, traceLinks: true },
       },
-      artifacts: { select: { status: true, updatedAt: true } },
+      artifacts: { select: { id: true, templateId: true, status: true, updatedAt: true } },
+      evidenceItems: {
+        select: {
+          id: true,
+          status: true,
+          completenessPercent: true,
+          artifactLinks: { select: { artifactId: true } },
+        },
+      },
+      approvals: {
+        where: { status: { in: [...OPEN_APPROVAL_STATUSES] } },
+        orderBy: { createdAt: "asc" },
+        select: {
+          approvalType: true,
+          gateId: true,
+          artifactId: true,
+        },
+      },
       gateDecisions: {
         orderBy: { createdAt: "desc" },
         take: 40,
@@ -87,9 +117,13 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     },
   });
 
-  const dbProjects: ProjectListItem[] = rows.map((project) => {
+  const enrichedRows: ProjectListFilterRow[] = rows.map((project) => {
     const phase = project.currentPhase;
     const status = resolveProjectListStatus(phase, project._count.artifacts, project.applicabilityJson);
+    const missingEvidenceCount = project.evidenceItems.filter(
+      (item) => item.completenessPercent < 100 || item.artifactLinks.length === 0,
+    ).length;
+    const lastGate = project.gateDecisions[0]?.createdAt.getTime() ?? 0;
     return {
       id: project.id,
       name: project.name,
@@ -105,10 +139,20 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       updatedLabel: timeAgoHours(
         Math.max(1, Math.round((Date.now() - project.updatedAt.getTime()) / 3600000)),
       ),
+      missingEvidenceCount,
+      updatedAtMs: project.updatedAt.getTime(),
+      createdAtMs: project.createdAt.getTime(),
+      openApprovalsCount: project.approvals.length,
+      lastGateDecisionAtMs: lastGate,
     };
   });
 
-  const projects = dbProjects;
+  const filteredRows = enrichedRows.filter((row) => rowMatchesListQuery(row, listQuery));
+  const sortedRows = sortProjectListRows(filteredRows, listQuery.sort);
+  const projects = sortedRows.map(stripProjectListFilterRow);
+
+  const repositoryHasProjects = rows.length > 0;
+  const hasVisibleProjects = projects.length > 0;
   const perPage = 6;
   const totalPages = projects.length === 0 ? 1 : Math.max(1, Math.ceil(projects.length / perPage));
   const parsedPage = Number.parseInt(page ?? "", 10);
@@ -127,7 +171,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const pageProjects = projects.slice(pageStart, pageStart + perPage);
 
   const selectedProjectId =
-    projects.length === 0
+    !hasVisibleProjects
       ? ""
       : selected && projects.some((project) => project.id === selected)
         ? selected
@@ -136,7 +180,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const selectedTab = parseDetailTab(tab);
   const selectedDbProject = rows.find((row) => row.id === selectedProjectId);
   const selectedProjectRow =
-    projects.length === 0
+    !hasVisibleProjects
       ? null
       : (projects.find((project) => project.id === selectedProjectId) ?? projects[0]!);
 
@@ -152,6 +196,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     const auditTrailEntries = await getProjectAuditScreenEntries(selectedDbProject.id);
     const artifactTotal = selectedDbProject._count.artifacts;
     const artifactComplete = selectedDbProject.artifacts.filter((artifact) => artifact.status !== "Draft").length;
+    const evidenceTotal = selectedDbProject.evidenceItems.length;
     const traceTotal = selectedDbProject._count.traceLinks;
     const recentGate = selectedDbProject.gateDecisions.slice(0, 3);
     const workspaceHref = `/projects/${selectedDbProject.id}/workspace`;
@@ -168,6 +213,25 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       selectedDbProject.currentPhase,
       latestByGateForNav,
     ).toLowerCase();
+    const blockers = buildProjectBlockers({
+      projectId: selectedDbProject.id,
+      currentPhase: selectedDbProject.currentPhase,
+      traceLinksCount: traceTotal,
+      latestByGate: latestByGateForNav,
+      artifacts: selectedDbProject.artifacts.map((artifact) => ({
+        id: artifact.id,
+        templateId: artifact.templateId,
+        status: artifact.status,
+      })),
+      evidenceItems: selectedDbProject.evidenceItems,
+      openApprovals: selectedDbProject.approvals,
+    });
+
+    const mergedRecentActivity = buildSelectedProjectRecentActivity(
+      selectedDbProject.id,
+      recentGate,
+      auditTrailEntries,
+    );
 
     selectedProject = {
       ...selectedProject,
@@ -179,22 +243,26 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
         code: selectedProjectRow.code,
         currentPhase: selectedDbProject.currentPhase,
         updatedLabel: selectedProjectRow.updatedLabel,
+        businessArea: pm.businessArea ?? selectedProject.header.businessArea,
       },
       metrics: [
         { id: "artifacts", label: "Artifacts", value: String(artifactTotal), note: `${artifactComplete} complete`, tone: "blue" },
         { id: "gates", label: "Gates", value: String(recentGate.length), note: "recent decisions", tone: "green" },
-        { id: "evidence", label: "Evidence", value: String(Math.max(artifactTotal, 1)), note: `${artifactComplete} complete`, tone: "amber" },
+        { id: "evidence", label: "Evidence", value: String(evidenceTotal), note: `${evidenceTotal} linked`, tone: "amber" },
         { id: "trace", label: "Trace Links", value: String(traceTotal), note: "coverage links", tone: "purple" },
       ],
       recentActivity:
-        recentGate.length > 0
-          ? recentGate.map((item, index) => ({
-              id: `decision-${index}`,
-              title: `${item.gateId} decision recorded — ${item.decision}`,
-              meta: `${item.authorityName ?? "Reviewer"} · ${item.authorityRole ?? "Authority"}`,
-              timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
-            }))
-          : selectedProject.recentActivity,
+        mergedRecentActivity.length > 0
+          ? mergedRecentActivity
+          : recentGate.length > 0
+            ? recentGate.map((item, index) => ({
+                id: `decision-${index}`,
+                title: `${item.gateId} decision recorded — ${item.decision}`,
+                meta: `${item.authorityName ?? "Reviewer"} · ${item.authorityRole ?? "Authority"}`,
+                timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
+                href: `/projects/${selectedDbProject.id}/gates/${item.gateId.toLowerCase()}/review`,
+              }))
+            : selectedProject.recentActivity,
       gateStatuses:
         recentGate.length > 0
           ? recentGate.map((item) => ({
@@ -209,22 +277,41 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
               timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
             }))
           : selectedProject.gateStatuses,
+      blockers,
       snapshot: [
         { key: "Project Code", value: selectedProjectRow.code },
         { key: "Type", value: "Platform" },
-        { key: "Business Area", value: "Security" },
+        { key: "Business Area", value: pm.businessArea ?? "—" },
         { key: "Owner", value: selectedProject.header.owner },
         { key: "Lifecycle model", value: pm.lifecycleModel ?? "—" },
         { key: "Phase", value: `Phase ${selectedDbProject.currentPhase} of 14` },
         { key: "Scope", value: scopePreview },
         { key: "Vault", value: selectedDbProject.vaultFolder },
+        {
+          key: "Missing evidence",
+          value: selectedProjectRow.missingEvidenceCount > 0 ? String(selectedProjectRow.missingEvidenceCount) : "None",
+        },
       ],
       quickActions: [
-        { id: "qa-profile", label: "Edit Project Profile", href: `/projects?selected=${selectedDbProject.id}&tab=profile` },
+        {
+          id: "qa-profile",
+          label: "Edit Project Profile",
+          href: projectsListHref({
+            selectedProjectId: selectedDbProject.id,
+            selectedTab: "profile",
+            currentPage,
+            listFilters: listQuery,
+          }),
+        },
         {
           id: "qa-lifecycle",
           label: "View Lifecycle Timeline",
-          href: `/projects?selected=${selectedDbProject.id}&tab=lifecycle-timeline`,
+          href: projectsListHref({
+            selectedProjectId: selectedDbProject.id,
+            selectedTab: "lifecycle-timeline",
+            currentPage,
+            listFilters: listQuery,
+          }),
         },
         {
           id: "qa-gate",
@@ -232,16 +319,17 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
           href: `/projects/${selectedDbProject.id}/gates/${gateReviewSlug}/review`,
         },
         { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${selectedDbProject.id}/artifacts` },
+        { id: "qa-evidence", label: "View Evidence", href: `/projects/${selectedDbProject.id}/evidence` },
         {
           id: "qa-trace",
           label: "View Traceability Matrix",
           href: `/projects/${selectedDbProject.id}/traceability`,
         },
-        { id: "qa-audit", label: "View Audit Trail", href: `/projects?selected=${selectedDbProject.id}&tab=audit-trail` },
+        { id: "qa-audit", label: "View Audit Trail", href: projectAuditTrailListHref(selectedDbProject.id) },
         {
           id: "qa-export",
           label: "Export Project Package",
-          href: `/projects/${selectedDbProject.id}/reports/evidence-package`,
+          href: `/projects/${selectedDbProject.id}/reports/evidence-package/configure`,
         },
       ],
       nextRequiredAction: {
@@ -260,21 +348,6 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     selectedProject,
   };
 
-  const hasProjects = projects.length > 0;
-  const newProjectOpenHref = projectsListHref({
-    selectedProjectId: hasProjects ? selectedProjectId : undefined,
-    selectedTab,
-    currentPage,
-    newProject: true,
-    intent: newProjectIntent,
-  });
-  const newProjectCancelHref = projectsCloseNewModalHref({
-    hasProjects,
-    selectedProjectId,
-    selectedTab,
-    currentPage,
-  });
-
   return (
     <ProjectsScreenPage
       data={screenData}
@@ -282,11 +355,9 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       selectedTab={selectedTab}
       currentPage={currentPage}
       totalPages={totalPages}
-      hasProjects={hasProjects}
-      newProjectModalOpen={newProjectModalOpen}
-      newProjectIntent={newProjectIntent}
-      newProjectOpenHref={newProjectOpenHref}
-      newProjectCancelHref={newProjectCancelHref}
+      repositoryHasProjects={repositoryHasProjects}
+      hasVisibleProjects={hasVisibleProjects}
+      listFilters={listQuery}
     />
   );
 }

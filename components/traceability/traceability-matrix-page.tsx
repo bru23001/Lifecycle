@@ -22,7 +22,6 @@ export function TraceabilityMatrixPage({ initial }: { initial: TraceabilityMatri
         userInitials={initial.user.initials}
         userName={initial.user.name}
         userRole={initial.user.role}
-        notificationCount={6}
         actionButtonLabel="Export Matrix"
         actionButtonAriaLabel="Export traceability matrix"
         onActionButtonClick={() => exportTraceabilityMatrix(initial, "csv")}

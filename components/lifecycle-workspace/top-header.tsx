@@ -1,10 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Bell, CircleHelp, Download, Search } from "lucide-react";
+import Link from "next/link";
+import { Bell, CircleHelp, Download, Settings } from "lucide-react";
+
+import { NOTIFICATIONS_HUB_HREF } from "@/lib/notifications-hub";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { GlobalSearchField } from "@/components/lifecycle-workspace/global-search-field";
 import { useAppShellLayout } from "@/components/lifecycle-workspace/app-shell-layout-context";
 import { WorkspaceThemeToggle } from "@/components/lifecycle-workspace/workspace-theme-toggle";
 import { cn } from "@/lib/utils";
@@ -36,36 +40,31 @@ function PageTitle({ children }: { children: ReactNode }) {
   return <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">{children}</h1>;
 }
 
-function GlobalSearch() {
-  return (
-    <div className="relative hidden w-[330px] shrink-0 lg:block">
-      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <input
-        type="search"
-        placeholder="Search projects, artifacts, gates, approvals, evidence..."
-        className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none ring-offset-background transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Search projects, artifacts, gates, approvals, evidence"
-      />
-    </div>
-  );
-}
-
-function Notifications({ count = 1 }: { count?: number }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      className="relative text-muted-foreground"
-      aria-label={`Notifications${count > 0 ? ` (${count} unread)` : ""}`}
-    >
+function Notifications({ count = 0, href }: { count?: number; href?: string | null }) {
+  const resolvedHref = href ?? NOTIFICATIONS_HUB_HREF;
+  const content = (
+    <>
       {count > 0 ? (
         <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-[#2563eb] text-[10px] font-semibold text-white">
           {count > 9 ? "9+" : count}
         </span>
       ) : null}
       <Bell className="size-[18px]" strokeWidth={2} />
-    </Button>
+    </>
+  );
+  const ariaOpen =
+    count > 0
+      ? `Notifications: ${count} open approval${count === 1 ? "" : "s"}. Open notification center.`
+      : "Open notification center.";
+  return (
+    <Link
+      href={resolvedHref}
+      className="relative inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none ring-offset-background transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      aria-label={ariaOpen}
+      data-testid="header-notification-bell"
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -146,6 +145,8 @@ function GlobalActions({
   userName,
   userRole,
   notificationCount,
+  notificationHref,
+  settingsHref,
   actionButtonLabel,
   actionButtonAriaLabel,
   onActionButtonClick,
@@ -154,13 +155,17 @@ function GlobalActions({
   userName?: string;
   userRole?: string;
   notificationCount?: number;
+  /** When set, notification bell navigates to first pending approval (spec §12). */
+  notificationHref?: string | null;
+  /** When set, shows Settings link (dashboard / platform configuration). */
+  settingsHref?: string | null;
   actionButtonLabel?: string;
   actionButtonAriaLabel?: string;
   onActionButtonClick?: () => void;
 }) {
   return (
     <div className="flex items-center gap-1 sm:gap-2" role="toolbar" aria-label="Global actions">
-      <GlobalSearch />
+      <GlobalSearchField />
       {onActionButtonClick && actionButtonLabel ? (
         <HeaderActionButton
           onClick={onActionButtonClick}
@@ -169,7 +174,17 @@ function GlobalActions({
         />
       ) : null}
       <WorkspaceThemeToggle />
-      <Notifications count={notificationCount} />
+      <Notifications count={notificationCount} href={notificationHref} />
+      {settingsHref ? (
+        <Link
+          href={settingsHref}
+          className="relative inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none ring-offset-background transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="Open settings"
+          data-testid="header-settings-shortcut"
+        >
+          <Settings className="size-[18px]" strokeWidth={2} aria-hidden />
+        </Link>
+      ) : null}
       <Help />
       <UserMenu initials={userInitials} name={userName} role={userRole} />
     </div>
@@ -185,6 +200,13 @@ export type TopHeaderProps = {
   /** Shown between title and global actions (e.g. Template Wizard autosave). */
   autosaveLabel?: string | null;
   notificationCount?: number;
+  /**
+   * Bell destination; when omitted, defaults to `/notifications` (dashboard spec §24).
+   * Pass an explicit URL when a screen should deep-link elsewhere.
+   */
+  notificationHref?: string | null;
+  /** When set, header shows a Settings icon linking to platform configuration (dashboard spec §23). */
+  settingsHref?: string | null;
   /** Optional header action button (e.g., Export Matrix, Download Review Package). */
   actionButtonLabel?: string;
   actionButtonAriaLabel?: string;
@@ -199,7 +221,9 @@ export function TopHeader({
   userName,
   userRole,
   autosaveLabel,
-  notificationCount = 1,
+  notificationCount = 0,
+  notificationHref,
+  settingsHref,
   actionButtonLabel,
   actionButtonAriaLabel,
   onActionButtonClick,
@@ -226,6 +250,8 @@ export function TopHeader({
           userName={userName}
           userRole={userRole}
           notificationCount={notificationCount}
+          notificationHref={notificationHref}
+          settingsHref={settingsHref}
           actionButtonLabel={resolvedActionLabel}
           actionButtonAriaLabel={resolvedActionAriaLabel}
           onActionButtonClick={resolvedActionHandler}

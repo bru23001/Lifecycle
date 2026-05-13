@@ -81,25 +81,51 @@ export function LifecycleProgressOverview({
 }: {
   lifecycleProgress: DashboardLifecycleProgressItem[];
 }) {
+  const lead = lifecycleProgress[0];
+  const leadWorkspaceHref =
+    lead?.projectId != null && lead.currentPhase != null
+      ? `/projects/${lead.projectId}/workspace?phase=${lead.currentPhase}`
+      : null;
+  const leadTimelineHref =
+    lead?.projectId != null ? `/projects?selected=${lead.projectId}&tab=lifecycle-timeline` : null;
+
   return (
     <article className="h-full rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
-      <header className="mb-10 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">
-          Lifecycle Progress Overview
-        </h2>
-        <Link
-          href="/projects"
-          className="text-base font-semibold text-blue-600 hover:text-blue-700"
-        >
-          View all projects
-        </Link>
+      <header className="mb-10 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          {leadWorkspaceHref ? (
+            <Link href={leadWorkspaceHref} className="block hover:opacity-90">
+              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">
+                Lifecycle Progress Overview
+              </h2>
+            </Link>
+          ) : (
+            <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">
+              Lifecycle Progress Overview
+            </h2>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
+          {leadTimelineHref ? (
+            <Link href={leadTimelineHref} className="text-base font-semibold text-blue-600 hover:text-blue-700">
+              View full timeline
+            </Link>
+          ) : null}
+          <Link href="/projects" className="text-base font-semibold text-blue-600 hover:text-blue-700">
+            View all projects
+          </Link>
+        </div>
       </header>
 
       <div className="space-y-9">
         {lifecycleProgress.map((project) => (
           <Link
-            key={project.projectName}
-            href={project.projectId ? `/projects/${project.projectId}/workspace` : "/projects"}
+            key={project.projectId ?? project.projectName}
+            href={
+              project.projectId != null && project.currentPhase != null
+                ? `/projects/${project.projectId}/workspace?phase=${project.currentPhase}`
+                : "/projects"
+            }
             className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_56px] lg:items-center"
           >
             <p className="truncate text-base font-medium text-slate-700 dark:text-slate-200">

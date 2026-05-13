@@ -8,6 +8,7 @@ import {
   summarizeFeatureTraceParts,
 } from "@/lib/registerTraceLabels";
 import { prisma } from "@/lib/prisma";
+import { projectTemplateWizardHref } from "@/lib/projects-url";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,7 @@ export default async function FeaturesPage({
             <h1 className="text-2xl font-semibold tracking-tight">Features</h1>
           </div>
           <Link
-            href={`/projects/${id}/form/A-9`}
+            href={projectTemplateWizardHref(id, "A-9")}
             className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
           >
             Edit features (A-9)

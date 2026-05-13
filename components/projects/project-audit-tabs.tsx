@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, ClipboardList, History } from "lucide-react";
 
 import type { SelectedProject } from "@/types/projects.types";
+import { cn } from "@/lib/utils";
 
 function formatWhen(iso: string): string {
   const d = new Date(iso);
@@ -40,38 +41,57 @@ export function ProjectAuditTrailTab({ selectedProject }: { selectedProject: Sel
         <p className="cc-card-text mt-6">No audit events recorded for this project yet.</p>
       ) : (
         <ul className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          {entries.map((row) => (
-            <li
-              key={row.id}
-              className="rounded-lg border border-border bg-background/80 px-3 py-2.5 shadow-sm"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-[11px] font-semibold leading-snug text-foreground">{row.title}</p>
-                <time className="cc-card-meta shrink-0 tabular-nums" dateTime={row.createdAt}>
-                  {formatWhen(row.createdAt)}
-                </time>
-              </div>
-              <p className="cc-card-meta mt-1 leading-relaxed">{row.detail}</p>
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 cc-card-meta">
-                <span>
-                  <span className="text-muted-foreground">Action</span>{" "}
-                  <span className="font-mono text-[10px]">{row.action}</span>
-                </span>
-                <span>
-                  <span className="text-muted-foreground">Subject</span>{" "}
-                  <span className="font-mono text-[10px]">
-                    {row.subjectKind}:{row.subjectId.slice(0, 12)}
-                    {row.subjectId.length > 12 ? "…" : ""}
-                  </span>
-                </span>
-                {row.actorLabel ? (
+          {entries.map((row) => {
+            const cardBody = (
+              <>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-[11px] font-semibold leading-snug text-foreground">{row.title}</p>
+                  <time className="cc-card-meta shrink-0 tabular-nums" dateTime={row.createdAt}>
+                    {formatWhen(row.createdAt)}
+                  </time>
+                </div>
+                <p className="cc-card-meta mt-1 leading-relaxed">{row.detail}</p>
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 cc-card-meta">
                   <span>
-                    <span className="text-muted-foreground">Actor</span> {row.actorLabel}
+                    <span className="text-muted-foreground">Action</span>{" "}
+                    <span className="font-mono text-[10px]">{row.action}</span>
                   </span>
-                ) : null}
-              </div>
-            </li>
-          ))}
+                  <span>
+                    <span className="text-muted-foreground">Subject</span>{" "}
+                    <span className="font-mono text-[10px]">
+                      {row.subjectKind}:{row.subjectId.slice(0, 12)}
+                      {row.subjectId.length > 12 ? "…" : ""}
+                    </span>
+                  </span>
+                  {row.actorLabel ? (
+                    <span>
+                      <span className="text-muted-foreground">Actor</span> {row.actorLabel}
+                    </span>
+                  ) : null}
+                </div>
+              </>
+            );
+            return (
+              <li
+                key={row.id}
+                className={cn(
+                  "rounded-lg border border-border bg-background/80 shadow-sm",
+                  row.href && "transition hover:border-blue-200 hover:bg-muted/40 dark:hover:border-blue-900/50",
+                )}
+              >
+                {row.href ? (
+                  <Link
+                    href={row.href}
+                    className="block px-3 py-2.5 text-left no-underline outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                  >
+                    {cardBody}
+                  </Link>
+                ) : (
+                  <div className="px-3 py-2.5">{cardBody}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -111,22 +131,38 @@ export function ProjectLifecycleTimelineTab({ selectedProject }: { selectedProje
         </p>
       ) : (
         <ol className="relative mt-6 min-h-0 flex-1 space-y-0 overflow-y-auto pl-6 pr-1 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-border">
-          {timeline.map((row) => (
-            <li key={row.id} className="relative pb-6 last:pb-0">
-              <span
-                className="absolute -left-6 top-1 flex size-3.5 items-center justify-center rounded-full border-2 border-background bg-blue-600 dark:bg-blue-500"
-                aria-hidden
-              />
-              <p className="text-[11px] font-semibold text-foreground">{row.title}</p>
-              <time className="cc-card-meta tabular-nums" dateTime={row.createdAt}>
-                {formatWhen(row.createdAt)}
-              </time>
-              <p className="cc-card-meta mt-1 leading-relaxed">{row.detail}</p>
-              {row.actorLabel ? (
-                <p className="cc-card-meta mt-0.5">Actor: {row.actorLabel}</p>
-              ) : null}
-            </li>
-          ))}
+          {timeline.map((row) => {
+            const body = (
+              <>
+                <p className="text-[11px] font-semibold text-foreground">{row.title}</p>
+                <time className="cc-card-meta tabular-nums" dateTime={row.createdAt}>
+                  {formatWhen(row.createdAt)}
+                </time>
+                <p className="cc-card-meta mt-1 leading-relaxed">{row.detail}</p>
+                {row.actorLabel ? (
+                  <p className="cc-card-meta mt-0.5">Actor: {row.actorLabel}</p>
+                ) : null}
+              </>
+            );
+            return (
+              <li key={row.id} className="relative pb-6 last:pb-0">
+                <span
+                  className="absolute -left-6 top-1 flex size-3.5 items-center justify-center rounded-full border-2 border-background bg-blue-600 dark:bg-blue-500"
+                  aria-hidden
+                />
+                {row.href ? (
+                  <Link
+                    href={row.href}
+                    className="block rounded-md pr-1 no-underline outline-none transition hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  body
+                )}
+              </li>
+            );
+          })}
         </ol>
       )}
 

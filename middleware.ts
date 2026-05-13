@@ -66,23 +66,6 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  const projectRoot = pathname.match(/^\/projects\/([^/]+)$/);
-  if (projectRoot) {
-    const projectId = projectRoot[1];
-    if (projectId !== "new") {
-      const url = request.nextUrl.clone();
-      url.pathname = `/projects/${projectId}/workspace`;
-      const res = NextResponse.redirect(url, 301);
-      res.headers.set("X-Request-ID", rid);
-      incrementRequestCount({
-        method: request.method,
-        pathname,
-        statusCode: 301,
-      });
-      return res;
-    }
-  }
-
   const res = NextResponse.next();
   res.headers.set("X-Request-ID", rid);
   incrementRequestCount({

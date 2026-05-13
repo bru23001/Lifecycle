@@ -178,6 +178,8 @@ export type ArtifactLibraryData = {
     id: string;
     code: string;
     name: string;
+    /** Workspace milestone (1–14) for shell progress copy. */
+    currentPhase: number;
   };
   artifactListItems: ArtifactListItem[];
   selectedArtifact: {

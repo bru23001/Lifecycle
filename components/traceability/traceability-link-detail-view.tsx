@@ -40,7 +40,6 @@ export function TraceabilityLinkDetailView({
         userInitials={userInitials}
         userName={userName}
         userRole={userRole}
-        notificationCount={6}
       />
       <main className="flex min-h-0 flex-1 flex-col bg-[var(--app-bg)] px-5 pb-10 pt-4 min-[901px]:px-8">
         <div className="mx-auto w-full max-w-[880px]">

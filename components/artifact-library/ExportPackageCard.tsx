@@ -1,86 +1,101 @@
 "use client";
 
-import { Download, Package } from "lucide-react";
+import { Download } from "lucide-react";
 
-import { downloadTextFile } from "@/lib/artifact-export";
-import type { ArtifactExportPackage, ArtifactLibraryData } from "@/types/artifact-library.types";
+import type { ArtifactExportPackage, ArtifactJsonEvidence } from "@/types/artifact-library.types";
+import { cn } from "@/lib/utils";
 
-import { OutlineActionButton, SidebarCard } from "./sidebar-primitives";
+function downloadText(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function ExportPackageCard({
   exportPackage,
   markdown,
-  json,
+  jsonEvidence,
 }: {
   exportPackage: ArtifactExportPackage;
-  markdown: ArtifactLibraryData["selectedArtifact"]["markdownView"];
-  json: ArtifactLibraryData["selectedArtifact"]["jsonEvidence"];
+  markdown: string;
+  jsonEvidence: ArtifactJsonEvidence;
 }) {
+  const json = JSON.stringify(jsonEvidence, null, 2);
   return (
-    <SidebarCard title="Export Package">
-      <p className="mt-6 text-sm leading-relaxed text-slate-600 dark:text-muted-foreground sm:mt-7 sm:text-base sm:leading-7">
-        Export this artifact with linked evidence and metadata.
+    <section className="cc-card-standard p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Export packages</h3>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Download Markdown, structured JSON evidence, or a simple combined package as JSON (ZIP placeholder).
       </p>
-
       {exportPackage.blockers.length > 0 ? (
-        <div
-          role="alert"
-          className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
-        >
-          {exportPackage.blockers.join(" • ")}
-        </div>
+        <ul className="mt-2 space-y-1 text-[11px] text-amber-800">
+          {exportPackage.blockers.map((b, i) => (
+            <li key={i}>• {b}</li>
+          ))}
+        </ul>
       ) : null}
-
-      <div className="mt-6 space-y-4 sm:mt-7 sm:space-y-5">
-        <OutlineActionButton
+      <div className="mt-4 flex flex-col gap-2">
+        <button
+          type="button"
           disabled={!exportPackage.canExportMarkdown}
-          ariaLabel={`Export Markdown ${exportPackage.markdownFilename}`}
-          onClick={() =>
-            downloadTextFile(exportPackage.markdownFilename, markdown.markdown, "text/markdown;charset=utf-8")
-          }
-          icon={<Download className="h-5 w-5 shrink-0 stroke-[2.3]" aria-hidden />}
+          onClick={() => downloadText(exportPackage.markdownFilename, markdown, "text/markdown;charset=utf-8")}
+          className={cn(
+            "inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold",
+            exportPackage.canExportMarkdown
+              ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+              : "cursor-not-allowed bg-muted text-muted-foreground",
+          )}
         >
-          Export as Markdown (.md)
-        </OutlineActionButton>
-
-        <OutlineActionButton
+          <Download className="size-3.5" aria-hidden />
+          Markdown
+        </button>
+        <button
+          type="button"
           disabled={!exportPackage.canExportJsonEvidence}
-          ariaLabel={`Export JSON evidence ${exportPackage.jsonFilename}`}
-          onClick={() =>
-            downloadTextFile(
-              exportPackage.jsonFilename,
-              JSON.stringify(json, null, 2),
-              "application/json;charset=utf-8",
-            )
-          }
-          icon={<Download className="h-5 w-5 shrink-0 stroke-[2.3]" aria-hidden />}
+          onClick={() => downloadText(exportPackage.jsonFilename, json, "application/json;charset=utf-8")}
+          className={cn(
+            "inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold text-foreground hover:bg-muted/60",
+            !exportPackage.canExportJsonEvidence && "cursor-not-allowed opacity-50",
+          )}
         >
-          Export as JSON Evidence (.json)
-        </OutlineActionButton>
-
-        <OutlineActionButton
+          <Download className="size-3.5" aria-hidden />
+          JSON evidence
+        </button>
+        <button
+          type="button"
           disabled={!exportPackage.canExportFullPackage}
-          ariaLabel={`Export full package ${exportPackage.packageFilename}`}
           onClick={() =>
-            downloadTextFile(
-              exportPackage.packageFilename,
+            downloadText(
+              exportPackage.packageFilename.replace(/\.zip$/, ".json"),
               JSON.stringify(
                 {
+                  kind: "lifecycle_export_bundle_v1",
                   artifactId: exportPackage.artifactId,
-                  markdown: markdown.markdown,
-                  jsonEvidence: json,
+                  markdownFilename: exportPackage.markdownFilename,
+                  jsonFilename: exportPackage.jsonFilename,
+                  markdown,
+                  json: jsonEvidence,
                 },
                 null,
                 2,
               ),
-              "application/zip",
+              "application/json;charset=utf-8",
             )
           }
-          icon={<Package className="h-5 w-5 shrink-0 stroke-[2.3]" aria-hidden />}
+          className={cn(
+            "inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-semibold text-foreground hover:bg-muted/60",
+            !exportPackage.canExportFullPackage && "cursor-not-allowed opacity-50",
+          )}
         >
-          Export Full Package (.zip)
-        </OutlineActionButton>
+          <Download className="size-3.5" aria-hidden />
+          Full package (JSON)
+        </button>
       </div>
-    </SidebarCard>
+    </section>
   );
 }
