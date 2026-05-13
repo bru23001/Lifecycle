@@ -4,6 +4,7 @@ import {
   nextOpenGateForPhase,
 } from "@/lib/gateStatus";
 import { prisma } from "@/lib/prisma";
+import { projectAuditTrailListHref } from "@/lib/projects-url";
 import { ALL_GATES } from "@/lib/server/helpers";
 import {
   WORKSPACE_PHASE_MAX,
@@ -12,6 +13,10 @@ import {
 } from "@/lib/workspacePhases";
 import type { DashboardData } from "@/types/dashboard.types";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
+import { resolveContinueNextActionHref } from "@/lib/continue-next-action-href";
+import { OPEN_APPROVAL_STATUSES } from "@/lib/server/approval-writes";
+import { buildDashboardSettingsAlerts } from "@/lib/dashboard-settings-alerts";
+import { decisionLabelFromStatus, resolveRecentDecisionHref } from "@/lib/recent-decision-href";
 
 const DEFAULT_DASHBOARD_TIP: DashboardData["tip"] = {
   message: "Keep your evidence and artifacts up to date to ensure smooth gate reviews.",
@@ -24,15 +29,7 @@ function percentForPhase(phase: number): number {
 }
 
 function decisionLabel(decision: string | undefined): "Approved" | "Changes Requested" | "Pending" {
-  switch (decision) {
-    case "Accepted":
-      return "Approved";
-    case "Returned":
-    case "Rejected":
-      return "Changes Requested";
-    default:
-      return "Pending";
-  }
+  return decisionLabelFromStatus(decision ?? "");
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
@@ -42,7 +39,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     orderBy: { updatedAt: "desc" },
     take: 4,
     include: {
-      _count: { select: { artifacts: true, gateDecisions: true } },
+      _count: { select: { artifacts: true, gateDecisions: true, auditEntries: true } },
       gateDecisions: {
         orderBy: { createdAt: "desc" },
         take: 40,
@@ -58,14 +55,83 @@ export async function getDashboardData(): Promise<DashboardData> {
   const decisionsQuery = prisma.gateDecision.findMany({
     orderBy: { createdAt: "desc" },
     take: 4,
-    include: { project: { select: { name: true } } },
+    include: { project: { select: { id: true, name: true } } },
+  });
+  const decisionsForGateSummaryQuery = prisma.gateDecision.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 80,
+    select: {
+      gateId: true,
+      decision: true,
+      projectId: true,
+      createdAt: true,
+    },
+  });
+  const approvalsForRecentQuery = prisma.approval.findMany({
+    where: {
+      status: { in: ["approved", "changes_requested", "rejected"] },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 8,
+    select: {
+      id: true,
+      projectId: true,
+      gateId: true,
+      status: true,
+      updatedAt: true,
+      project: { select: { name: true } },
+    },
+  });
+  const auditForRecentQuery = prisma.auditEntry.findMany({
+    where: {
+      subjectKind: { in: ["gate_decision", "approval"] },
+      projectId: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+    select: {
+      id: true,
+      projectId: true,
+      action: true,
+      createdAt: true,
+      project: { select: { name: true } },
+    },
+  });
+  const firstGlobalPendingApprovalQuery = prisma.approval.findFirst({
+    where: { status: { in: [...OPEN_APPROVAL_STATUSES] } },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  const openApprovalsCountQuery = prisma.approval.count({
+    where: { status: { in: [...OPEN_APPROVAL_STATUSES] } },
   });
 
   let projects: Awaited<typeof projectsQuery> = [];
   let recentGateDecisions: Awaited<typeof decisionsQuery> = [];
+  let gateSummaryDecisions: Awaited<typeof decisionsForGateSummaryQuery> = [];
+  let recentApprovals: Awaited<typeof approvalsForRecentQuery> = [];
+  let recentAudit: Awaited<typeof auditForRecentQuery> = [];
+  let firstGlobalPendingApproval: { id: string } | null = null;
+  let openApprovalsCount = 0;
 
   try {
-    [projects, recentGateDecisions] = await Promise.all([projectsQuery, decisionsQuery]);
+    [
+      projects,
+      recentGateDecisions,
+      gateSummaryDecisions,
+      recentApprovals,
+      recentAudit,
+      firstGlobalPendingApproval,
+      openApprovalsCount,
+    ] = await Promise.all([
+      projectsQuery,
+      decisionsQuery,
+      decisionsForGateSummaryQuery,
+      approvalsForRecentQuery,
+      auditForRecentQuery,
+      firstGlobalPendingApprovalQuery,
+      openApprovalsCountQuery,
+    ]);
   } catch {
     // Leave empty when DB access fails; UI shows empty states.
   }
@@ -87,6 +153,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       status: "In Progress" as const,
       progressPercent: percentForPhase(project.currentPhase),
       artifactsCount: project._count.artifacts,
+      auditEventCount: project._count.auditEntries,
       latestByGate,
     };
   });
@@ -114,7 +181,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   ).length;
 
   const gateStatuses = ALL_GATES.slice(0, 5).map((gate) => {
-    const latest = recentGateDecisions.find((decision) => decision.gateId === gate);
+    const latest = gateSummaryDecisions.find((decision) => decision.gateId === gate);
+    const leadId = displayProjects[0]?.projectId ?? null;
     if (latest === undefined) {
       return {
         gateId: gate,
@@ -122,6 +190,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         label: "Pending" as const,
         count: 0,
         widthPercent: 0,
+        reviewProjectId: leadId,
       };
     }
     const label = decisionLabel(latest.decision);
@@ -131,23 +200,84 @@ export async function getDashboardData(): Promise<DashboardData> {
       label,
       count: label === "Approved" ? 1 : label === "Changes Requested" ? 1 : 0,
       widthPercent: label === "Approved" ? 100 : label === "Changes Requested" ? 32 : 46,
+      reviewProjectId: latest.projectId,
     };
   });
 
-  const decisionRows =
-    recentGateDecisions.length > 0
-      ? recentGateDecisions.map((decision) => ({
-          id: `${decision.gateId}-${decision.project.name}`,
-          gate: decision.gateId,
-          label: decisionLabel(decision.decision),
-          projectName: decision.project.name,
-        }))
-      : [];
+  const decisionRows = [
+    ...recentGateDecisions.map((decision) => ({
+      id: `gate-${decision.id}`,
+      gate: decision.gateId,
+      label: decisionLabel(decision.decision),
+      projectName: decision.project.name,
+      createdAtMs: decision.createdAt.getTime(),
+      targetType: "gate_review" as const,
+      targetHref: resolveRecentDecisionHref({
+        targetType: "gate_review",
+        projectId: decision.projectId,
+        gateId: decision.gateId,
+      }),
+    })),
+    ...recentApprovals.map((approval) => ({
+      id: `approval-${approval.id}`,
+      gate: approval.gateId ?? "APPROVAL",
+      label: decisionLabelFromStatus(approval.status),
+      projectName: approval.project?.name ?? "Unknown project",
+      createdAtMs: approval.updatedAt.getTime(),
+      targetType: "approval_detail" as const,
+      targetHref: resolveRecentDecisionHref({
+        targetType: "approval_detail",
+        approvalId: approval.id,
+      }),
+    })),
+    ...recentAudit.map((audit) => ({
+      id: `audit-${audit.id}`,
+      gate: "AUDIT",
+      label: decisionLabelFromStatus(audit.action),
+      projectName: audit.project?.name ?? "Unknown project",
+      createdAtMs: audit.createdAt.getTime(),
+      targetType: "audit_detail" as const,
+      targetHref: resolveRecentDecisionHref({
+        targetType: "audit_detail",
+        projectId: audit.projectId,
+        auditEventId: audit.id,
+      }),
+    })),
+  ]
+    .sort((a, b) => b.createdAtMs - a.createdAtMs)
+    .slice(0, 3)
+    .map((row) => ({
+      id: row.id,
+      gate: row.gate,
+      label: row.label,
+      projectName: row.projectName,
+      targetType: row.targetType,
+      targetHref: row.targetHref,
+    }));
 
   const leadProject = displayProjects[0];
   const leadGate = leadProject
     ? nextOpenGateForPhase(leadProject.phase, leadProject.latestByGate)
     : "G1";
+  const gateSummaryProjectId = leadProject?.projectId ?? null;
+  const gateSummaryDefaultReviewHref =
+    leadProject?.projectId != null
+      ? `/projects/${leadProject.projectId}/gates/${leadGate.toLowerCase()}/review`
+      : null;
+  const gateSummaryAllGatesHref =
+    leadProject?.projectId != null
+      ? `/projects/${leadProject.projectId}?tab=gates`
+      : null;
+  const leadProjectAuditTrailHref =
+    leadProject?.projectId != null ? projectAuditTrailListHref(leadProject.projectId) : null;
+  // Keep the alternative link disabled until the project-scoped approval history route exists.
+  const recentDecisionsProjectApprovalHistoryHref = null;
+  const blockersOverviewHref =
+    leadProject?.projectId != null
+      ? missingEvidence > 0
+        ? `/projects/${leadProject.projectId}/evidence`
+        : `/projects/${leadProject.projectId}/traceability`
+      : "/projects";
   const nextActions =
     realProjects.length > 0 && leadProject
       ? [
@@ -192,8 +322,78 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const continueWorkingProject = realProjects[0] ?? null;
 
+  let continueNextHref: string | null = null;
+  if (continueWorkingProject?.projectId) {
+    continueNextHref = `/projects/${continueWorkingProject.projectId}/workspace`;
+    try {
+      const [openApproval, leadDetail] = await Promise.all([
+        prisma.approval.findFirst({
+          where: {
+            projectId: continueWorkingProject.projectId,
+            status: { in: [...OPEN_APPROVAL_STATUSES] },
+          },
+          orderBy: { createdAt: "asc" },
+          select: { id: true },
+        }),
+        prisma.project.findUnique({
+          where: { id: continueWorkingProject.projectId },
+          select: {
+            id: true,
+            currentPhase: true,
+            applicabilityJson: true,
+            artifacts: {
+              select: {
+                id: true,
+                templateId: true,
+                version: true,
+                status: true,
+                updatedAt: true,
+                markdownPath: true,
+              },
+              orderBy: { updatedAt: "desc" },
+            },
+          },
+        }),
+      ]);
+      if (leadDetail) {
+        continueNextHref = resolveContinueNextActionHref({
+          projectId: leadDetail.id,
+          currentPhase: leadDetail.currentPhase,
+          applicabilityJson: leadDetail.applicabilityJson,
+          artifacts: leadDetail.artifacts,
+          latestByGate: continueWorkingProject.latestByGate,
+          firstOpenApprovalId: openApproval?.id ?? null,
+        });
+      }
+    } catch {
+      // keep workspace fallback
+    }
+  }
+
   const inProgressCount = displayProjects.filter((project) => project.status === "In Progress").length;
   const distinctPhases = new Set(displayProjects.map((project) => project.phase)).size;
+
+  let settingsAlerts = buildDashboardSettingsAlerts({
+    lifecycleNonActive: 0,
+    templateAttention: 0,
+    gateNonActive: 0,
+  });
+  try {
+    const [lifecycleNonActive, templateAttention, gateNonActive] = await Promise.all([
+      prisma.lifecyclePhaseConfig.count({ where: { NOT: { status: "active" } } }),
+      prisma.templateRegistryEntry.count({
+        where: { status: { in: ["draft", "deprecated"] } },
+      }),
+      prisma.gateRuleConfig.count({ where: { NOT: { status: "active" } } }),
+    ]);
+    settingsAlerts = buildDashboardSettingsAlerts({
+      lifecycleNonActive,
+      templateAttention,
+      gateNonActive,
+    });
+  } catch {
+    settingsAlerts = [];
+  }
 
   return {
     user: {
@@ -215,7 +415,10 @@ export async function getDashboardData(): Promise<DashboardData> {
         label: "Lifecycle Progress",
         note: hasProjects ? `Across ${displayProjects.length} projects` : "No lifecycle data yet",
         tone: "green",
-        targetHref: "/projects",
+        targetHref:
+          leadProject?.projectId != null
+            ? `/projects/${leadProject.projectId}/workspace?phase=${leadProject.phase}`
+            : "/projects",
         value: hasProjects ? distinctPhases : 0,
       },
       {
@@ -224,7 +427,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         value: pendingGateCount,
         note: hasProjects ? "Awaiting decision" : "No gates in flight",
         tone: "amber",
-        targetHref: "/approvals",
+        targetHref: gateSummaryDefaultReviewHref ?? "/approvals",
       },
       {
         id: "missing-evidence",
@@ -234,13 +437,18 @@ export async function getDashboardData(): Promise<DashboardData> {
           ? `Across ${displayProjects.filter((project) => project.artifactsCount < 2).length} projects`
           : "Nothing to report",
         tone: "red",
-        targetHref: "/projects",
+        targetHref: blockersOverviewHref,
       },
       {
         id: "pending-approvals",
         label: "Pending Approvals",
-        value: pendingApprovals,
-        note: pendingApprovals > 0 ? "Requires your action" : "You are up to date",
+        value: openApprovalsCount > 0 ? openApprovalsCount : pendingApprovals,
+        note:
+          openApprovalsCount > 0
+            ? "Requires your action"
+            : pendingApprovals > 0
+              ? "Gate decisions in flight"
+              : "You are up to date",
         tone: "purple",
         targetHref: "/approvals",
       },
@@ -248,9 +456,17 @@ export async function getDashboardData(): Promise<DashboardData> {
     lifecycleProgress: displayProjects.map((project) => ({
       projectId: project.projectId,
       projectName: project.name,
+      currentPhase: project.phase,
       progressPercent: project.progressPercent,
     })),
     gateStatuses,
+    gateSummaryProjectId,
+    gateSummaryDefaultReviewHref,
+    gateSummaryAllGatesHref,
+    recentDecisionsProjectApprovalHistoryHref,
+    leadProjectAuditTrailHref,
+    firstPendingApprovalId: firstGlobalPendingApproval?.id ?? null,
+    openApprovalsCount,
     nextActions,
     recentDecisions: decisionRows.slice(0, 3),
     projectSnapshots: displayProjects.map((project) => ({
@@ -259,6 +475,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       phase: project.phase,
       gate: project.gate,
       status: project.status,
+      auditEventCount: project.auditEventCount,
     })),
     continueWorking: {
       projectId: continueWorkingProject?.projectId ?? null,
@@ -275,13 +492,24 @@ export async function getDashboardData(): Promise<DashboardData> {
               continueWorkingProject.latestByGate,
             ).toLowerCase()}/review`
           : null,
+      continueNextHref,
     },
-    tip: hasProjects
-      ? DEFAULT_DASHBOARD_TIP
-      : {
-          message: "Start by creating a project. Your dashboard will fill in as artifacts, gates, and decisions accumulate.",
-          ctaLabel: "Create project",
-          ctaHref: "/projects?new=1",
-        },
+    tip:
+      hasProjects && settingsAlerts.length > 0
+        ? {
+            message:
+              "Platform configuration needs attention — review lifecycle phases, template registry, or gate rules before teams rely on them.",
+            ctaLabel: "Open settings",
+            ctaHref: "/settings",
+          }
+        : hasProjects
+          ? DEFAULT_DASHBOARD_TIP
+          : {
+              message:
+                "Start by creating a project. Your dashboard will fill in as artifacts, gates, and decisions accumulate.",
+              ctaLabel: "Create project",
+              ctaHref: "/projects/new",
+            },
+    settingsAlerts,
   };
 }

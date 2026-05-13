@@ -228,6 +228,14 @@ export async function loadEvidenceCenterData(
     evidencePackages[row.id] = buildPackage(row);
   }
 
+  if (
+    selectedEvidenceId != null &&
+    selectedEvidenceId !== "" &&
+    evidencePackages[selectedEvidenceId] === undefined
+  ) {
+    notFound();
+  }
+
   const selectedId =
     selectedEvidenceId && evidencePackages[selectedEvidenceId] ?
       selectedEvidenceId

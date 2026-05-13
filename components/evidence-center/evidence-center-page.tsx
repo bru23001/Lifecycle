@@ -23,9 +23,14 @@ import type { EvidenceFilters, EvidenceTab } from "./evidence-center-shared";
 export function EvidenceCenterPage({
   initial,
   selectedEvidenceId,
+  initialFilters,
+  view = "list",
 }: {
   initial: EvidenceCenterData;
   selectedEvidenceId?: string;
+  initialFilters?: Partial<EvidenceFilters>;
+  /** `detail` — deep-linked evidence item (§18): header, breadcrumbs, and mobile layout emphasize the item. */
+  view?: "list" | "detail";
 }) {
   const router = useRouter();
   const initialSelectedId =
@@ -33,22 +38,27 @@ export function EvidenceCenterPage({
       ? selectedEvidenceId
       : initial.selectedEvidence.detail.id;
   const [filters, setFilters] = useState<EvidenceFilters>({
-    search: "",
-    type: "all",
-    phase: "all",
-    gate: "all",
-    sort: "updated",
+    search: initialFilters?.search ?? "",
+    type: initialFilters?.type ?? "all",
+    phase: initialFilters?.phase ?? "all",
+    gate: initialFilters?.gate ?? "all",
+    sort: initialFilters?.sort ?? "updated",
   });
   const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [selectedTab, setSelectedTab] = useState<EvidenceTab>("overview");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedForExport, setSelectedForExport] = useState<string[]>([initialSelectedId]);
-  const [mobilePane, setMobilePane] = useState<"items" | "detail" | "coverage">("items");
+  const [selectedForExport, setSelectedForExport] = useState<string[]>(
+    initial.evidencePackages[initialSelectedId] ? [initialSelectedId] : [],
+  );
+  const [mobilePane, setMobilePane] = useState<"items" | "detail" | "coverage">(
+    view === "detail" ? "detail" : "items",
+  );
   const [addEvidenceOpen, setAddEvidenceOpen] = useState(false);
 
   const selectedEvidence = initial.evidencePackages[selectedId];
   const activeEvidence = selectedEvidence ?? initial.selectedEvidence;
+  const isDetailView = view === "detail" && activeEvidence.detail.id !== "empty";
 
   const filteredItems = useMemo(() => applyEvidenceFilters(initial.evidenceItems, filters), [initial.evidenceItems, filters]);
 
@@ -98,24 +108,43 @@ export function EvidenceCenterPage({
       navActive="evidence"
     >
       <TopHeader
-        title="Evidence Center"
+        title={isDetailView ? "Evidence Detail" : "Evidence Center"}
         userInitials={initial.user.initials}
         userName={initial.user.name}
         userRole={initial.user.role}
-        notificationCount={6}
         actionButtonLabel="Export Bundle"
         actionButtonAriaLabel="Export evidence bundle"
         onActionButtonClick={() => void runExport("full", selectedForExport)}
       />
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
+      <main
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]"
+        {...(isDetailView ? { "data-route-smoke": "evidence-detail" } : {})}
+      >
         <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-3 pt-4 min-[901px]:px-8">
           <Breadcrumbs
-            items={[
-              { label: "Home", href: "/" },
-              { label: "Evidence Center", href: `/projects/${initial.project.id}/evidence` },
-              { label: `${initial.project.name} (${initial.project.code})` },
-            ]}
+            items={
+              isDetailView
+                ? [
+                    { label: "Projects", href: "/projects" },
+                    {
+                      label: initial.project.name,
+                      href: `/projects/${initial.project.id}/workspace`,
+                    },
+                    { label: "Evidence", href: `/projects/${initial.project.id}/evidence` },
+                    {
+                      label: `${activeEvidence.detail.evidenceCode} · ${activeEvidence.detail.name}`,
+                    },
+                  ]
+                : [
+                    { label: "Projects", href: "/projects" },
+                    {
+                      label: initial.project.name,
+                      href: `/projects/${initial.project.id}/workspace`,
+                    },
+                    { label: "Evidence", href: `/projects/${initial.project.id}/evidence` },
+                  ]
+            }
           />
         </div>
 

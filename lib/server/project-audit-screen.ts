@@ -145,6 +145,31 @@ function mapParts(
   }
 }
 
+function hrefForAuditRow(
+  projectId: string,
+  row: { action: string; subjectKind: string; subjectId: string; metadata: Prisma.JsonValue },
+): string | undefined {
+  const sk = row.subjectKind.toLowerCase();
+
+  if (row.action === "evidence.item_created" && row.subjectId.length > 0) {
+    return `/projects/${projectId}/evidence/${row.subjectId}`;
+  }
+  if (row.action === "evidence.linked_to_artifact" && row.subjectId.length > 0) {
+    return `/projects/${projectId}/evidence/${row.subjectId}`;
+  }
+  if ((sk === "evidence_item" || sk === "evidenceitem") && row.subjectId.length > 0) {
+    return `/projects/${projectId}/evidence/${row.subjectId}`;
+  }
+
+  if (row.action === "artifact.saved" && row.subjectId.length > 0) {
+    return `/projects/${projectId}/artifacts/${row.subjectId}`;
+  }
+  if ((sk === "artifact" || sk.endsWith(":artifact")) && row.subjectId.length > 0) {
+    return `/projects/${projectId}/artifacts/${row.subjectId}`;
+  }
+  return undefined;
+}
+
 export async function getProjectAuditScreenEntries(projectId: string): Promise<ProjectScreenAuditEntry[]> {
   const rows = await prisma.auditEntry.findMany({
     where: { projectId },
@@ -165,6 +190,7 @@ export async function getProjectAuditScreenEntries(projectId: string): Promise<P
       detail,
       actorLabel: actorLabel(row.actor),
       lifecycleRelevant,
+      href: hrefForAuditRow(projectId, row),
     };
   });
 }
