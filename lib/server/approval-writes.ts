@@ -142,6 +142,7 @@ function isArtifactApprovedJson(data: unknown): boolean {
  */
 export async function backfillMissingApprovals() {
   const projects = await prisma.project.findMany({
+    where: { archivedAt: null },
     include: {
       gateDecisions: { orderBy: { createdAt: "desc" } },
       artifacts: { orderBy: { createdAt: "desc" } },

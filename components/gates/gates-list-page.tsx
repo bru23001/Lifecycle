@@ -1,6 +1,10 @@
-import Link from "next/link";
-import { ChevronRight, ShieldCheck } from "lucide-react";
+"use client";
 
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronRight, Eye, ShieldCheck } from "lucide-react";
+
+import { DecisionRecordDrawer } from "@/components/gate-review/decision-record-drawer";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
@@ -22,6 +26,8 @@ function visualBadge(state: GatesListScreenData["rows"][number]["visualState"]):
 }
 
 export function GatesListPage({ data }: { data: GatesListScreenData }) {
+  const [drawerRow, setDrawerRow] = useState<GatesListScreenData["rows"][number] | null>(null);
+
   return (
     <AuthenticatedAppShell
       projectId={data.project.id}
@@ -69,6 +75,7 @@ export function GatesListPage({ data }: { data: GatesListScreenData }) {
           <section className="cc-card-standard divide-y divide-slate-100 overflow-hidden p-0">
             {data.rows.map((row) => {
               const badge = visualBadge(row.visualState);
+              const hasDecision = row.decisionRecord !== null;
               return (
                 <div
                   key={row.gateId}
@@ -105,6 +112,17 @@ export function GatesListPage({ data }: { data: GatesListScreenData }) {
                     >
                       {badge.label}
                     </span>
+                    {hasDecision ? (
+                      <button
+                        type="button"
+                        onClick={() => setDrawerRow(row)}
+                        className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                        aria-label={`View decision record for ${row.gateId}`}
+                      >
+                        <Eye className="size-3.5" aria-hidden />
+                        View Decision Record
+                      </button>
+                    ) : null}
                     <Link
                       href={row.reviewHref}
                       className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-[#1d4ed8] hover:bg-slate-50"
@@ -119,6 +137,13 @@ export function GatesListPage({ data }: { data: GatesListScreenData }) {
           </section>
         </div>
       </main>
+
+      <DecisionRecordDrawer
+        open={drawerRow !== null}
+        record={drawerRow?.decisionRecord ?? null}
+        gateTitle={drawerRow?.title ?? ""}
+        onClose={() => setDrawerRow(null)}
+      />
     </AuthenticatedAppShell>
   );
 }

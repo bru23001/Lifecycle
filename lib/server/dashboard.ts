@@ -36,6 +36,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const userDisplay = await getCurrentUserDisplay();
 
   const projectsQuery = prisma.project.findMany({
+    where: { archivedAt: null },
     orderBy: { updatedAt: "desc" },
     take: 4,
     include: {

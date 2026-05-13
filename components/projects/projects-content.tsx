@@ -24,6 +24,7 @@ import {
 import { PROJECT_DETAIL_TABS } from "@/data/projects.constants";
 import { ProjectListToolbar } from "@/components/projects/project-list-toolbar";
 import { ProjectAuditTrailTab, ProjectLifecycleTimelineTab } from "@/components/projects/project-audit-tabs";
+import { ProjectProfileTab } from "@/components/projects/project-profile-tab";
 import type { ParsedProjectsListQuery } from "@/lib/projects-list-query";
 import { projectsListHref } from "@/lib/projects-url";
 import { resolveProjectBlockersOverviewHref } from "@/lib/project-blockers";
@@ -674,11 +675,15 @@ export function ActiveTabContent({
   selectedTab,
   listFilters,
   currentPage,
+  assignableUsers,
+  selectedProjectProfile,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
   listFilters: ParsedProjectsListQuery;
   currentPage: number;
+  assignableUsers: ProjectsScreenData["assignableUsers"];
+  selectedProjectProfile: ProjectsScreenData["selectedProjectProfile"];
 }) {
   if (selectedTab === "overview") {
     return (
@@ -690,7 +695,13 @@ export function ActiveTabContent({
     );
   }
   if (selectedTab === "profile") {
-    return <GenericDataTab selectedProject={selectedProject} title="Project Profile" description="Project identity, ownership, classification, and governance metadata." />;
+    return (
+      <ProjectProfileTab
+        selectedProject={selectedProject}
+        profile={selectedProjectProfile}
+        assignableUsers={assignableUsers}
+      />
+    );
   }
   if (selectedTab === "lifecycle-timeline") {
     return <ProjectLifecycleTimelineTab selectedProject={selectedProject} />;
@@ -712,11 +723,15 @@ export function ProjectDetailPanel({
   selectedTab,
   listFilters,
   currentPage,
+  assignableUsers,
+  selectedProjectProfile,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
   listFilters: ParsedProjectsListQuery;
   currentPage: number;
+  assignableUsers: ProjectsScreenData["assignableUsers"];
+  selectedProjectProfile: ProjectsScreenData["selectedProjectProfile"];
 }) {
   return (
     <section className="cc-card-standard flex h-full min-h-0 flex-col overflow-hidden bg-[var(--app-bg)] p-6">
@@ -733,6 +748,8 @@ export function ProjectDetailPanel({
           selectedTab={selectedTab}
           listFilters={listFilters}
           currentPage={currentPage}
+          assignableUsers={assignableUsers}
+          selectedProjectProfile={selectedProjectProfile}
         />
       </div>
     </section>
@@ -925,6 +942,8 @@ export function ProjectsContent({
           selectedTab={selectedTab}
           listFilters={listFilters}
           currentPage={currentPage}
+          assignableUsers={data.assignableUsers}
+          selectedProjectProfile={data.selectedProjectProfile}
         />
         <div className="h-full min-h-0">
           <ProjectContextPanel

@@ -136,4 +136,25 @@ export type ProjectsScreenData = {
   };
   projects: ProjectListItem[];
   selectedProject: SelectedProject;
+  /** Users that can own a project (reassignment + profile editor). */
+  assignableUsers: { id: string; name: string; email: string }[];
+  /** Populated when the selected row maps to a live DB project. */
+  selectedProjectProfile: SelectedProjectProfile | null;
+};
+
+/** Editable project profile fields for the Projects screen profile tab. */
+export type SelectedProjectProfile = {
+  projectId: string;
+  name: string;
+  slug: string;
+  displayedCode: string;
+  description: string;
+  sponsor: string;
+  ownerUserId: string | null;
+  ownerName: string;
+  businessArea: string;
+  priority: string;
+  status: ProjectStatus;
+  targetStartDate: string;
+  targetEndDate: string;
 };

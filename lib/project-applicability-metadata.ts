@@ -2,6 +2,30 @@ import type { Prisma } from "@prisma/client";
 
 import type { ProjectStatus } from "@/types/projects.types";
 
+/** Deep-merge `projectMetadata` into `applicabilityJson` for Prisma `Json` updates. */
+export function mergeProjectMetadataPatch(
+  existing: Prisma.JsonValue | null | undefined,
+  patch: Record<string, unknown>,
+): Prisma.InputJsonValue {
+  const root =
+    existing != null && typeof existing === "object" && !Array.isArray(existing)
+      ? { ...(existing as Record<string, unknown>) }
+      : {};
+  const pm =
+    root.projectMetadata != null &&
+    typeof root.projectMetadata === "object" &&
+    !Array.isArray(root.projectMetadata)
+      ? { ...(root.projectMetadata as Record<string, unknown>) }
+      : {};
+  const cleaned = Object.fromEntries(
+    Object.entries(patch).filter(([, v]) => v !== undefined),
+  ) as Record<string, unknown>;
+  return {
+    ...root,
+    projectMetadata: { ...pm, ...cleaned },
+  } as Prisma.InputJsonValue;
+}
+
 const WORKFLOW_STATUSES: readonly ProjectStatus[] = [
   "In Progress",
   "Blocked",
@@ -19,6 +43,12 @@ export type ProjectApplicabilityMetadata = {
   projectType?: string;
   businessArea?: string;
   storageLocationLabel?: string;
+  sponsor?: string;
+  priority?: string;
+  /** ISO date string `YYYY-MM-DD` when set. */
+  targetStartDate?: string;
+  /** ISO date string `YYYY-MM-DD` when set. */
+  targetEndDate?: string;
 };
 
 function isProjectStatus(value: string): value is ProjectStatus {
@@ -59,6 +89,12 @@ export function parseProjectApplicabilityMetadata(
       typeof pm.storageLocationLabel === "string"
         ? pm.storageLocationLabel.trim() || undefined
         : undefined,
+    sponsor: typeof pm.sponsor === "string" ? pm.sponsor.trim() || undefined : undefined,
+    priority: typeof pm.priority === "string" ? pm.priority.trim() || undefined : undefined,
+    targetStartDate:
+      typeof pm.targetStartDate === "string" ? pm.targetStartDate.trim() || undefined : undefined,
+    targetEndDate:
+      typeof pm.targetEndDate === "string" ? pm.targetEndDate.trim() || undefined : undefined,
   };
 }
 

@@ -387,6 +387,7 @@ export default async function LifecycleWorkspacePage({
   });
 
   const gateSubmissionState: GateSubmissionState = {
+    projectId: project.id,
     gateCode: gateBannerId,
     gateName: gateId ? gateHeaderDisplayName(gateId) : "Gate review",
     canSubmit:

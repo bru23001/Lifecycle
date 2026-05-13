@@ -26,7 +26,9 @@ import {
   type ProjectListFilterRow,
 } from "@/lib/projects-list-query";
 import { projectAuditTrailListHref, projectsListHref } from "@/lib/projects-url";
+import { formatProjectCode } from "@/lib/format-project-code";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
+import { buildSelectedProjectProfileFromRow } from "@/lib/server/selected-project-profile";
 import type { ProjectDetailTab, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +38,6 @@ function searchParamFirst(value: string | string[] | undefined): string | undefi
   if (value === undefined) return undefined;
   const v = Array.isArray(value) ? value[0] : value;
   return typeof v === "string" ? v : undefined;
-}
-
-function formatProjectCode(slug: string, vaultFolder: string): string {
-  const tail = vaultFolder.split("-")[1] ?? slug.slice(0, 3);
-  const prefix = slug.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) || "PRJ";
-  return `${prefix}-${tail.padStart(3, "0").slice(-3)}`;
 }
 
 function parseDetailTab(rawTab: string | undefined): ProjectDetailTab {
@@ -75,12 +71,19 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const listQuery = parseProjectsListQuery(sp);
 
   const screenUser = await getCurrentUserDisplay();
+  const assignableUserRows = await prisma.user.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true },
+    take: 250,
+  });
 
   const rows = await prisma.project.findMany({
+    where: { archivedAt: null },
     orderBy: { updatedAt: "desc" },
     take: 50,
     include: {
-      owner: { select: { name: true } },
+      owner: { select: { id: true, name: true } },
       _count: {
         select: { artifacts: true, traceLinks: true },
       },
@@ -342,10 +345,31 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     };
   }
 
+  const selectedProjectProfile =
+    selectedDbProject != null
+      ? buildSelectedProjectProfileFromRow({
+          id: selectedDbProject.id,
+          name: selectedDbProject.name,
+          slug: selectedDbProject.slug,
+          vaultFolder: selectedDbProject.vaultFolder,
+          applicabilityJson: selectedDbProject.applicabilityJson,
+          currentPhase: selectedDbProject.currentPhase,
+          ownerId: selectedDbProject.ownerId,
+          owner: selectedDbProject.owner,
+          _count: { artifacts: selectedDbProject._count.artifacts },
+        })
+      : null;
+
   const screenData: ProjectsScreenData = {
     user: screenUser,
     projects,
     selectedProject,
+    assignableUsers: assignableUserRows.map((u) => ({
+      id: u.id,
+      name: u.name?.trim() || u.email,
+      email: u.email,
+    })),
+    selectedProjectProfile,
   };
 
   return (

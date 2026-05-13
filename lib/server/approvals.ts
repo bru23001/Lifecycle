@@ -418,7 +418,10 @@ export async function loadApprovalCenterData(
     approvalPackages[row.id] = buildPackage(row, userDisplay);
   }
 
-  const projects = await prisma.project.findMany({ select: { id: true, name: true } });
+  const projects = await prisma.project.findMany({
+    where: { archivedAt: null },
+    select: { id: true, name: true },
+  });
 
   if (pendingApprovals.length === 0) {
     const placeholderId = "approval-none";

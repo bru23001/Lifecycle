@@ -28,3 +28,8 @@ export const NEW_PROJECT_WORKFLOW_STATUSES = [
 ] as const;
 
 export type NewProjectWorkflowStatus = (typeof NEW_PROJECT_WORKFLOW_STATUSES)[number];
+
+/** Priority label stored in `applicabilityJson.projectMetadata.priority`. */
+export const PROJECT_PRIORITY_OPTIONS = ["Critical", "High", "Medium", "Low", "—"] as const;
+
+export type ProjectPriorityOption = (typeof PROJECT_PRIORITY_OPTIONS)[number];

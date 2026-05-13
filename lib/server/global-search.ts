@@ -30,6 +30,7 @@ export async function executeGlobalSearch(rawQuery: string): Promise<GlobalSearc
     const [projects, artifacts, evidence, approvals, gateDecisions] = await Promise.all([
       prisma.project.findMany({
         where: {
+          archivedAt: null,
           OR: [{ name: { contains: q } }, { slug: { contains: q } }, { vaultFolder: { contains: q } }],
         },
         take: 6,

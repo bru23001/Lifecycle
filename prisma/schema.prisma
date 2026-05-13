@@ -50,6 +50,8 @@ model Project {
   namingConformanceNote String?
   /** Initial test setup evidence for G6. */
   initialTestSetupNote    String?
+  /** When set, project is hidden from the active projects list but deep links may still resolve. */
+  archivedAt    DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   artifacts     Artifact[]
