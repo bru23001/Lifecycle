@@ -21,6 +21,8 @@ type ApprovalCenterContentProps = {
   mobilePane: "queue" | "detail" | "review";
   queueTab: ApprovalQueueTab;
   queueRows: PendingApproval[];
+  /** Rows in the active tab before list filters (used for filter drawer project list). */
+  unfilteredTabRows: PendingApproval[];
   selectedApprovalId: string;
   filters: QueueFilters;
   isLoading: boolean;
@@ -49,6 +51,7 @@ export function ApprovalCenterContent({
   mobilePane,
   queueTab,
   queueRows,
+  unfilteredTabRows,
   selectedApprovalId,
   filters,
   isLoading,
@@ -80,6 +83,7 @@ export function ApprovalCenterContent({
           <PendingApprovalsPanel
             queueTab={queueTab}
             queueRows={queueRows}
+            unfilteredTabRows={unfilteredTabRows}
             selectedApprovalId={selectedApprovalId}
             filters={filters}
             isLoading={isLoading}
