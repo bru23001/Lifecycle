@@ -35,17 +35,73 @@ function byPriorityRank(priority: PendingApproval["priority"]) {
   return 1;
 }
 
+function parseYmdStartMs(ymd: string): number | null {
+  const t = ymd.trim();
+  if (!t) return null;
+  const d = new Date(`${t}T00:00:00`);
+  const ms = d.getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function parseYmdEndMs(ymd: string): number | null {
+  const t = ymd.trim();
+  if (!t) return null;
+  const d = new Date(`${t}T23:59:59.999`);
+  const ms = d.getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function byStatusRank(status: PendingApproval["status"]) {
+  if (status === "overdue") return 3;
+  if (status === "blocked") return 2;
+  if (status === "in_review") return 1;
+  return 0;
+}
+
 function sortedQueue(rows: PendingApproval[], sort: QueueFilters["sort"]) {
   const cloned = [...rows];
+  const tieId = (a: PendingApproval, b: PendingApproval) => a.id.localeCompare(b.id);
   switch (sort) {
     case "priority":
-      return cloned.sort((a, b) => byPriorityRank(b.priority) - byPriorityRank(a.priority));
+      return cloned.sort((a, b) => {
+        const d = byPriorityRank(b.priority) - byPriorityRank(a.priority);
+        return d !== 0 ? d : tieId(a, b);
+      });
     case "project":
-      return cloned.sort((a, b) => a.projectName.localeCompare(b.projectName));
+      return cloned.sort((a, b) => {
+        const d = a.projectName.localeCompare(b.projectName);
+        return d !== 0 ? d : tieId(a, b);
+      });
     case "submitted":
-      return cloned.sort((a, b) => b.submittedOnLabel.localeCompare(a.submittedOnLabel));
+      return cloned.sort((a, b) => {
+        const d = b.submittedAtMs - a.submittedAtMs;
+        return d !== 0 ? d : tieId(a, b);
+      });
     case "due":
-      return cloned.sort((a, b) => (a.dueDateLabel ?? "").localeCompare(b.dueDateLabel ?? ""));
+      return cloned.sort((a, b) => {
+        const an = a.dueAtMs;
+        const bn = b.dueAtMs;
+        if (an == null && bn == null) return tieId(a, b);
+        if (an == null) return 1;
+        if (bn == null) return -1;
+        const d = an - bn;
+        return d !== 0 ? d : tieId(a, b);
+      });
+    case "type":
+      return cloned.sort((a, b) => {
+        const d = a.approvalType.localeCompare(b.approvalType);
+        return d !== 0 ? d : tieId(a, b);
+      });
+    case "status":
+      return cloned.sort((a, b) => {
+        const d = byStatusRank(b.status) - byStatusRank(a.status);
+        return d !== 0 ? d : tieId(a, b);
+      });
+    case "updated":
+      return cloned.sort((a, b) => {
+        const d = b.updatedAtMs - a.updatedAtMs;
+        return d !== 0 ? d : tieId(a, b);
+      });
     default: {
       const neverSort: never = sort;
       throw new Error(`Unsupported sort value: ${String(neverSort)}`);
@@ -72,9 +128,20 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
 
   const selectedPackage = packages[selectedApprovalId];
 
+  const unfilteredTabRows = useMemo(() => {
+    if (queueTab === "history") return [];
+    return pendingApprovals.filter((row) => row.queueTab === queueTab);
+  }, [pendingApprovals, queueTab]);
+
   const queueRows = useMemo(() => {
     if (queueTab === "history") return [];
-    const byTab = pendingApprovals.filter((row) => row.queueTab === queueTab);
+    const byTab = unfilteredTabRows;
+    const dueFromMs = parseYmdStartMs(filters.dueFrom);
+    const dueToMs = parseYmdEndMs(filters.dueTo);
+    const hasDueRange = dueFromMs != null || dueToMs != null;
+    const now = Date.now();
+    const submitQ = normalizeForSearch(filters.submitterContains.trim());
+
     const byFilter = byTab.filter((row) => {
       const matchesSearch =
         filters.search.trim().length === 0 ||
@@ -84,10 +151,37 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
       const matchesType = filters.type === "all" || row.approvalType === filters.type;
       const matchesStatus = filters.status === "all" || row.status === filters.status;
       const matchesPriority = filters.priority === "all" || row.priority === filters.priority;
-      return matchesSearch && matchesType && matchesStatus && matchesPriority;
+      const matchesProject = filters.projectId === "all" || row.projectId === filters.projectId;
+      const matchesPhase = filters.phase === "all" || String(row.phaseNumber ?? "") === filters.phase;
+      const matchesGate = filters.gate === "all" || row.gateCode === filters.gate;
+      const matchesSubmitter =
+        submitQ.length === 0 || normalizeForSearch(row.submittedBy).includes(submitQ);
+      const matchesOverdue = !filters.overdueOnly || (row.dueAtMs != null && row.dueAtMs < now);
+      const matchesBlocked = !filters.blockedOnly || row.status === "blocked";
+      let matchesDueWindow = true;
+      if (hasDueRange) {
+        if (row.dueAtMs == null) matchesDueWindow = false;
+        else {
+          if (dueFromMs != null && row.dueAtMs < dueFromMs) matchesDueWindow = false;
+          if (dueToMs != null && row.dueAtMs > dueToMs) matchesDueWindow = false;
+        }
+      }
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesProject &&
+        matchesPhase &&
+        matchesGate &&
+        matchesSubmitter &&
+        matchesOverdue &&
+        matchesBlocked &&
+        matchesDueWindow
+      );
     });
     return sortedQueue(byFilter, filters.sort);
-  }, [filters, pendingApprovals, queueTab]);
+  }, [filters, queueTab, unfilteredTabRows]);
 
   const mergedHistoryEvents = useMemo(() => {
     const out: ApprovalHistoryEvent[] = [];
