@@ -4,17 +4,66 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { evidenceCoverageBadgeMap } from "@/lib/evidence-status";
-import type { EvidenceByGate, EvidenceByPhase, EvidenceItem } from "@/types/evidence-center.types";
+import type { EvidenceByGate, EvidenceByPhase, EvidenceDetail, EvidenceItem } from "@/types/evidence-center.types";
 
 export type EvidenceFilters = {
   search: string;
   type: "all" | EvidenceItem["evidenceType"];
   phase: "all" | string;
   gate: "all" | string;
-  sort: "updated" | "uploaded" | "completeness" | "status" | "name";
+  sort:
+    | "updated"
+    | "uploaded"
+    | "completeness"
+    | "status"
+    | "name"
+    | "evidenceType"
+    | "classification"
+    | "gate"
+    | "phase";
+  status: "all" | EvidenceItem["status"];
+  artifactId: "all" | string;
+  classification: "all" | EvidenceDetail["classification"];
+  /** Case-insensitive substring match on `uploadedBy`. */
+  uploadedByContains: string;
+  /** Inclusive date lower bound (`yyyy-mm-dd`) against `uploadedAtIso`. */
+  uploadedFrom: string;
+  /** Inclusive date upper bound (`yyyy-mm-dd`) against `uploadedAtIso`. */
+  uploadedTo: string;
+  /** Minimum completeness percent (0–100), empty string = no minimum. */
+  completenessMin: string;
+  /** Maximum completeness percent (0–100), empty string = no maximum. */
+  completenessMax: string;
+  /** Linked-state coarse filter (used with `status` when `status` is `all`). */
+  linking: "all" | "linked_or_partial" | "unlinked_only";
 };
 
-export type EvidenceTab = "overview" | "linked_artifacts" | "linked_gates" | "history" | "comments";
+export function defaultEvidenceFilters(): EvidenceFilters {
+  return {
+    search: "",
+    type: "all",
+    phase: "all",
+    gate: "all",
+    sort: "updated",
+    status: "all",
+    artifactId: "all",
+    classification: "all",
+    uploadedByContains: "",
+    uploadedFrom: "",
+    uploadedTo: "",
+    completenessMin: "",
+    completenessMax: "",
+    linking: "all",
+  };
+}
+
+export type EvidenceTab =
+  | "overview"
+  | "linked_artifacts"
+  | "linked_gates"
+  | "linked_phases"
+  | "history"
+  | "comments";
 
 const toneClass: Record<"green" | "amber" | "red" | "blue" | "gray", string> = {
   green: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -31,6 +80,19 @@ function byStatusRank(status: EvidenceItem["status"]) {
   return 0;
 }
 
+const classificationRank: Record<EvidenceDetail["classification"], number> = {
+  public: 0,
+  internal: 1,
+  confidential: 2,
+  restricted: 3,
+};
+
+function gateSortKey(gate?: string): number {
+  if (!gate) return -1;
+  const m = /^G(\d+)/i.exec(gate.trim());
+  return m ? Number.parseInt(m[1], 10) : 0;
+}
+
 function sortedItems(items: EvidenceItem[], sort: EvidenceFilters["sort"]) {
   const cloned = [...items];
   switch (sort) {
@@ -41,9 +103,19 @@ function sortedItems(items: EvidenceItem[], sort: EvidenceFilters["sort"]) {
     case "completeness":
       return cloned.sort((a, b) => b.completenessPercent - a.completenessPercent);
     case "uploaded":
-      return cloned.sort((a, b) => b.uploadedOnLabel.localeCompare(a.uploadedOnLabel));
+      return cloned.sort((a, b) => b.uploadedAtIso.localeCompare(a.uploadedAtIso));
     case "updated":
-      return cloned.sort((a, b) => b.uploadedOnLabel.localeCompare(a.uploadedOnLabel));
+      return cloned.sort((a, b) => b.updatedAtIso.localeCompare(a.updatedAtIso));
+    case "evidenceType":
+      return cloned.sort((a, b) => a.evidenceType.localeCompare(b.evidenceType));
+    case "classification":
+      return cloned.sort(
+        (a, b) => classificationRank[a.classification] - classificationRank[b.classification],
+      );
+    case "gate":
+      return cloned.sort((a, b) => gateSortKey(a.gateCode) - gateSortKey(b.gateCode));
+    case "phase":
+      return cloned.sort((a, b) => (a.phaseNumber ?? 0) - (b.phaseNumber ?? 0));
     default: {
       const neverSort: never = sort;
       throw new Error(`Unsupported sort: ${String(neverSort)}`);
@@ -51,15 +123,67 @@ function sortedItems(items: EvidenceItem[], sort: EvidenceFilters["sort"]) {
   }
 }
 
+function dateOnlyFromIso(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+function parsePct(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const n = Number.parseInt(t, 10);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
+  return n;
+}
+
 export function applyEvidenceFilters(items: EvidenceItem[], filters: EvidenceFilters) {
+  const minC = parsePct(filters.completenessMin);
+  const maxC = parsePct(filters.completenessMax);
+  const byContains = filters.uploadedByContains.trim().toLowerCase();
+
   const filtered = items.filter((row) => {
     const haystack =
-      `${row.evidenceCode} ${row.name} ${row.evidenceType} ${row.phaseName ?? ""} ${row.gateCode ?? ""} ${row.uploadedBy} ${row.status}`.toLowerCase();
+      `${row.evidenceCode} ${row.name} ${row.evidenceType} ${row.phaseName ?? ""} ${row.gateCode ?? ""} ${row.uploadedBy} ${row.status} ${row.classification}`.toLowerCase();
     const matchesSearch = filters.search.trim().length === 0 || haystack.includes(filters.search.toLowerCase().trim());
     const matchesType = filters.type === "all" || row.evidenceType === filters.type;
     const matchesPhase = filters.phase === "all" || String(row.phaseNumber ?? "") === filters.phase;
     const matchesGate = filters.gate === "all" || row.gateCode === filters.gate;
-    return matchesSearch && matchesType && matchesPhase && matchesGate;
+    const matchesStatus = filters.status === "all" || row.status === filters.status;
+    const matchesArtifact =
+      filters.artifactId === "all" || row.linkedArtifactIds.includes(filters.artifactId);
+    const matchesClassification =
+      filters.classification === "all" || row.classification === filters.classification;
+    const matchesUploader =
+      byContains.length === 0 || row.uploadedBy.toLowerCase().includes(byContains);
+
+    const day = dateOnlyFromIso(row.uploadedAtIso);
+    const matchesFrom = !filters.uploadedFrom || day >= filters.uploadedFrom;
+    const matchesTo = !filters.uploadedTo || day <= filters.uploadedTo;
+
+    const matchesCompletenessMin = minC === null || row.completenessPercent >= minC;
+    const matchesCompletenessMax = maxC === null || row.completenessPercent <= maxC;
+
+    let matchesLinking = true;
+    if (filters.linking === "linked_or_partial") {
+      matchesLinking = row.status === "linked" || row.status === "partially_linked";
+    } else if (filters.linking === "unlinked_only") {
+      matchesLinking = row.status === "unlinked";
+    }
+
+    return (
+      matchesSearch &&
+      matchesType &&
+      matchesPhase &&
+      matchesGate &&
+      matchesStatus &&
+      matchesArtifact &&
+      matchesClassification &&
+      matchesUploader &&
+      matchesFrom &&
+      matchesTo &&
+      matchesCompletenessMin &&
+      matchesCompletenessMax &&
+      matchesLinking
+    );
   });
   return sortedItems(filtered, filters.sort);
 }

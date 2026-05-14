@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -8,30 +9,63 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
+  MoreHorizontal,
   Plus,
   Search,
   Star,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { evidenceStatusBadgeMap } from "@/lib/evidence-status";
-import type { EvidenceItem } from "@/types/evidence-center.types";
+import type {
+  EvidenceCenterSelectedEvidence,
+  EvidenceGateLinkOption,
+  EvidenceItem,
+  EvidenceLinkableArtifact,
+  EvidencePhaseLinkOption,
+} from "@/types/evidence-center.types";
 
-import {
-  AddEvidenceModal,
-  type AddEvidenceLinkedArtifactOption,
-} from "./add-evidence-modal";
-import type { EvidenceFilters } from "./evidence-center-shared";
+import { AddEvidenceModal, type AddEvidenceLinkedArtifactOption } from "./add-evidence-modal";
+import { ArchiveEvidenceModal } from "./archive-evidence-modal";
+import { DeleteEvidenceModal } from "./delete-evidence-modal";
+import { EditEvidenceMetadataDrawer } from "./edit-evidence-metadata-drawer";
+import type { EvidenceFilters, EvidenceTab } from "./evidence-center-shared";
+import { EvidenceFiltersDrawer } from "./evidence-filters-drawer";
+import { EvidencePreviewModal } from "./evidence-preview-modal";
+import { LinkEvidenceArtifactModal, type ArtifactPick } from "./link-evidence-artifact-modal";
+import { LinkEvidenceGateModal } from "./link-evidence-gate-modal";
+import { LinkEvidencePhaseModal } from "./link-evidence-phase-modal";
 
 const pagination = { page: 1, totalPages: 12 };
 
 const SORT_LABELS: Record<EvidenceFilters["sort"], string> = {
-  updated: "Last Updated",
-  uploaded: "Uploaded Date",
+  updated: "Last updated",
+  uploaded: "Upload date",
   completeness: "Completeness",
-  status: "Status",
-  name: "Name",
+  status: "Evidence status",
+  name: "Evidence name",
+  evidenceType: "Evidence type",
+  classification: "Classification",
+  gate: "Gate",
+  phase: "Phase",
 };
+
+const PHASE_QUICK_OPTIONS = [
+  { value: "all", label: "All Phase" },
+  ...Array.from({ length: 14 }, (_, i) => {
+    const n = i + 1;
+    return { value: String(n), label: `Phase ${n}` };
+  }),
+];
+
+const GATE_QUICK_OPTIONS = [
+  { value: "all", label: "All Gates" },
+  ...["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"].map((g) => ({ value: g, label: g })),
+];
+
+type RowModalKind = "preview" | "edit" | "linkArt" | "linkGate" | "linkPhase" | "archive" | "delete";
+type RowModalState = { kind: RowModalKind; evidenceId: string } | null;
 
 function CountBadge({ filteredCount, totalCount }: { filteredCount: number; totalCount: number }) {
   const display = filteredCount === totalCount ? String(totalCount) : `${filteredCount} / ${totalCount}`;
@@ -131,18 +165,239 @@ function EvidenceStatusBadge({ status }: { status: EvidenceItem["status"] }) {
   );
 }
 
+function EvidenceRowActionsMenu({
+  itemName,
+  disabled,
+  onOpen,
+  onPreview,
+  onEditMetadata,
+  onLinkArtifact,
+  onLinkGate,
+  onLinkPhase,
+  onDownload,
+  onReplaceFile,
+  onViewHistory,
+  onArchive,
+  onDelete,
+}: {
+  itemName: string;
+  disabled?: boolean;
+  onOpen: () => void;
+  onPreview: () => void;
+  onEditMetadata: () => void;
+  onLinkArtifact: () => void;
+  onLinkGate: () => void;
+  onLinkPhase: () => void;
+  onDownload: () => void;
+  onReplaceFile: () => void;
+  onViewHistory: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", down);
+    return () => document.removeEventListener("mousedown", down);
+  }, [open]);
+
+  const itemClass =
+    "block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        disabled={disabled}
+        aria-label={`Evidence actions for ${itemName}`}
+        className="h-7 w-7 shrink-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <MoreHorizontal className="size-4" aria-hidden />
+      </Button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onOpen();
+            }}
+          >
+            Open
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onPreview();
+            }}
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onEditMetadata();
+            }}
+          >
+            Edit metadata
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onLinkArtifact();
+            }}
+          >
+            Link to artifact
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onLinkGate();
+            }}
+          >
+            Link to gate
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onLinkPhase();
+            }}
+          >
+            Link to phase
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onDownload();
+            }}
+          >
+            Download
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            disabled
+            title="File replace pipeline is not available yet."
+            onClick={() => {
+              setOpen(false);
+              onReplaceFile();
+            }}
+          >
+            Replace file
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onViewHistory();
+            }}
+          >
+            View history
+          </button>
+          <div className="my-1 border-t border-slate-100" />
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onArchive();
+            }}
+          >
+            Archive
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={`${itemClass} text-red-700 hover:bg-red-50`}
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function EvidenceRow({
   item,
   selected,
   exportSelected,
   onSelect,
   onToggleExport,
+  rowMenuDisabled,
+  onRowOpen,
+  onRowPreview,
+  onRowEditMetadata,
+  onRowLinkArtifact,
+  onRowLinkGate,
+  onRowLinkPhase,
+  onRowDownload,
+  onRowViewHistory,
+  onRowArchive,
+  onRowDelete,
 }: {
   item: EvidenceItem;
   selected: boolean;
   exportSelected: boolean;
   onSelect: () => void;
   onToggleExport: () => void;
+  rowMenuDisabled?: boolean;
+  onRowOpen: () => void;
+  onRowPreview: () => void;
+  onRowEditMetadata: () => void;
+  onRowLinkArtifact: () => void;
+  onRowLinkGate: () => void;
+  onRowLinkPhase: () => void;
+  onRowDownload: () => void;
+  onRowViewHistory: () => void;
+  onRowArchive: () => void;
+  onRowDelete: () => void;
 }) {
   const phaseLabel =
     item.phaseNumber != null && item.phaseName
@@ -193,27 +448,44 @@ function EvidenceRow({
       </div>
 
       <div className="flex flex-col items-end justify-between gap-1">
-        <button
-          type="button"
-          aria-pressed={exportSelected}
-          aria-label={`${exportSelected ? "Remove" : "Add"} ${item.name} from export selection`}
-          className={cn(
-            "rounded p-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-            exportSelected ? "text-amber-400" : "text-slate-400 hover:text-amber-400",
-          )}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleExport();
-          }}
-        >
-          <Star
+        <div className="flex items-start gap-0.5">
+          <button
+            type="button"
+            aria-pressed={exportSelected}
+            aria-label={`${exportSelected ? "Remove" : "Add"} ${item.name} from export selection`}
             className={cn(
-              "h-4 w-4 stroke-[1.75]",
-              exportSelected ? "fill-yellow-400 text-yellow-500" : "fill-none text-slate-400",
+              "rounded p-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+              exportSelected ? "text-amber-400" : "text-slate-400 hover:text-amber-400",
             )}
-            aria-hidden
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleExport();
+            }}
+          >
+            <Star
+              className={cn(
+                "h-4 w-4 stroke-[1.75]",
+                exportSelected ? "fill-yellow-400 text-yellow-500" : "fill-none text-slate-400",
+              )}
+              aria-hidden
+            />
+          </button>
+          <EvidenceRowActionsMenu
+            itemName={item.name}
+            disabled={rowMenuDisabled}
+            onOpen={onRowOpen}
+            onPreview={onRowPreview}
+            onEditMetadata={onRowEditMetadata}
+            onLinkArtifact={onRowLinkArtifact}
+            onLinkGate={onRowLinkGate}
+            onLinkPhase={onRowLinkPhase}
+            onDownload={onRowDownload}
+            onReplaceFile={() => {}}
+            onViewHistory={onRowViewHistory}
+            onArchive={onRowArchive}
+            onDelete={onRowDelete}
           />
-        </button>
+        </div>
 
         <EvidenceStatusBadge status={item.status} />
       </div>
@@ -254,6 +526,7 @@ function PaginationButton({
 
 export function EvidenceItemsPanel({
   evidenceItems,
+  evidencePackages,
   filteredItems,
   filters,
   selectedId,
@@ -267,8 +540,13 @@ export function EvidenceItemsPanel({
   onFiltersChange,
   projectId,
   artifactOptions,
+  linkableArtifacts,
+  gateLinkOptions,
+  phaseLinkOptions,
+  artifacts,
 }: {
   evidenceItems: EvidenceItem[];
+  evidencePackages: Record<string, EvidenceCenterSelectedEvidence>;
   filteredItems: EvidenceItem[];
   filters: EvidenceFilters;
   selectedId: string;
@@ -277,12 +555,24 @@ export function EvidenceItemsPanel({
   addEvidenceOpen: boolean;
   onOpenAddEvidence: () => void;
   onCloseAddEvidence: () => void;
-  onSelectEvidence: (evidenceId: string) => void;
+  onSelectEvidence: (evidenceId: string, opts?: { detailTab?: EvidenceTab }) => void;
   onToggleExportSelection: (evidenceId: string) => void;
   onFiltersChange: (filters: EvidenceFilters) => void;
   projectId: string;
   artifactOptions?: AddEvidenceLinkedArtifactOption[];
+  linkableArtifacts: EvidenceLinkableArtifact[];
+  gateLinkOptions: EvidenceGateLinkOption[];
+  phaseLinkOptions: EvidencePhaseLinkOption[];
+  artifacts: ArtifactPick[];
 }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [rowModal, setRowModal] = useState<RowModalState>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
+  const rowPack = rowModal ? evidencePackages[rowModal.evidenceId] : undefined;
+
+  const artifactFilterOptions = artifacts.map((a) => ({ id: a.id, label: a.label }));
+
   return (
     <section className="flex h-full min-h-0 w-full max-w-[372px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <header className="shrink-0 px-6 py-7">
@@ -311,6 +601,14 @@ export function EvidenceItemsPanel({
         projectId={projectId}
         artifactOptions={artifactOptions}
         onClose={onCloseAddEvidence}
+      />
+
+      <EvidenceFiltersDrawer
+        open={filtersOpen}
+        appliedFilters={filters}
+        artifactOptions={artifactFilterOptions}
+        onClose={() => setFiltersOpen(false)}
+        onApply={onFiltersChange}
       />
 
       <div className="shrink-0 space-y-6 px-6 pb-6">
@@ -347,30 +645,25 @@ export function EvidenceItemsPanel({
             aria-label="Filter evidence by phase"
             value={filters.phase}
             onChange={(phase) => onFiltersChange({ ...filters, phase })}
-            options={[
-              { value: "all", label: "All Phase" },
-              { value: "1", label: "Phase 1" },
-              { value: "2", label: "Phase 2" },
-              { value: "3", label: "Phase 3" },
-              { value: "4", label: "Phase 4" },
-            ]}
+            options={PHASE_QUICK_OPTIONS}
           />
           <FilterSelect
             aria-label="Filter evidence by gate"
             value={filters.gate}
-            onChange={(gate) => onFiltersChange({ ...filters, gate })}
-            options={[
-              { value: "all", label: "All Gates" },
-              { value: "G1", label: "G1" },
-              { value: "G2", label: "G2" },
-              { value: "G3", label: "G3" },
-              { value: "G4", label: "G4" },
-            ]}
+            onChange={(gate) =>
+              onFiltersChange({
+                ...filters,
+                gate: gate === "all" ? "all" : gate.toUpperCase(),
+              })
+            }
+            options={GATE_QUICK_OPTIONS}
           />
 
           <button
             type="button"
             className="flex h-12 items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-base font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen(true)}
           >
             <Filter className="h-5 w-5" aria-hidden />
             More Filters
@@ -400,6 +693,17 @@ export function EvidenceItemsPanel({
         </div>
       </div>
 
+      {mutationError ? (
+        <div className="mx-6 mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+          <div className="flex items-center justify-between gap-2">
+            <p>{mutationError}</p>
+            <button type="button" className="shrink-0 font-medium underline" onClick={() => setMutationError(null)}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="min-h-0 flex-1 overflow-y-auto border-y border-slate-100">
         {isLoading ? (
           <div className="space-y-0 px-3 py-2">
@@ -420,16 +724,58 @@ export function EvidenceItemsPanel({
           </div>
         ) : (
           <div role="listbox" aria-label="Evidence items">
-            {filteredItems.map((row) => (
-              <EvidenceRow
-                key={row.id}
-                item={row}
-                selected={row.id === selectedId}
-                exportSelected={selectedForExport.includes(row.id)}
-                onSelect={() => onSelectEvidence(row.id)}
-                onToggleExport={() => onToggleExportSelection(row.id)}
-              />
-            ))}
+            {filteredItems.map((row) => {
+              const pack = evidencePackages[row.id];
+              const rowDisabled = !pack;
+              return (
+                <EvidenceRow
+                  key={row.id}
+                  item={row}
+                  selected={row.id === selectedId}
+                  exportSelected={selectedForExport.includes(row.id)}
+                  onSelect={() => onSelectEvidence(row.id)}
+                  onToggleExport={() => onToggleExportSelection(row.id)}
+                  rowMenuDisabled={rowDisabled}
+                  onRowOpen={() => onSelectEvidence(row.id)}
+                  onRowPreview={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "preview", evidenceId: row.id });
+                  }}
+                  onRowEditMetadata={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "edit", evidenceId: row.id });
+                  }}
+                  onRowLinkArtifact={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "linkArt", evidenceId: row.id });
+                  }}
+                  onRowLinkGate={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "linkGate", evidenceId: row.id });
+                  }}
+                  onRowLinkPhase={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "linkPhase", evidenceId: row.id });
+                  }}
+                  onRowDownload={() => {
+                    onSelectEvidence(row.id);
+                    const href = pack?.detail.downloadHref;
+                    if (href) window.open(href, "_blank", "noopener,noreferrer");
+                  }}
+                  onRowViewHistory={() => {
+                    onSelectEvidence(row.id, { detailTab: "history" });
+                  }}
+                  onRowArchive={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "archive", evidenceId: row.id });
+                  }}
+                  onRowDelete={() => {
+                    onSelectEvidence(row.id);
+                    setRowModal({ kind: "delete", evidenceId: row.id });
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -451,6 +797,63 @@ export function EvidenceItemsPanel({
           <ChevronRight className="h-4 w-4" aria-hidden />
         </PaginationButton>
       </footer>
+
+      {rowModal && rowPack ? (
+        <>
+          <EvidencePreviewModal
+            open={rowModal.kind === "preview"}
+            selectedEvidence={rowPack}
+            onClose={() => setRowModal(null)}
+          />
+          <EditEvidenceMetadataDrawer
+            open={rowModal.kind === "edit"}
+            projectId={projectId}
+            selectedEvidence={rowPack}
+            onClose={() => setRowModal(null)}
+          />
+          <LinkEvidenceArtifactModal
+            open={rowModal.kind === "linkArt"}
+            evidenceId={rowModal.evidenceId}
+            selectedEvidence={rowPack}
+            linkableArtifacts={linkableArtifacts}
+            linkedArtifactIds={rowPack.linkedArtifacts.map((x) => x.id)}
+            onClose={() => setRowModal(null)}
+          />
+          <LinkEvidenceGateModal
+            open={rowModal.kind === "linkGate"}
+            projectId={projectId}
+            evidenceId={rowModal.evidenceId}
+            selectedEvidence={rowPack}
+            gateLinkOptions={gateLinkOptions}
+            linkedGateIds={rowPack.linkedGates.map((x) => x.id)}
+            onClose={() => setRowModal(null)}
+          />
+          <LinkEvidencePhaseModal
+            open={rowModal.kind === "linkPhase"}
+            projectId={projectId}
+            evidenceId={rowModal.evidenceId}
+            evidenceSummary={`${rowPack.detail.evidenceCode} · ${rowPack.detail.name}`}
+            phaseLinkOptions={phaseLinkOptions}
+            linkedPhaseIds={rowPack.linkedPhases.map((p) => p.id)}
+            artifacts={artifacts}
+            onClose={() => setRowModal(null)}
+          />
+          <ArchiveEvidenceModal
+            open={rowModal.kind === "archive"}
+            projectId={projectId}
+            selectedEvidence={rowPack}
+            onClose={() => setRowModal(null)}
+            onError={(msg) => setMutationError(msg)}
+          />
+          <DeleteEvidenceModal
+            open={rowModal.kind === "delete"}
+            projectId={projectId}
+            selectedEvidence={rowPack}
+            onClose={() => setRowModal(null)}
+            onError={(msg) => setMutationError(msg)}
+          />
+        </>
+      ) : null}
     </section>
   );
 }

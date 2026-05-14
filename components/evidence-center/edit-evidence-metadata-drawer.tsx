@@ -13,8 +13,11 @@ import {
   type EvidenceClassification,
   type EvidenceFormType,
 } from "@/lib/add-evidence-form";
+import { evidenceClassificationBadgeMap } from "@/lib/evidence-status";
 import { cn } from "@/lib/utils";
 import type { EvidenceCenterSelectedEvidence } from "@/types/evidence-center.types";
+
+import { EvidenceBadge } from "./evidence-center-shared";
 
 const inputClass =
   "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -119,6 +122,10 @@ export function EditEvidenceMetadataDrawer({
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 text-sm">
           {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <span className="text-xs font-semibold text-slate-600">Confidentiality marker</span>
+            <EvidenceBadge {...evidenceClassificationBadgeMap[classification]} />
+          </div>
           <label className="block">
             <span className="text-xs font-semibold text-slate-600">Name</span>
             <input className={cn(inputClass, "mt-1")} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
@@ -176,7 +183,6 @@ export function EditEvidenceMetadataDrawer({
             <span className="text-xs font-semibold text-slate-600">Notes</span>
             <textarea className={cn(inputClass, "mt-1 min-h-[72px]")} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={8000} />
           </label>
-          <p className="text-xs text-slate-500">Confidentiality follows classification (STD-DAT-001).</p>
         </div>
 
         <footer className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-border">

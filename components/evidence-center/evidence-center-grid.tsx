@@ -26,7 +26,7 @@ export function EvidenceCenterGrid({
       <section data-pane="detail" className="evidence-detail-panel min-w-0">
         {detailPanel}
       </section>
-      <aside data-pane="coverage" className="evidence-coverage-panel min-w-0">
+      <aside data-pane="coverage" id="evidence-coverage" className="evidence-coverage-panel min-w-0">
         {coveragePanel}
       </aside>
     </div>

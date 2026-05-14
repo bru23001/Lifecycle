@@ -29,6 +29,7 @@ export type GateEvidenceTraceListRow = {
   decisionSummary: string;
   detailHref: string;
   reviewHref: string;
+  addEvidenceHref: string;
 };
 
 export type GateEvidenceTraceabilityListData = {

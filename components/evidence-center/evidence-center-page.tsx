@@ -10,17 +10,22 @@ import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { Button } from "@/components/ui/button";
 import { exportEvidenceBundle } from "@/lib/evidence-export";
 import type { ExportFullEvidenceBundleOptions } from "@/lib/evidence-export";
+import { runEvidenceValidation } from "@/lib/evidence-validation";
 import { projectOverviewHref } from "@/lib/projects-url";
 import type { EvidenceCenterData } from "@/types/evidence-center.types";
+import type { ValidationIssue } from "@/types/evidence-validation.types";
 
+import { EvidenceAuditDetailDrawer } from "./evidence-audit-detail-drawer";
 import { EvidenceActionBar } from "./evidence-action-bar";
 import { EvidenceCenterContent } from "./evidence-center-content";
 import { EvidenceCenterGrid } from "./evidence-center-grid";
 import { EvidenceCoveragePanel } from "./evidence-coverage-panel";
 import { EvidenceDetailPanel } from "./evidence-detail-panel";
+import { EvidenceIssueRemediationDrawer } from "./evidence-issue-remediation-drawer";
 import { EvidenceItemsPanel } from "./evidence-items-panel";
+import { EvidenceValidationResultsDrawer } from "./evidence-validation-results-drawer";
 import { ExportFullEvidenceBundleModal } from "./export-full-evidence-bundle-modal";
-import { applyEvidenceFilters } from "./evidence-center-shared";
+import { applyEvidenceFilters, defaultEvidenceFilters } from "./evidence-center-shared";
 import type { EvidenceFilters, EvidenceTab } from "./evidence-center-shared";
 
 export function EvidenceCenterPage({
@@ -40,13 +45,10 @@ export function EvidenceCenterPage({
     selectedEvidenceId && initial.evidencePackages[selectedEvidenceId]
       ? selectedEvidenceId
       : initial.selectedEvidence.detail.id;
-  const [filters, setFilters] = useState<EvidenceFilters>({
-    search: initialFilters?.search ?? "",
-    type: initialFilters?.type ?? "all",
-    phase: initialFilters?.phase ?? "all",
-    gate: initialFilters?.gate ?? "all",
-    sort: initialFilters?.sort ?? "updated",
-  });
+  const [filters, setFilters] = useState<EvidenceFilters>(() => ({
+    ...defaultEvidenceFilters(),
+    ...initialFilters,
+  }));
   const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [selectedTab, setSelectedTab] = useState<EvidenceTab>("overview");
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +61,11 @@ export function EvidenceCenterPage({
   );
   const [addEvidenceOpen, setAddEvidenceOpen] = useState(false);
   const [exportFullOpen, setExportFullOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [remediationIssue, setRemediationIssue] = useState<ValidationIssue | null>(null);
+  const [auditDetailId, setAuditDetailId] = useState<string | null>(null);
+
+  const validationResult = useMemo(() => runEvidenceValidation(initial), [initial]);
 
   const selectedEvidence = initial.evidencePackages[selectedId];
   const activeEvidence = selectedEvidence ?? initial.selectedEvidence;
@@ -78,7 +85,7 @@ export function EvidenceCenterPage({
       ? navPhaseParsed
       : initial.project.currentPhase;
 
-  const onSelectEvidence = (evidenceId: string) => {
+  const onSelectEvidence = (evidenceId: string, opts?: { detailTab?: EvidenceTab }) => {
     if (!initial.evidencePackages[evidenceId]) {
       setError("Unable to load evidence detail. Please retry.");
       return;
@@ -88,7 +95,7 @@ export function EvidenceCenterPage({
     window.setTimeout(() => {
       setSelectedId(evidenceId);
       setSelectedForExport((prev) => (prev.includes(evidenceId) ? prev : [evidenceId, ...prev]));
-      setSelectedTab("overview");
+      setSelectedTab(opts?.detailTab ?? "overview");
       setIsLoading(false);
       router.push(`/projects/${initial.project.id}/evidence/${evidenceId}${detailPhaseQuery}`);
     }, 120);
@@ -97,22 +104,6 @@ export function EvidenceCenterPage({
   const onRetry = () => {
     setError(null);
     setIsLoading(false);
-  };
-
-  const runExport = async (
-    scope: "selected" | "gate" | "full",
-    ids: string[],
-  ) => {
-    if (scope === "full") {
-      setExportFullOpen(true);
-      return;
-    }
-    setError(null);
-    try {
-      await exportEvidenceBundle(initial, scope, ids);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Export failed.");
-    }
   };
 
   const runFullBundleExport = async (options: ExportFullEvidenceBundleOptions) => {
@@ -127,6 +118,8 @@ export function EvidenceCenterPage({
   const onToggleExportSelection = (evidenceId: string) => {
     setSelectedForExport((prev) => (prev.includes(evidenceId) ? prev.filter((id) => id !== evidenceId) : [...prev, evidenceId]));
   };
+
+  const artifactPicks = initial.linkableArtifacts.map((a) => ({ id: a.id, label: a.label }));
 
   return (
     <AuthenticatedAppShell
@@ -153,7 +146,7 @@ export function EvidenceCenterPage({
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]"
         {...(isDetailView ? { "data-route-smoke": "evidence-detail" } : {})}
       >
-        <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-3 pt-4 min-[901px]:px-8">
+        <div className="mx-auto flex w-full max-w-[1920px] shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-4 min-[901px]:px-8">
           <Breadcrumbs
             items={
               isDetailView
@@ -178,6 +171,18 @@ export function EvidenceCenterPage({
                   ]
             }
           />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="evidence-validate-header"
+            onClick={() => {
+              setRemediationIssue(null);
+              setValidationOpen(true);
+            }}
+          >
+            Validate Evidence
+          </Button>
         </div>
 
         <EvidenceCenterContent>
@@ -208,6 +213,7 @@ export function EvidenceCenterPage({
             itemsPanel={
               <EvidenceItemsPanel
                 evidenceItems={initial.evidenceItems}
+                evidencePackages={initial.evidencePackages}
                 filteredItems={filteredItems}
                 filters={filters}
                 selectedId={selectedId}
@@ -224,18 +230,23 @@ export function EvidenceCenterPage({
                   id: a.artifactId,
                   label: `${a.artifactLocalId} · ${a.artifactTitle}`,
                 }))}
+                linkableArtifacts={initial.linkableArtifacts}
+                gateLinkOptions={initial.gateLinkOptions}
+                phaseLinkOptions={initial.phaseLinkOptions}
+                artifacts={artifactPicks}
               />
             }
             detailPanel={
               <EvidenceDetailPanel
                 projectId={initial.project.id}
-                artifacts={initial.evidenceByArtifact.map((a) => ({
-                  id: a.artifactId,
-                  label: `${a.artifactLocalId} · ${a.artifactTitle}`,
-                }))}
+                linkableArtifacts={initial.linkableArtifacts}
+                gateLinkOptions={initial.gateLinkOptions}
+                phaseLinkOptions={initial.phaseLinkOptions}
+                artifacts={artifactPicks}
                 selectedEvidence={activeEvidence ?? null}
                 selectedTab={selectedTab}
                 onTabChange={setSelectedTab}
+                onOpenAuditDetail={(id) => setAuditDetailId(id)}
               />
             }
             coveragePanel={
@@ -244,14 +255,44 @@ export function EvidenceCenterPage({
                   data={initial}
                   selectedEvidence={activeEvidence}
                   selectedForExport={selectedForExport}
-                  onExport={runExport}
+                  onRequestFullExport={() => setExportFullOpen(true)}
+                  onExportResult={(msg) => setError(msg)}
                 />
               ) : null
             }
           />
 
-          <EvidenceActionBar actionState={initial.actionState} onPrimaryAction={() => setExportFullOpen(true)} />
+          <EvidenceActionBar
+            actionState={initial.actionState}
+            onPrimaryAction={() => setExportFullOpen(true)}
+            onSecondaryAction={() => {
+              setRemediationIssue(null);
+              setValidationOpen(true);
+            }}
+          />
         </EvidenceCenterContent>
+
+        <EvidenceValidationResultsDrawer
+          open={validationOpen}
+          result={validationResult}
+          onClose={() => {
+            setValidationOpen(false);
+            setRemediationIssue(null);
+          }}
+          onSelectIssue={(issue) => setRemediationIssue(issue)}
+        />
+        <EvidenceIssueRemediationDrawer
+          open={remediationIssue != null}
+          issue={remediationIssue}
+          onClose={() => setRemediationIssue(null)}
+          onBackToResults={validationOpen ? () => setRemediationIssue(null) : undefined}
+        />
+        <EvidenceAuditDetailDrawer
+          open={auditDetailId != null}
+          projectId={initial.project.id}
+          auditId={auditDetailId}
+          onClose={() => setAuditDetailId(null)}
+        />
 
         <ExportFullEvidenceBundleModal
           open={exportFullOpen}

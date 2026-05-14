@@ -10,6 +10,14 @@ import type {
   EvidenceCenterData,
   EvidenceCenterSelectedEvidence,
 } from "@/types/evidence-center.types";
+import type { PhaseEvidenceTraceListRow } from "@/types/phase-evidence-traceability.types";
+
+import { PhaseEvidenceGapDrawer } from "@/components/traceability/phase-evidence-gap-drawer";
+import {
+  ExportByGateEvidenceModal,
+  ExportByPhaseEvidenceModal,
+  ExportSelectedEvidenceModal,
+} from "@/components/evidence-center/evidence-export-bundle-modals";
 
 import { cn } from "@/lib/utils";
 
@@ -132,6 +140,7 @@ function CoverageTable({
   linkedHeader,
   collapsible = false,
   defaultExpanded = true,
+  onCoverageGap,
 }: {
   title: string;
   count: number;
@@ -143,12 +152,17 @@ function CoverageTable({
     required: number;
     coverage: number;
     href?: string;
+    /** Optional secondary link (e.g. gate review when primary is traceability drill-down). */
+    reviewHref?: string;
+    workspaceHref?: string;
+    linkStatus?: "complete" | "partial" | "missing";
   }[];
   footerHref: string;
   footerLabel: string;
   linkedHeader: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  onCoverageGap?: (rowId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const panelId = useId();
@@ -173,19 +187,48 @@ function CoverageTable({
               {rows.map((row) => (
                 <tr key={row.id} className="border-b border-slate-100 text-sm last:border-b-0">
                   <td className="py-2 pr-3 font-semibold text-slate-900">
-                    {row.href ? (
-                      <Link href={row.href} className="text-slate-900 hover:text-blue-600 hover:underline">
-                        {row.label}
-                      </Link>
-                    ) : (
-                      row.label
-                    )}
+                    <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+                      {row.href ? (
+                        <Link href={row.href} className="text-slate-900 hover:text-blue-600 hover:underline">
+                          {row.label}
+                        </Link>
+                      ) : (
+                        row.label
+                      )}
+                      {row.reviewHref ? (
+                        <Link
+                          href={row.reviewHref}
+                          className="text-xs font-medium text-blue-600 underline-offset-2 hover:underline sm:shrink-0"
+                        >
+                          Gate review
+                        </Link>
+                      ) : null}
+                      {row.workspaceHref ? (
+                        <Link
+                          href={row.workspaceHref}
+                          className="text-xs font-medium text-blue-600 underline-offset-2 hover:underline sm:shrink-0"
+                        >
+                          Phase workspace
+                        </Link>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="py-2 pr-3 text-center font-medium text-slate-700">{row.linked}</td>
                   <td className="py-2 pr-3 text-center font-medium text-slate-700">{row.required}</td>
                   <td className="py-2">
                     <div className="flex justify-end">
-                      <CoverageBar value={row.coverage} />
+                      {onCoverageGap && row.linkStatus && row.linkStatus !== "complete" ? (
+                        <button
+                          type="button"
+                          className="rounded-md p-0.5 ring-1 ring-transparent hover:bg-slate-50 hover:ring-slate-200"
+                          onClick={() => onCoverageGap(row.id)}
+                          aria-label={`Open phase gap drawer for ${row.label}`}
+                        >
+                          <CoverageBar value={row.coverage} />
+                        </button>
+                      ) : (
+                        <CoverageBar value={row.coverage} />
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -324,7 +367,8 @@ export function EvidenceByGateCard({ projectId, rows }: { projectId: string; row
     linked: row.evidenceLinked,
     required: row.requiredEvidence,
     coverage: row.coveragePercent,
-    href: row.href,
+    href: `/projects/${projectId}/traceability/gate-evidence/${row.gateId}`,
+    reviewHref: row.href,
   }));
 
   return (
@@ -341,70 +385,112 @@ export function EvidenceByGateCard({ projectId, rows }: { projectId: string; row
   );
 }
 
+function evidenceByPhaseToGapRow(row: EvidenceByPhase): PhaseEvidenceTraceListRow {
+  return {
+    phaseNumber: row.phaseNumber,
+    phaseName: row.phaseName,
+    phaseIdParam: row.phaseId,
+    evidenceLinked: row.evidenceItems,
+    requiredEvidence: row.requiredEvidence,
+    missingCount: row.missingCount,
+    coveragePercent: row.coveragePercent,
+    linkStatus: row.linkStatus,
+    completionImpact: row.completionImpact,
+    detailHref: row.detailHref,
+    workspaceHref: row.workspaceHref,
+    addEvidenceHref: row.addEvidenceHref,
+  };
+}
+
 export function EvidenceByPhaseCard({ projectId, rows }: { projectId: string; rows: EvidenceByPhase[] }) {
+  const [gapRow, setGapRow] = useState<PhaseEvidenceTraceListRow | null>(null);
+
   const mapped = rows.map((row) => ({
     id: row.phaseId,
     label: `${row.phaseNumber}. ${row.phaseName}`,
     linked: row.evidenceItems,
     required: row.requiredEvidence,
     coverage: row.coveragePercent,
-    href: row.href,
+    href: row.detailHref,
+    workspaceHref: row.workspaceHref,
+    linkStatus: row.linkStatus,
   }));
 
   return (
-    <CoverageTable
-      title="Evidence by Phase"
-      count={rows.length}
-      firstColumnLabel="Phase"
-      rows={mapped}
-      footerHref={`/projects/${projectId}/traceability/phase-evidence`}
-      footerLabel="View Phase Evidence Matrix"
-      linkedHeader="Evidence Linked"
-      collapsible
-    />
+    <>
+      <CoverageTable
+        title="Evidence by Phase"
+        count={rows.length}
+        firstColumnLabel="Phase"
+        rows={mapped}
+        footerHref={`/projects/${projectId}/traceability/phase-evidence`}
+        footerLabel="View Phase Evidence Matrix"
+        linkedHeader="Evidence Linked"
+        collapsible
+        onCoverageGap={(rowId) => {
+          const hit = rows.find((r) => r.phaseId === rowId);
+          if (hit) setGapRow(evidenceByPhaseToGapRow(hit));
+        }}
+      />
+      <PhaseEvidenceGapDrawer open={gapRow != null} row={gapRow} onClose={() => setGapRow(null)} />
+    </>
   );
 }
 
 export function EvidenceExportBundleCard({
   exportBundle,
+  data,
   selectedForExport,
-  onExport,
+  onRequestFullExport,
+  onExportResult,
 }: {
   exportBundle: EvidenceCenterData["exportBundle"];
+  data: EvidenceCenterData;
   selectedForExport: string[];
-  onExport: (scope: "selected" | "gate" | "full", evidenceIds: string[]) => Promise<void>;
+  onRequestFullExport: () => void;
+  onExportResult: (message: string | null) => void;
 }) {
   const n = selectedForExport.length;
+  const [selectedOpen, setSelectedOpen] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [phaseOpen, setPhaseOpen] = useState(false);
 
   return (
     <Card>
       <h2 className="text-lg font-semibold text-slate-950">Evidence Export Bundle</h2>
 
       <p className="mt-3 text-sm leading-snug text-slate-600">
-        Export selected evidence with metadata and traceability information.
+        Configure exports with manifest, traceability, and checksum options. Downloads are JSON; ZIP packaging is not
+        wired yet.
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Link
+          href={`/projects/${exportBundle.projectId}/evidence/export`}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+        >
+          Open export hub
+        </Link>
+        <Link
           href={`/projects/${exportBundle.projectId}/reports/evidence-package`}
           className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
         >
-          Open evidence package report
+          Evidence package report
         </Link>
         <Link
           href={`/projects/${exportBundle.projectId}/reports/evidence-package/configure`}
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50 sm:col-span-2"
         >
-          Configure export package
+          Configure export package (reports)
         </Link>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <ExportAction
           label="Export Selected"
-          ariaLabel="Export selected evidence bundle"
+          ariaLabel="Open export selected evidence modal"
           disabled={!exportBundle.canExportSelected || n === 0}
-          onClick={() => void onExport("selected", selectedForExport)}
+          onClick={() => setSelectedOpen(true)}
           icon={
             <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-blue-50 px-2 text-xs font-semibold text-blue-600">
               {n}
@@ -413,19 +499,46 @@ export function EvidenceExportBundleCard({
         />
         <ExportAction
           label="Export by Gate"
-          ariaLabel="Export evidence by gate"
-          disabled={!exportBundle.canExportByGate}
-          onClick={() => void onExport("gate", selectedForExport)}
+          ariaLabel="Open export by gate modal"
+          disabled={!exportBundle.canExportByGate || data.evidenceByGate.length === 0}
+          onClick={() => setGateOpen(true)}
+          icon={<Download className="h-4 w-4 stroke-[2.2]" aria-hidden />}
+        />
+        <ExportAction
+          label="Export by Phase"
+          ariaLabel="Open export by phase modal"
+          disabled={data.evidenceByPhase.length === 0}
+          onClick={() => setPhaseOpen(true)}
           icon={<Download className="h-4 w-4 stroke-[2.2]" aria-hidden />}
         />
         <ExportAction
           label="Export Full Bundle"
-          ariaLabel="Export full evidence bundle"
+          ariaLabel="Open export full evidence bundle modal"
           disabled={!exportBundle.canExportFullBundle}
-          onClick={() => void onExport("full", selectedForExport)}
+          onClick={onRequestFullExport}
           icon={<Download className="h-4 w-4 stroke-[2.2]" aria-hidden />}
         />
       </div>
+
+      <ExportSelectedEvidenceModal
+        open={selectedOpen}
+        data={data}
+        selectedIds={selectedForExport}
+        onClose={() => setSelectedOpen(false)}
+        onExportResult={onExportResult}
+      />
+      <ExportByGateEvidenceModal
+        open={gateOpen}
+        data={data}
+        onClose={() => setGateOpen(false)}
+        onExportResult={onExportResult}
+      />
+      <ExportByPhaseEvidenceModal
+        open={phaseOpen}
+        data={data}
+        onClose={() => setPhaseOpen(false)}
+        onExportResult={onExportResult}
+      />
     </Card>
   );
 }
@@ -434,19 +547,27 @@ export function EvidenceCoveragePanel({
   data,
   selectedEvidence,
   selectedForExport,
-  onExport,
+  onRequestFullExport,
+  onExportResult,
 }: {
   data: EvidenceCenterData;
   selectedEvidence: EvidenceCenterSelectedEvidence;
   selectedForExport: string[];
-  onExport: (scope: "selected" | "gate" | "full", evidenceIds: string[]) => Promise<void>;
+  onRequestFullExport: () => void;
+  onExportResult: (message: string | null) => void;
 }) {
   return (
     <section className="flex w-full min-w-0 max-w-[720px] flex-col space-y-3">
       <EvidenceCompletenessCard selectedEvidence={selectedEvidence} />
       <EvidenceByGateCard projectId={data.project.id} rows={data.evidenceByGate} />
       <EvidenceByPhaseCard projectId={data.project.id} rows={data.evidenceByPhase} />
-      <EvidenceExportBundleCard exportBundle={data.exportBundle} selectedForExport={selectedForExport} onExport={onExport} />
+      <EvidenceExportBundleCard
+        exportBundle={data.exportBundle}
+        data={data}
+        selectedForExport={selectedForExport}
+        onRequestFullExport={onRequestFullExport}
+        onExportResult={onExportResult}
+      />
     </section>
   );
 }

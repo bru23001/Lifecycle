@@ -30,6 +30,7 @@ model User {
   wizardCollaborationComments WizardCollaborationComment[] @relation("WizardCommentAuthor")
   artifactReviewAssignmentsAsAssignee ArtifactReviewRequest[] @relation("ReviewRequestAssignee")
   artifactReviewAssignmentsAsAssigner ArtifactReviewRequest[] @relation("ReviewRequestAssigner")
+  evidenceComments                  EvidenceComment[]        @relation("EvidenceCommentAuthor")
 }
 
 model Project {
@@ -392,9 +393,49 @@ model EvidenceItem {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   artifactLinks       EvidenceArtifactLink[]
+  gateLinks           EvidenceGateLink[]
+  phaseLinks          EvidencePhaseLink[]
+  comments            EvidenceComment[]
 
   @@unique([projectId, evidenceCode])
   @@index([projectId, gateCode])
+}
+
+model EvidenceGateLink {
+  evidenceId String
+  gateCode   String
+  evidence   EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  @@id([evidenceId, gateCode])
+  @@index([gateCode])
+}
+
+model EvidencePhaseLink {
+  evidenceId   String
+  phaseNumber  Int
+  evidence     EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  @@id([evidenceId, phaseNumber])
+  @@index([phaseNumber])
+}
+
+/** Threaded discussion on an evidence item (Evidence Center). */
+model EvidenceComment {
+  id            String       @id @default(cuid())
+  evidenceId    String
+  evidence      EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  authorId      String?
+  author        User?        @relation("EvidenceCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorName    String       @default("User")
+  body          String       @default("")
+  visibility    String       @default("project")
+  mentionsJson  Json         @default("[]")
+  attachmentRef String?
+  resolved      Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([evidenceId, createdAt])
 }
 
 model EvidenceArtifactLink {

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { getGateVisualState, indexLatestGateDecisions, type GateDecisionRow } from "@/lib/gateStatus";
 import { normalizeGateParam } from "@/lib/gateNormalize";
+import { evidenceLinkedToGate } from "@/lib/evidence-gate-links";
 import { prisma } from "@/lib/prisma";
 import { ALL_GATES, formatDateTimeLabel, projectDisplayCode } from "@/lib/server/helpers";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
@@ -18,11 +19,6 @@ import type {
 function parseJsonStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-}
-
-function normalizeEvidenceGate(code: string | null | undefined): string | null {
-  if (!code?.trim()) return null;
-  return normalizeGateParam(code);
 }
 
 function coverageFromRatio(linked: number, total: number): { percent: number; status: CoverageStatus } {
@@ -75,7 +71,7 @@ async function loadGateTraceabilityContext(projectId: string) {
       slug: true,
       vaultFolder: true,
       currentPhase: true,
-      evidenceItems: true,
+      evidenceItems: { include: { gateLinks: true } },
       gateDecisions: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -112,9 +108,7 @@ export async function loadGateEvidenceTraceabilityList(projectId: string): Promi
   const gates: GateEvidenceTraceListRow[] = ALL_GATES.map((gate) => {
     const rule = gateRuleByCode.get(gate);
     const requiredEvidence = rule?.requiredEvidenceCount ?? 0;
-    const evidenceLinked = project.evidenceItems.filter(
-      (e) => normalizeEvidenceGate(e.gateCode) === gate,
-    ).length;
+    const evidenceLinked = project.evidenceItems.filter((e) => evidenceLinkedToGate(e, gate)).length;
     const { percent, status } = coverageFromRatio(
       requiredEvidence > 0 ? Math.min(evidenceLinked, requiredEvidence) : evidenceLinked,
       requiredEvidence,
@@ -139,6 +133,7 @@ export async function loadGateEvidenceTraceabilityList(projectId: string): Promi
       decisionSummary,
       detailHref: `/projects/${project.id}/traceability/gate-evidence/${gateParam}`,
       reviewHref: `/projects/${project.id}/gates/${gateParam}/review`,
+      addEvidenceHref: `/projects/${project.id}/evidence?gate=${encodeURIComponent(gate)}`,
     };
   });
 
@@ -169,7 +164,7 @@ export async function loadGateEvidenceGateDetail(
   const requiredEvidence = rule?.requiredEvidenceCount ?? 0;
   const requiredInputLabels = parseJsonStringArray(rule?.requiredInputIdsJson);
 
-  const linkedRaw = project.evidenceItems.filter((e) => normalizeEvidenceGate(e.gateCode) === gate);
+  const linkedRaw = project.evidenceItems.filter((e) => evidenceLinkedToGate(e, gate));
   const evidenceLinked = linkedRaw.length;
   const { percent, status } = coverageFromRatio(
     requiredEvidence > 0 ? Math.min(evidenceLinked, requiredEvidence) : evidenceLinked,

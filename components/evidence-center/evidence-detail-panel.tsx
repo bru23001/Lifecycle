@@ -2,11 +2,8 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FileText, MoreHorizontal, Share2, Star } from "lucide-react";
-
-import { archiveEvidenceItem, deleteEvidenceItem } from "@/app/actions/evidence";
 
 import {
   WorkspaceCard,
@@ -16,17 +13,32 @@ import {
 import { Button } from "@/components/ui/button";
 import { evidenceClassificationBadgeMap, evidenceStatusBadgeMap } from "@/lib/evidence-status";
 import { cn } from "@/lib/utils";
-import type { EvidenceCenterSelectedEvidence } from "@/types/evidence-center.types";
+import type {
+  EvidenceCenterSelectedEvidence,
+  EvidenceGateLinkOption,
+  EvidenceHistoryEvent,
+  EvidenceLinkableArtifact,
+  EvidencePhaseLinkOption,
+} from "@/types/evidence-center.types";
 
+import { ArchiveEvidenceModal } from "./archive-evidence-modal";
 import type { EvidenceTab } from "./evidence-center-shared";
 import { EvidenceBadge, MetaItem } from "./evidence-center-shared";
-import { ConfirmEvidenceActionModal } from "./confirm-evidence-action-modal";
+import { DeleteEvidenceModal } from "./delete-evidence-modal";
+import { DownloadEvidenceConfirmModal, evidenceDownloadNeedsConfirmation } from "./download-evidence-confirm-modal";
 import { EditEvidenceMetadataDrawer } from "./edit-evidence-metadata-drawer";
+import { EvidenceCommentsBlock } from "./evidence-comments-block";
 import { EvidenceFilePreview, EvidencePreviewToolbarActions } from "./evidence-file-preview";
+import { EvidenceHistoryEventDrawer } from "./evidence-history-event-drawer";
 import { EvidencePreviewModal } from "./evidence-preview-modal";
 import { LinkEvidenceArtifactModal, type ArtifactPick } from "./link-evidence-artifact-modal";
 import { LinkEvidenceGateModal } from "./link-evidence-gate-modal";
 import { LinkEvidencePhaseModal } from "./link-evidence-phase-modal";
+import { ReplaceEvidenceFileModal } from "./replace-evidence-file-modal";
+import { ShareEvidenceModal } from "./share-evidence-modal";
+import { UnlinkArtifactConfirmModal } from "./unlink-artifact-confirm-modal";
+import { UnlinkGateConfirmModal } from "./unlink-gate-confirm-modal";
+import { UnlinkPhaseConfirmModal } from "./unlink-phase-confirm-modal";
 
 type MetadataItem = {
   id: string;
@@ -101,7 +113,8 @@ function EvidenceTabs({
     ["overview", "Overview"],
     ["linked_artifacts", `Linked Artifacts (${selectedEvidence.linkedArtifacts.length})`],
     ["linked_gates", `Linked Gates (${selectedEvidence.linkedGates.length})`],
-    ["history", "History"],
+    ["linked_phases", `Linked Phases (${selectedEvidence.linkedPhases.length})`],
+    ["history", `History (${selectedEvidence.history.length})`],
     ["comments", `Comments (${selectedEvidence.comments.length})`],
   ].map(([id, label]) => ({ id: id as EvidenceTab, label }));
 
@@ -167,6 +180,7 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
   const cards: { id: string; label: string; value: ReactNode }[] = [
     { id: "linked-artifacts", label: "Linked Artifacts", value: String(selectedEvidence.linkedArtifacts.length) },
     { id: "linked-gates", label: "Linked Gates", value: String(selectedEvidence.linkedGates.length) },
+    { id: "linked-phases", label: "Linked Phases", value: String(selectedEvidence.linkedPhases.length) },
     {
       id: "sections-covered",
       label: "Sections Covered",
@@ -183,12 +197,28 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
               <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, pct)}%` }} />
             </div>
           </div>
-          <Link
-            href={selectedEvidence.completeness.detailsHref}
-            className="text-sm font-medium text-blue-600 underline-offset-2 hover:underline"
-          >
-            View completeness details
-          </Link>
+          <div className="flex min-w-0 flex-col gap-2">
+            <Link
+              href={selectedEvidence.completeness.detailsHref}
+              className="text-sm font-medium text-blue-600 underline-offset-2 hover:underline"
+            >
+              View completeness details
+            </Link>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-slate-600">
+              <Link href={`${selectedEvidence.completeness.detailsHref}?status=complete`} className="text-blue-600 underline-offset-2 hover:underline">
+                Fully linked
+              </Link>
+              <Link href={`${selectedEvidence.completeness.detailsHref}?status=partial`} className="text-blue-600 underline-offset-2 hover:underline">
+                Partial
+              </Link>
+              <Link href={`${selectedEvidence.completeness.detailsHref}?status=missing`} className="text-blue-600 underline-offset-2 hover:underline">
+                Gate gaps
+              </Link>
+              <Link href={`${selectedEvidence.completeness.detailsHref}?status=unlinked`} className="text-blue-600 underline-offset-2 hover:underline">
+                Unlinked
+              </Link>
+            </div>
+          </div>
         </div>
       ),
     },
@@ -198,7 +228,7 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
     <section className="mt-8">
       <h3 className="text-lg font-semibold text-slate-950">Linked Summary</h3>
 
-      <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
           <article key={card.id} className="rounded-lg border border-slate-200 bg-white p-5">
             <p className="text-sm font-semibold text-slate-600">{card.label}</p>
@@ -218,6 +248,7 @@ function EvidenceOverflowMenu({
   onLinkGate,
   onLinkPhase,
   onDownload,
+  onReplaceFile,
   onArchive,
   onDelete,
 }: {
@@ -228,6 +259,7 @@ function EvidenceOverflowMenu({
   onLinkGate: () => void;
   onLinkPhase: () => void;
   onDownload: () => void;
+  onReplaceFile: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
@@ -333,6 +365,17 @@ function EvidenceOverflowMenu({
           >
             Download
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onReplaceFile();
+            }}
+          >
+            Replace file
+          </button>
           <div className="my-1 border-t border-slate-100" />
           <button
             type="button"
@@ -365,23 +408,27 @@ function EvidenceOverflowMenu({
 export function EvidenceDetailHeader({
   selectedEvidence,
   actionsDisabled,
+  onShare,
   onOverflowPreview,
   onEditMetadata,
   onLinkArtifact,
   onLinkGate,
   onLinkPhase,
   onDownload,
+  onReplaceFile,
   onArchive,
   onDelete,
 }: {
   selectedEvidence: EvidenceCenterSelectedEvidence;
   actionsDisabled?: boolean;
+  onShare: () => void;
   onOverflowPreview: () => void;
   onEditMetadata: () => void;
   onLinkArtifact: () => void;
   onLinkGate: () => void;
   onLinkPhase: () => void;
   onDownload: () => void;
+  onReplaceFile: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
@@ -404,7 +451,15 @@ export function EvidenceDetailHeader({
           <Button type="button" variant="outline" size="icon-sm" aria-label="Star evidence">
             <Star className="size-4" aria-hidden />
           </Button>
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-label="Share evidence">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            aria-label="Share evidence"
+            disabled={actionsDisabled}
+            onClick={onShare}
+          >
             <Share2 className="size-3.5" aria-hidden />
             Share
           </Button>
@@ -416,6 +471,7 @@ export function EvidenceDetailHeader({
             onLinkGate={onLinkGate}
             onLinkPhase={onLinkPhase}
             onDownload={onDownload}
+            onReplaceFile={onReplaceFile}
             onArchive={onArchive}
             onDelete={onDelete}
           />
@@ -458,17 +514,24 @@ export function EvidenceMetadata({ selectedEvidence }: { selectedEvidence: Evide
 export function EvidenceDetailPanel({
   projectId,
   artifacts,
+  linkableArtifacts,
+  gateLinkOptions,
+  phaseLinkOptions,
   selectedEvidence,
   selectedTab,
   onTabChange,
+  onOpenAuditDetail,
 }: {
   projectId: string;
   artifacts: ArtifactPick[];
+  linkableArtifacts: EvidenceLinkableArtifact[];
+  gateLinkOptions: EvidenceGateLinkOption[];
+  phaseLinkOptions: EvidencePhaseLinkOption[];
   selectedEvidence: EvidenceCenterSelectedEvidence | null;
   selectedTab: EvidenceTab;
   onTabChange: (tab: EvidenceTab) => void;
+  onOpenAuditDetail?: (auditId: string) => void;
 }) {
-  const router = useRouter();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [linkArtifactOpen, setLinkArtifactOpen] = useState(false);
@@ -476,7 +539,14 @@ export function EvidenceDetailPanel({
   const [linkPhaseOpen, setLinkPhaseOpen] = useState(false);
   const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [downloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [historyDrawerEvent, setHistoryDrawerEvent] = useState<EvidenceHistoryEvent | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<{ id: string; label: string } | null>(null);
+  const [unlinkGateTarget, setUnlinkGateTarget] = useState<{ id: string; label: string } | null>(null);
+  const [unlinkPhaseTarget, setUnlinkPhaseTarget] = useState<{ phaseNumber: number; label: string } | null>(null);
 
   if (!selectedEvidence) {
     return (
@@ -491,11 +561,20 @@ export function EvidenceDetailPanel({
   const evidenceId = selectedEvidence.detail.id;
   const isPlaceholder = evidenceId === "empty";
 
-  const openDownload = () => {
+  const requestDownload = () => {
     const href = selectedEvidence.detail.downloadHref;
-    if (href) {
+    if (!href) return;
+    if (evidenceDownloadNeedsConfirmation(selectedEvidence.detail.classification)) {
+      setDownloadConfirmOpen(true);
+    } else {
       window.open(href, "_blank", "noopener,noreferrer");
     }
+  };
+
+  const runConfirmedDownload = () => {
+    const href = selectedEvidence.detail.downloadHref;
+    if (href) window.open(href, "_blank", "noopener,noreferrer");
+    setDownloadConfirmOpen(false);
   };
 
   return (
@@ -515,12 +594,14 @@ export function EvidenceDetailPanel({
         <EvidenceDetailHeader
           selectedEvidence={selectedEvidence}
           actionsDisabled={isPlaceholder}
+          onShare={() => setShareOpen(true)}
           onOverflowPreview={() => setPreviewOpen(true)}
           onEditMetadata={() => setEditOpen(true)}
           onLinkArtifact={() => setLinkArtifactOpen(true)}
           onLinkGate={() => setLinkGateOpen(true)}
           onLinkPhase={() => setLinkPhaseOpen(true)}
-          onDownload={openDownload}
+          onDownload={requestDownload}
+          onReplaceFile={() => setReplaceOpen(true)}
           onArchive={() => setConfirmArchiveOpen(true)}
           onDelete={() => setConfirmDeleteOpen(true)}
         />
@@ -557,10 +638,23 @@ export function EvidenceDetailPanel({
                   </li>
                 ) : (
                   selectedEvidence.linkedArtifacts.map((item) => (
-                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-                      <Link href={item.href} className="font-medium text-blue-600 hover:underline">
+                    <li
+                      key={item.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                    >
+                      <Link href={item.href} className="min-w-0 font-medium text-blue-600 hover:underline">
                         {item.label}
                       </Link>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
+                        disabled={isPlaceholder}
+                        onClick={() => setUnlinkTarget({ id: item.id, label: item.label })}
+                      >
+                        Unlink
+                      </Button>
                     </li>
                   ))
                 )}
@@ -575,12 +669,62 @@ export function EvidenceDetailPanel({
                   </li>
                 ) : (
                   selectedEvidence.linkedGates.map((item) => (
-                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-                      <Link href={item.href} className="font-medium text-blue-600 hover:underline">
+                    <li
+                      key={item.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                    >
+                      <Link href={item.href} className="min-w-0 font-medium text-blue-600 hover:underline">
                         {item.label}
                       </Link>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
+                        disabled={isPlaceholder}
+                        onClick={() => setUnlinkGateTarget({ id: item.id, label: item.label })}
+                      >
+                        Unlink
+                      </Button>
                     </li>
                   ))
+                )}
+              </ul>
+            )}
+
+            {selectedTab === "linked_phases" && (
+              <ul className="space-y-2">
+                {selectedEvidence.linkedPhases.length === 0 ? (
+                  <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    No linked lifecycle phases.
+                  </li>
+                ) : (
+                  selectedEvidence.linkedPhases.map((item) => {
+                    const m = /^phase-(\d{1,2})$/.exec(item.id);
+                    const phaseNumber = m ? Number.parseInt(m[1], 10) : null;
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm"
+                      >
+                        <Link href={item.href} className="min-w-0 font-medium text-blue-600 hover:underline">
+                          {item.label}
+                        </Link>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
+                          disabled={isPlaceholder || phaseNumber == null}
+                          onClick={() => {
+                            if (phaseNumber != null) setUnlinkPhaseTarget({ phaseNumber, label: item.label });
+                          }}
+                        >
+                          Unlink
+                        </Button>
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             )}
@@ -593,9 +737,15 @@ export function EvidenceDetailPanel({
                   </li>
                 ) : (
                   selectedEvidence.history.map((item) => (
-                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-xs text-slate-500">{item.timestampLabel}</p>
+                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-0 text-sm text-slate-700">
+                      <button
+                        type="button"
+                        className="flex w-full flex-col items-start gap-1 rounded-lg px-3 py-3 text-left transition hover:bg-slate-50"
+                        onClick={() => setHistoryDrawerEvent(item)}
+                      >
+                        <span className="font-medium text-slate-900">{item.summaryLabel}</span>
+                        <span className="text-xs text-slate-500">{item.timestampLabel}</span>
+                      </button>
                     </li>
                   ))
                 )}
@@ -603,20 +753,13 @@ export function EvidenceDetailPanel({
             )}
 
             {selectedTab === "comments" && (
-              <ul className="space-y-2">
-                {selectedEvidence.comments.length === 0 ? (
-                  <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                    No comments yet.
-                  </li>
-                ) : (
-                  selectedEvidence.comments.map((item) => (
-                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                      <p className="font-medium">{item.author}</p>
-                      <p className="mt-1">{item.body}</p>
-                    </li>
-                  ))
-                )}
-              </ul>
+              <EvidenceCommentsBlock
+                projectId={projectId}
+                evidenceId={evidenceId}
+                comments={selectedEvidence.comments}
+                disabled={isPlaceholder}
+                onMutationError={(msg) => setMutationError(msg)}
+              />
             )}
           </div>
         </article>
@@ -624,6 +767,12 @@ export function EvidenceDetailPanel({
 
       {!isPlaceholder ? (
         <>
+          <EvidenceHistoryEventDrawer
+            open={historyDrawerEvent != null}
+            event={historyDrawerEvent}
+            onClose={() => setHistoryDrawerEvent(null)}
+            onOpenAuditDetail={onOpenAuditDetail}
+          />
           <EvidencePreviewModal
             open={previewOpen}
             selectedEvidence={selectedEvidence}
@@ -637,57 +786,90 @@ export function EvidenceDetailPanel({
           />
           <LinkEvidenceArtifactModal
             open={linkArtifactOpen}
-            projectId={projectId}
             evidenceId={evidenceId}
-            artifacts={artifacts}
+            selectedEvidence={selectedEvidence}
+            linkableArtifacts={linkableArtifacts}
+            linkedArtifactIds={selectedEvidence.linkedArtifacts.map((x) => x.id)}
             onClose={() => setLinkArtifactOpen(false)}
           />
           <LinkEvidenceGateModal
             open={linkGateOpen}
             projectId={projectId}
             evidenceId={evidenceId}
+            selectedEvidence={selectedEvidence}
+            gateLinkOptions={gateLinkOptions}
+            linkedGateIds={selectedEvidence.linkedGates.map((x) => x.id)}
             onClose={() => setLinkGateOpen(false)}
           />
           <LinkEvidencePhaseModal
             open={linkPhaseOpen}
             projectId={projectId}
             evidenceId={evidenceId}
+            evidenceSummary={`${selectedEvidence.detail.evidenceCode} · ${selectedEvidence.detail.name}`}
+            phaseLinkOptions={phaseLinkOptions}
+            linkedPhaseIds={selectedEvidence.linkedPhases.map((p) => p.id)}
             artifacts={artifacts}
             onClose={() => setLinkPhaseOpen(false)}
           />
-          <ConfirmEvidenceActionModal
-            open={confirmArchiveOpen}
-            title="Archive evidence?"
-            description="This item will be marked archived and hidden from default lists. You can restore it from archive workflows when supported."
-            confirmLabel="Archive"
-            onClose={() => setConfirmArchiveOpen(false)}
-            onConfirm={async () => {
-              setMutationError(null);
-              const r = await archiveEvidenceItem({ projectId, evidenceId });
-              if (r.ok) {
-                router.refresh();
-              } else {
-                setMutationError(r.error);
-              }
-            }}
+          <ShareEvidenceModal
+            open={shareOpen}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            evidenceCode={selectedEvidence.detail.evidenceCode}
+            evidenceName={selectedEvidence.detail.name}
+            onClose={() => setShareOpen(false)}
           />
-          <ConfirmEvidenceActionModal
+          <ReplaceEvidenceFileModal open={replaceOpen} selectedEvidence={selectedEvidence} onClose={() => setReplaceOpen(false)} />
+          <DownloadEvidenceConfirmModal
+            open={downloadConfirmOpen}
+            fileName={selectedEvidence.detail.name}
+            classification={selectedEvidence.detail.classification}
+            onClose={() => setDownloadConfirmOpen(false)}
+            onConfirm={runConfirmedDownload}
+          />
+          <ArchiveEvidenceModal
+            open={confirmArchiveOpen}
+            projectId={projectId}
+            selectedEvidence={selectedEvidence}
+            onClose={() => setConfirmArchiveOpen(false)}
+            onError={(msg) => setMutationError(msg)}
+          />
+          <DeleteEvidenceModal
             open={confirmDeleteOpen}
-            title="Delete evidence permanently?"
-            description="This removes the evidence record and links from the project. This action cannot be undone."
-            confirmLabel="Delete"
-            destructive
+            projectId={projectId}
+            selectedEvidence={selectedEvidence}
             onClose={() => setConfirmDeleteOpen(false)}
-            onConfirm={async () => {
-              setMutationError(null);
-              const r = await deleteEvidenceItem({ projectId, evidenceId });
-              if (r.ok) {
-                router.push(`/projects/${projectId}/evidence`);
-                router.refresh();
-              } else {
-                setMutationError(r.error);
-              }
-            }}
+            onError={(msg) => setMutationError(msg)}
+          />
+          <UnlinkArtifactConfirmModal
+            open={unlinkTarget != null}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            evidenceSummary={`${selectedEvidence.detail.evidenceCode} · ${selectedEvidence.detail.name}`}
+            artifactId={unlinkTarget?.id ?? ""}
+            artifactLabel={unlinkTarget?.label ?? ""}
+            onClose={() => setUnlinkTarget(null)}
+            onError={(msg) => setMutationError(msg)}
+          />
+          <UnlinkGateConfirmModal
+            open={unlinkGateTarget != null}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            evidenceSummary={`${selectedEvidence.detail.evidenceCode} · ${selectedEvidence.detail.name}`}
+            gateCode={unlinkGateTarget?.id ?? ""}
+            gateLabel={unlinkGateTarget?.label ?? ""}
+            onClose={() => setUnlinkGateTarget(null)}
+            onError={(msg) => setMutationError(msg)}
+          />
+          <UnlinkPhaseConfirmModal
+            open={unlinkPhaseTarget != null}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            evidenceSummary={`${selectedEvidence.detail.evidenceCode} · ${selectedEvidence.detail.name}`}
+            phaseNumber={unlinkPhaseTarget?.phaseNumber ?? 1}
+            phaseLabel={unlinkPhaseTarget?.label ?? ""}
+            onClose={() => setUnlinkPhaseTarget(null)}
+            onError={(msg) => setMutationError(msg)}
           />
         </>
       ) : null}

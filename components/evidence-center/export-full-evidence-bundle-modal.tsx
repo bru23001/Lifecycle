@@ -70,8 +70,8 @@ export function ExportFullEvidenceBundleModal({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm text-slate-700">
           <p className="text-xs text-slate-500">
-            Options are captured for the export manifest. The current build still streams a JSON stub from the API; toggles
-            shape the payload metadata where supported.
+            Options are captured for the export manifest. This build downloads JSON from the API; toggles shape payload
+            metadata. ZIP packaging is not available yet.
           </p>
           <label className="flex cursor-pointer items-center gap-2">
             <input type="checkbox" className="size-4 rounded border-slate-300" checked={includeFiles} onChange={(e) => setIncludeFiles(e.target.checked)} />
@@ -168,6 +168,7 @@ export function ExportFullEvidenceBundleModal({
                   includeChecksums,
                   includeAuditManifest,
                   redactRestricted,
+                  includeGateDecisionRecord: false,
                 }),
               ).finally(() => onClose())
             }

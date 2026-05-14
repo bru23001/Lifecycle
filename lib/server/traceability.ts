@@ -15,6 +15,7 @@
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
+import { evidenceLinkedToGate } from "@/lib/evidence-gate-links";
 import {
   artifactDetailPath,
   evidenceDetailPath,
@@ -175,7 +176,7 @@ export async function loadTraceabilityMatrix(
       features: true,
       traceLinks: { where: { deletedAt: null }, orderBy: { createdAt: "desc" } },
       gateDecisions: { orderBy: { createdAt: "desc" } },
-      evidenceItems: true,
+      evidenceItems: { include: { gateLinks: true } },
       approvals: {
         where: { approvalType: "gate_review" },
         orderBy: { updatedAt: "desc" },
@@ -292,9 +293,7 @@ export async function loadTraceabilityMatrix(
     const rule = gateRuleByCode.get(gate);
     const requiredEvidence = rule?.requiredEvidenceCount ?? 0;
     const gateNorm = gate;
-    const evidenceLinked = project.evidenceItems.filter(
-      (e) => normalizeEvidenceGate(e.gateCode) === gateNorm,
-    ).length;
+    const evidenceLinked = project.evidenceItems.filter((e) => evidenceLinkedToGate(e, gateNorm)).length;
     const { percent, status } = coverageFromRatio(
       requiredEvidence > 0 ? Math.min(evidenceLinked, requiredEvidence) : evidenceLinked,
       requiredEvidence,
@@ -347,15 +346,16 @@ export async function loadTraceabilityMatrix(
 
   const evidenceApprovalLinks: EvidenceApprovalCoverage[] = [];
   for (const ev of project.evidenceItems) {
-    const g = normalizeEvidenceGate(ev.gateCode);
-    if (!g) continue;
-    const approval = project.approvals.find((a) => {
-      const ag = a.gateId ? normalizeGateParam(a.gateId) : null;
-      return ag === g;
-    });
-    if (!approval) continue;
-    const id = `${EA_PREFIX}${ev.id}:${approval.id}`;
-    const st = approval.status;
+    for (const gateCode of ALL_GATES) {
+      if (!evidenceLinkedToGate(ev, gateCode)) continue;
+      const g = normalizeGateParam(gateCode);
+      const approval = project.approvals.find((a) => {
+        const ag = a.gateId ? normalizeGateParam(a.gateId) : null;
+        return ag === g;
+      });
+      if (!approval) continue;
+      const id = `${EA_PREFIX}${ev.id}:${approval.id}`;
+      const st = approval.status;
     const approvalStatus: EvidenceApprovalCoverage["approvalStatus"] =
       st === "approved" ? "approved"
       : st === "rejected" ? "rejected"
@@ -375,6 +375,7 @@ export async function loadTraceabilityMatrix(
       detailHref: traceLinkDetailPath(resolvedProjectId, id),
       rowUpdatedAt: ev.updatedAt.toISOString(),
     });
+    }
   }
 
   const reqById = new Map(project.requirements.map((r) => [r.id, r]));
@@ -454,9 +455,10 @@ export async function loadTraceabilityMatrix(
   }
 
   for (const e of project.evidenceItems) {
+    const linkedToAnyGate = ALL_GATES.some((g) => evidenceLinkedToGate(e, g));
     const g = normalizeEvidenceGate(e.gateCode);
     const linkedToGate = g && project.approvals.some((a) => (a.gateId ? normalizeGateParam(a.gateId) : null) === g);
-    if (!linkedToGate && g) {
+    if (!linkedToGate && linkedToAnyGate) {
       traceabilityGaps.push({
         id: `gap-ev-${e.id}`,
         type: "evidence_orphan",
