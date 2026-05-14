@@ -61,7 +61,6 @@ export function ApprovalFiltersDrawer({
 
   const handleApply = () => {
     onApply({
-      ...filters,
       ...draft,
       search: filters.search,
       sort: filters.sort,
