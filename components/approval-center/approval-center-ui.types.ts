@@ -36,6 +36,17 @@ export const DEFAULT_QUEUE_FILTERS: QueueFilters = {
   blockedOnly: false,
 };
 
+/** Sort menu labels aligned with APPROVAL-CENTER spec (pending queue panel). */
+export const APPROVAL_SORT_OPTIONS: { value: QueueFilters["sort"]; label: string }[] = [
+  { value: "due", label: "Due date" },
+  { value: "priority", label: "Priority" },
+  { value: "submitted", label: "Submitted date" },
+  { value: "project", label: "Project name" },
+  { value: "type", label: "Approval type" },
+  { value: "status", label: "Status" },
+  { value: "updated", label: "Recently updated" },
+];
+
 export const QUEUE_TABS: { id: ApprovalQueueTab; label: string }[] = [
   { id: "pending", label: "Pending" },
   { id: "my_reviews", label: "My reviews" },
