@@ -1,18 +1,22 @@
 "use client";
 
-import { Filter, Search } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { ChevronDown, Filter, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { approvalPriorityBadgeMap } from "@/lib/approval-status";
 import type { ApprovalHistoryEvent, ApprovalQueueTab, PendingApproval } from "@/types/approval-center.types";
 import { Badge } from "@/components/approval-center/approval-center-shared";
-import { QUEUE_TABS } from "@/components/approval-center/approval-center-ui.types";
+import { APPROVAL_SORT_OPTIONS, QUEUE_TABS } from "@/components/approval-center/approval-center-ui.types";
 import type { QueueFilters } from "@/components/approval-center/approval-center-ui.types";
+import { ApprovalFiltersDrawer } from "@/components/approval-center/approval-filters-drawer";
 
 type PendingApprovalsPanelProps = {
   queueTab: ApprovalQueueTab;
   queueRows: PendingApproval[];
+  unfilteredTabRows: PendingApproval[];
   selectedApprovalId: string;
   filters: QueueFilters;
   isLoading: boolean;
@@ -23,9 +27,28 @@ type PendingApprovalsPanelProps = {
   onClearFilters: () => void;
 };
 
+function queueFiltersActive(f: QueueFilters): boolean {
+  return (
+    f.type !== "all" ||
+    f.status !== "all" ||
+    f.priority !== "all" ||
+    f.projectId !== "all" ||
+    f.phase !== "all" ||
+    f.gate !== "all" ||
+    f.submitterContains.trim() !== "" ||
+    f.approverContains.trim() !== "" ||
+    f.dueFrom.trim() !== "" ||
+    f.dueTo.trim() !== "" ||
+    f.overdueOnly ||
+    f.blockedOnly ||
+    f.search.trim() !== ""
+  );
+}
+
 export function PendingApprovalsPanel({
   queueTab,
   queueRows,
+  unfilteredTabRows,
   selectedApprovalId,
   filters,
   isLoading,
@@ -35,22 +58,97 @@ export function PendingApprovalsPanel({
   onSelectApproval,
   onClearFilters,
 }: PendingApprovalsPanelProps) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const filtersActive = queueFiltersActive(filters);
+  const sortLabel = APPROVAL_SORT_OPTIONS.find((o) => o.value === filters.sort)?.label ?? "Sort";
+
   return (
     <section
       data-pane="queue"
       className="pending-approvals-panel min-w-0 rounded-2xl border border-[#e5e7eb] bg-white p-3 shadow-sm flex h-full min-h-0 flex-col overflow-hidden"
     >
+      <ApprovalFiltersDrawer
+        open={filtersOpen}
+        filters={filters}
+        tabRows={unfilteredTabRows}
+        onClose={() => setFiltersOpen(false)}
+        onApply={(next) => onFilterChange(next)}
+        onReset={onClearFilters}
+      />
+
       <header className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-[#111827]">Pending Approvals</h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="truncate text-base font-semibold text-[#111827]">Pending Approvals</h2>
+            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
               {queueTab === "history" ? mergedHistoryEvents.length : queueRows.length}
             </span>
           </div>
-          <Button type="button" variant="outline" size="icon-sm" aria-label="Filter approvals">
-            <Filter className="size-4" aria-hidden />
-          </Button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSortMenuOpen((o) => !o)}
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-400"
+                aria-expanded={sortMenuOpen}
+                aria-haspopup="listbox"
+                aria-label="Sort approvals"
+              >
+                {sortLabel}
+                <ChevronDown className="size-3.5 opacity-70" aria-hidden />
+              </button>
+              {sortMenuOpen ? (
+                <>
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-10 cursor-default bg-transparent"
+                    aria-label="Dismiss sort menu"
+                    onClick={() => setSortMenuOpen(false)}
+                  />
+                  <ul
+                    role="listbox"
+                    aria-label="Sort by"
+                    className="absolute right-0 z-20 mt-1 max-h-64 min-w-[11rem] overflow-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg"
+                  >
+                    {APPROVAL_SORT_OPTIONS.map((opt) => {
+                      const active = filters.sort === opt.value;
+                      return (
+                        <li key={opt.value}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={active}
+                            className={cn(
+                              "flex w-full px-3 py-2 text-left text-[13px] outline-none hover:bg-slate-50 focus-visible:bg-slate-50",
+                              active ? "bg-blue-50 font-semibold text-blue-900" : "text-slate-800",
+                            )}
+                            onClick={() => {
+                              onFilterChange({ ...filters, sort: opt.value });
+                              setSortMenuOpen(false);
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Open approval filters"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen(true)}
+              className={cn(filtersActive && "ring-2 ring-blue-400 ring-offset-1")}
+            >
+              <Filter className="size-4" aria-hidden />
+            </Button>
+          </div>
         </div>
         <div role="tablist" aria-label="Approval queues" className="flex flex-wrap gap-1.5">
           {QUEUE_TABS.map((tab) => {
@@ -75,75 +173,22 @@ export function PendingApprovalsPanel({
       </header>
 
       {queueTab !== "history" ? (
-        <>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden />
-            <input
-              type="search"
-              value={filters.search}
-              onChange={(event) => onFilterChange({ ...filters, search: event.target.value })}
-              placeholder="Search approvals..."
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Search approvals"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-1.5">
-            <select
-              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-[11px]"
-              value={filters.type}
-              onChange={(event) => onFilterChange({ ...filters, type: event.target.value as QueueFilters["type"] })}
-              aria-label="Filter by approval type"
-            >
-              <option value="all">All Types</option>
-              <option value="gate_review">Gate Review</option>
-              <option value="artifact_review">Artifact Review</option>
-              <option value="phase_approval">Phase Approval</option>
-              <option value="exception_approval">Exception Approval</option>
-              <option value="funding_approval">Funding Approval</option>
-            </select>
-            <select
-              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-[11px]"
-              value={filters.status}
-              onChange={(event) => onFilterChange({ ...filters, status: event.target.value as QueueFilters["status"] })}
-              aria-label="Filter by approval status"
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_review">In Review</option>
-              <option value="overdue">Overdue</option>
-              <option value="blocked">Blocked</option>
-            </select>
-            <select
-              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-[11px]"
-              value={filters.priority}
-              onChange={(event) => onFilterChange({ ...filters, priority: event.target.value as QueueFilters["priority"] })}
-              aria-label="Filter by approval priority"
-            >
-              <option value="all">All Priorities</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
-            <select
-              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-[11px]"
-              value={filters.sort}
-              onChange={(event) => onFilterChange({ ...filters, sort: event.target.value as QueueFilters["sort"] })}
-              aria-label="Sort approvals"
-            >
-              <option value="due">Sort: Due Date</option>
-              <option value="priority">Sort: Priority</option>
-              <option value="submitted">Sort: Submitted</option>
-              <option value="project">Sort: Project</option>
-            </select>
-          </div>
-        </>
+        <div className="relative mt-2">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden />
+          <input
+            type="search"
+            value={filters.search}
+            onChange={(event) => onFilterChange({ ...filters, search: event.target.value })}
+            placeholder="Search approvals..."
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Search approvals"
+          />
+        </div>
       ) : (
-        <p className="text-xs text-slate-500">Consolidated timeline from all approval packages below.</p>
+        <p className="mt-2 text-xs text-slate-500">Consolidated timeline from all approval packages below.</p>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1 mt-2">
         {isLoading ? (
           <div className="space-y-2">
             <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
@@ -225,6 +270,17 @@ export function PendingApprovalsPanel({
           </ul>
         )}
       </div>
+
+      {queueTab !== "history" ? (
+        <footer className="mt-2 shrink-0 border-t border-slate-100 pt-2">
+          <Link
+            href="/approvals"
+            className="block w-full rounded-lg py-2 text-center text-[13px] font-semibold text-[#2563eb] hover:bg-blue-50/80 hover:underline"
+          >
+            View all approvals
+          </Link>
+        </footer>
+      ) : null}
     </section>
   );
 }
