@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import type { ReactNode } from "react";
+
 import { cn } from "@/lib/utils";
 import { historyToneMap } from "@/lib/approval-status";
 import type { ApprovalDecisionType, ApprovalHistoryEvent } from "@/types/approval-center.types";
@@ -37,19 +40,41 @@ export function decisionButtonTone(decision: ApprovalDecisionType, selected: boo
     : "border-red-200 bg-red-50 text-red-800 hover:bg-red-100";
 }
 
-export function TimelineEvent({ event }: { event: ApprovalHistoryEvent }) {
-  return (
-    <li className="relative pl-6">
-      <span className="absolute left-[4px] top-3 h-[calc(100%-4px)] w-px bg-slate-200" />
-      <span
-        className={cn("absolute left-0 top-1.5 size-2.5 rounded-full ring-2 ring-white", dotToneClass(historyToneMap[event.statusTone]))}
-      />
+export function TimelineEvent({
+  event,
+  onSelect,
+}: {
+  event: ApprovalHistoryEvent;
+  onSelect?: (event: ApprovalHistoryEvent) => void;
+}) {
+  const content = (
+    <>
       <p className="text-sm font-semibold text-slate-800">{event.title}</p>
       <p className="text-xs text-slate-500">
         {event.actorName}
         {event.actorRole ? ` (${event.actorRole})` : ""} · {event.timestampLabel}
       </p>
       {event.description ? <p className="mt-1 text-sm text-slate-600">{event.description}</p> : null}
+    </>
+  );
+
+  return (
+    <li className="relative pl-6">
+      <span className="absolute left-[4px] top-3 h-[calc(100%-4px)] w-px bg-slate-200" />
+      <span
+        className={cn("absolute left-0 top-1.5 size-2.5 rounded-full ring-2 ring-white", dotToneClass(historyToneMap[event.statusTone]))}
+      />
+      {onSelect ? (
+        <button
+          type="button"
+          className="block w-full rounded-md py-0.5 text-left outline-none ring-offset-background hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-400"
+          onClick={() => onSelect(event)}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="py-0.5">{content}</div>
+      )}
     </li>
   );
 }
@@ -67,6 +92,34 @@ export function MetaItem({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium text-slate-800">{value}</dd>
+    </div>
+  );
+}
+
+export function MetaItemLink({
+  label,
+  href,
+  children,
+  external,
+}: {
+  label: string;
+  href: string;
+  children: ReactNode;
+  /** When true, opens in a new tab (e.g. external share targets). */
+  external?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className="mt-0.5">
+        <Link
+          href={href}
+          className="text-sm font-semibold text-[#2563eb] hover:underline"
+          {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+        >
+          {children}
+        </Link>
+      </dd>
     </div>
   );
 }

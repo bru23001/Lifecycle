@@ -48,6 +48,16 @@ export type ApprovalDetail = {
   gateName?: string;
   /** Deep link to the canonical gate review route (when `approvalType` is `gate_review`). */
   gateReviewHref?: string;
+  /** Workspace deep link for the anchored phase (`?phase=`). */
+  workspaceHref?: string;
+  /** Artifact library (list) for the project. */
+  artifactsLibraryHref?: string;
+  /** Evidence hub (list) for the project. */
+  evidenceListHref?: string;
+  /** First artifact detail when multiple exist (gate packages). */
+  primaryArtifactDetailHref?: string;
+  /** First evidence detail when any exist. */
+  primaryEvidenceDetailHref?: string;
   status: "pending" | "in_review" | "approved" | "rejected" | "changes_requested" | "superseded" | "overdue" | "blocked";
   submittedBy: string;
   submittedOnLabel: string;
@@ -65,6 +75,8 @@ export type ApprovalRequiredInput = {
   name: string;
   description: string;
   status: "missing" | "incomplete" | "complete" | "needs_review";
+  /** Defaults to required when omitted (server / UI). */
+  requiredLevel?: "required" | "optional";
   linkedObjectLabel?: string;
   linkedObjectHref?: string;
 };
@@ -78,6 +90,14 @@ export type ApproverComment = {
   createdOnLabel: string;
   body: string;
   visibility: "internal" | "public_to_project";
+  /** Nested replies until a threaded API exists. */
+  replies?: ApproverComment[];
+  linkedEvidenceHref?: string;
+  linkedEvidenceLabel?: string;
+  resolved?: boolean;
+  relatedInputCode?: string;
+  /** Free-text mention line captured in the add-comment modal. */
+  mentionPreview?: string;
 };
 
 export type ApprovalDecisionType = "approve" | "request_changes" | "reject";
@@ -90,10 +110,14 @@ export type ApprovalDecisionDraft = {
   conditions: string[];
   canSubmit: boolean;
   blockers: string[];
+  /** Reject flow: whether submitter may resubmit after rejection (UI + audit line). */
+  resubmissionAllowed?: boolean;
 };
 
 export type ApprovalHistoryEvent = {
   id: string;
+  /** Owning approval package (set on merge for consolidated timeline). */
+  approvalId?: string;
   eventType:
     | "submitted"
     | "review_started"
@@ -102,13 +126,75 @@ export type ApprovalHistoryEvent = {
     | "approved"
     | "changes_requested"
     | "rejected"
-    | "resubmitted";
+    | "resubmitted"
+    | "approver_added"
+    | "approver_reassigned"
+    | "approver_reminder_sent"
+    | "approval_escalated"
+    | "attachment_uploaded"
+    | "queue_bulk_action";
   title: string;
   actorName: string;
   actorRole?: string;
   timestampLabel: string;
   description?: string;
   statusTone: "blue" | "green" | "amber" | "red" | "gray";
+  relatedObjectLabel?: string;
+  relatedObjectHref?: string;
+  beforeValue?: string;
+  afterValue?: string;
+  /** Stable id for linked audit drawer / exports. */
+  auditRecordId?: string;
+};
+
+/** Immutable audit trail row (UI); may be synthesized from history until audit API exists. */
+export type ApprovalAuditRecord = {
+  id: string;
+  eventType: string;
+  actorName: string;
+  actorRole?: string;
+  timestampLabel: string;
+  objectChangedLabel: string;
+  objectChangedHref?: string;
+  beforeValue?: string;
+  afterValue?: string;
+  integrityHash: string;
+};
+
+export type ApprovalAttachmentClassification = "public" | "internal" | "confidential";
+
+export type ApprovalAttachmentLink =
+  | { kind: "none" }
+  | { kind: "required_input"; inputId: string; inputName: string; href?: string }
+  | { kind: "evidence"; label: string; href?: string }
+  | { kind: "comment"; commentId: string; preview: string };
+
+export type ApprovalAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeLabel: string;
+  attachmentType: string;
+  description?: string;
+  uploadedBy: string;
+  uploadedOnLabel: string;
+  classification: ApprovalAttachmentClassification;
+  link: ApprovalAttachmentLink;
+  /** Shown when inline preview is unavailable (no blob URL). */
+  previewHint?: string;
+};
+
+export type ApprovalApproverReviewStatus = "pending" | "in_review" | "completed" | "declined";
+
+export type ApprovalApprover = {
+  id: string;
+  name: string;
+  role: string;
+  initials: string;
+  reviewStatus: ApprovalApproverReviewStatus;
+  reviewComments?: string;
+  reviewedOnLabel?: string;
+  assignedInputLabels?: string[];
 };
 
 export type ApprovalActionState = {
@@ -123,6 +209,10 @@ export type ApprovalPackage = {
   detail: ApprovalDetail;
   requiredInputs: ApprovalRequiredInput[];
   comments: ApproverComment[];
+  /** Assigned reviewers (client-side workflow until API exists). */
+  approvers: ApprovalApprover[];
+  /** Package attachments (seeded server-side; uploads are client-side until API exists). */
+  attachments: ApprovalAttachment[];
   decisionDraft: ApprovalDecisionDraft;
   history: ApprovalHistoryEvent[];
   actionState: ApprovalActionState;

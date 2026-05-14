@@ -10,6 +10,9 @@ type ApprovalActionBarProps = {
   submitHelperId: string;
   onSaveReview: () => void;
   onSubmitDecision: () => void;
+  /** When true, Submit Decision does not run (e.g. gate review placeholder). */
+  submitDisabled?: boolean;
+  saveNotice?: string | null;
 };
 
 export function ApprovalActionBar({
@@ -17,6 +20,8 @@ export function ApprovalActionBar({
   submitHelperId,
   onSaveReview,
   onSubmitDecision,
+  submitDisabled = false,
+  saveNotice,
 }: ApprovalActionBarProps) {
   return (
     <footer className="approval-action-bar shrink-0 border-t border-[#e5e7eb] bg-white px-5 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] min-[901px]:px-8">
@@ -28,25 +33,28 @@ export function ApprovalActionBar({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
         {!selectedActionState.canSubmitDecision && selectedActionState.submitBlockers.length > 0 ? (
           <>
             <p id={submitHelperId} className="sr-only">
-              Submit disabled: {selectedActionState.submitBlockers.join(" ")}
+              Submit blocked: {selectedActionState.submitBlockers.join(" ")}
             </p>
             <p className="hidden max-w-md text-right text-xs text-slate-500 min-[901px]:block">
               {selectedActionState.submitBlockers.join(" · ")}
             </p>
           </>
         ) : null}
-        <Button type="button" variant="outline" size="lg" disabled={!selectedActionState.canSaveReview} onClick={onSaveReview}>
-          Save Review
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {saveNotice ? <span className="text-xs font-medium text-emerald-700">{saveNotice}</span> : null}
+          <Button type="button" variant="outline" size="lg" disabled={!selectedActionState.canSaveReview} onClick={onSaveReview}>
+            Save Review
+          </Button>
+        </div>
         <Button
           type="button"
           size="lg"
           className="gap-2 bg-[#2563eb] text-white hover:bg-blue-700"
-          disabled={!selectedActionState.canSubmitDecision}
+          disabled={submitDisabled}
           aria-describedby={!selectedActionState.canSubmitDecision ? submitHelperId : undefined}
           onClick={onSubmitDecision}
         >

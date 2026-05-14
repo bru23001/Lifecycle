@@ -21,10 +21,18 @@ type PendingApprovalsPanelProps = {
   filters: QueueFilters;
   isLoading: boolean;
   mergedHistoryEvents: ApprovalHistoryEvent[];
+  /** Deep link to full history for the currently selected approval (history tab). */
+  fullHistoryHref?: string;
   onQueueTabChange: (tab: ApprovalQueueTab) => void;
   onFilterChange: (next: QueueFilters) => void;
   onSelectApproval: (approvalId: string) => void;
   onClearFilters: () => void;
+  onHistoryEventClick: (event: ApprovalHistoryEvent) => void;
+  /** When true, queue rows show bulk checkboxes (non-history tabs). */
+  bulkSelectEnabled?: boolean;
+  bulkSelectedIds?: ReadonlySet<string>;
+  onToggleBulkSelect?: (approvalId: string) => void;
+  onSelectAllBulkVisible?: () => void;
 };
 
 function queueFiltersActive(f: QueueFilters): boolean {
@@ -53,10 +61,16 @@ export function PendingApprovalsPanel({
   filters,
   isLoading,
   mergedHistoryEvents,
+  fullHistoryHref,
   onQueueTabChange,
   onFilterChange,
   onSelectApproval,
   onClearFilters,
+  onHistoryEventClick,
+  bulkSelectEnabled = false,
+  bulkSelectedIds,
+  onToggleBulkSelect,
+  onSelectAllBulkVisible,
 }: PendingApprovalsPanelProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
@@ -79,11 +93,20 @@ export function PendingApprovalsPanel({
 
       <header className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <h2 className="truncate text-base font-semibold text-[#111827]">Pending Approvals</h2>
             <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
               {queueTab === "history" ? mergedHistoryEvents.length : queueRows.length}
             </span>
+            {bulkSelectEnabled && queueRows.length > 0 ? (
+              <button
+                type="button"
+                className="shrink-0 text-[11px] font-semibold text-[#2563eb] hover:underline"
+                onClick={() => onSelectAllBulkVisible?.()}
+              >
+                Select all
+              </button>
+            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="relative">
@@ -203,16 +226,22 @@ export function PendingApprovalsPanel({
           ) : (
             <ul className="space-y-2" aria-label="Approval history timeline">
               {mergedHistoryEvents.map((ev) => (
-                <li key={ev.id} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm shadow-sm">
-                  <p className="font-semibold text-slate-800">{ev.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {ev.actorName}
-                    {ev.actorRole ? ` · ${ev.actorRole}` : ""} · {ev.timestampLabel}
-                  </p>
-                  {ev.description ? <p className="mt-2 text-slate-600">{ev.description}</p> : null}
-                  <span className="mt-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-                    {ev.eventType.replaceAll("_", " ")}
-                  </span>
+                <li key={ev.id}>
+                  <button
+                    type="button"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-sm shadow-sm outline-none transition hover:border-blue-200 hover:bg-blue-50/40 focus-visible:ring-2 focus-visible:ring-blue-400"
+                    onClick={() => onHistoryEventClick(ev)}
+                  >
+                    <p className="font-semibold text-slate-800">{ev.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {ev.actorName}
+                      {ev.actorRole ? ` · ${ev.actorRole}` : ""} · {ev.timestampLabel}
+                    </p>
+                    {ev.description ? <p className="mt-2 text-slate-600">{ev.description}</p> : null}
+                    <span className="mt-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                      {ev.eventType.replaceAll("_", " ")}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -228,13 +257,26 @@ export function PendingApprovalsPanel({
           <ul className="space-y-2" role="listbox" aria-label="Approval queue">
             {queueRows.map((row) => {
               const selected = row.id === selectedApprovalId;
+              const bulkOn = bulkSelectEnabled && bulkSelectedIds && onToggleBulkSelect;
+              const isBulkChecked = bulkOn ? bulkSelectedIds.has(row.id) : false;
               return (
-                <li key={row.id}>
+                <li key={row.id} className="flex gap-1.5">
+                  {bulkOn ? (
+                    <label className="flex shrink-0 cursor-pointer items-start pt-3">
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-slate-300"
+                        checked={isBulkChecked}
+                        onChange={() => onToggleBulkSelect(row.id)}
+                        aria-label={`Select ${row.title} for bulk actions`}
+                      />
+                    </label>
+                  ) : null}
                   <div
                     role="option"
                     tabIndex={0}
                     className={cn(
-                      "w-full rounded-xl border px-3 py-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-blue-400",
+                      "min-w-0 flex-1 rounded-xl border px-3 py-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-blue-400",
                       selected ? "border-blue-300 bg-blue-50 shadow-[0_0_0_1px_rgba(37,99,235,0.25)]" : "border-slate-200 bg-white hover:bg-slate-50",
                     )}
                     aria-selected={selected}
@@ -278,6 +320,15 @@ export function PendingApprovalsPanel({
             className="block w-full rounded-lg py-2 text-center text-[13px] font-semibold text-[#2563eb] hover:bg-blue-50/80 hover:underline"
           >
             View all approvals
+          </Link>
+        </footer>
+      ) : fullHistoryHref ? (
+        <footer className="mt-2 shrink-0 border-t border-slate-100 pt-2">
+          <Link
+            href={fullHistoryHref}
+            className="block w-full rounded-lg py-2 text-center text-[13px] font-semibold text-[#2563eb] hover:bg-blue-50/80 hover:underline"
+          >
+            View full history
           </Link>
         </footer>
       ) : null}

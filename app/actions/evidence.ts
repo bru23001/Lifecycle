@@ -5,8 +5,11 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/server/audit";
+import { ALL_GATES } from "@/lib/server/helpers";
 import { getCurrentUserDisplay, requireCurrentUser } from "@/lib/server/current-user";
 import { toUserMessage } from "@/lib/toUserMessage";
+import type { GateId } from "@/lib/gateRules";
+import { getTemplatesForGate } from "@/templates/registry";
 
 const gateCodeSchema = z
   .string()
@@ -322,6 +325,169 @@ export async function unlinkEvidenceFromWorkspace(
 
     revalidateEvidenceSurfaces(input.projectId);
     return { ok: true };
+  } catch (e) {
+    return { ok: false, error: toUserMessage(e) };
+  }
+}
+
+const updateMetadataSchema = z.object({
+  projectId: z.string().min(1),
+  evidenceId: z.string().min(1),
+  name: z.string().trim().min(2).max(200),
+  description: z.string().max(8000),
+  evidenceType: z.enum([
+    "pdf",
+    "spreadsheet",
+    "document",
+    "image",
+    "link",
+    "json",
+    "markdown",
+    "report",
+  ]),
+  classification: z.enum(["public", "internal", "confidential", "restricted"]),
+  retentionPolicyLabel: z.string().max(120).optional().nullable(),
+  notes: z.string().max(8000).optional().nullable(),
+  tags: z.array(z.string().max(64)).max(40).default([]),
+  source: z.string().max(2000).optional().nullable(),
+});
+
+export type EvidenceMutationResult = { ok: true } | { ok: false; error: string };
+
+export async function updateEvidenceMetadata(raw: z.infer<typeof updateMetadataSchema>): Promise<EvidenceMutationResult> {
+  try {
+    await requireCurrentUser();
+    const parsed = updateMetadataSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    }
+    const v = parsed.data;
+    const ev = await prisma.evidenceItem.findFirst({
+      where: { id: v.evidenceId, projectId: v.projectId },
+    });
+    if (!ev) return { ok: false, error: "Evidence item not found." };
+
+    await prisma.evidenceItem.update({
+      where: { id: ev.id },
+      data: {
+        name: v.name,
+        description: v.description,
+        evidenceType: v.evidenceType,
+        classification: v.classification,
+        retentionPolicyLabel: v.retentionPolicyLabel?.trim() || null,
+        notes: v.notes?.trim() || null,
+        tagsJson: v.tags,
+        fileTypeLabel: v.evidenceType,
+        source: v.source?.trim() || null,
+      },
+    });
+
+    await recordAudit({
+      action: "evidence.metadata_updated",
+      subjectKind: "evidence_item",
+      subjectId: ev.id,
+      projectId: v.projectId,
+      metadata: { evidenceCode: ev.evidenceCode },
+    });
+
+    revalidateEvidenceSurfaces(v.projectId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: toUserMessage(e) };
+  }
+}
+
+const evidenceIdProjectSchema = z.object({
+  projectId: z.string().min(1),
+  evidenceId: z.string().min(1),
+});
+
+export async function archiveEvidenceItem(raw: z.infer<typeof evidenceIdProjectSchema>): Promise<EvidenceMutationResult> {
+  try {
+    await requireCurrentUser();
+    const parsed = evidenceIdProjectSchema.safeParse(raw);
+    if (!parsed.success) return { ok: false, error: "Invalid input." };
+    const { projectId, evidenceId } = parsed.data;
+
+    const ev = await prisma.evidenceItem.findFirst({ where: { id: evidenceId, projectId } });
+    if (!ev) return { ok: false, error: "Evidence item not found." };
+
+    await prisma.evidenceItem.update({
+      where: { id: ev.id },
+      data: { status: "archived" },
+    });
+
+    await recordAudit({
+      action: "evidence.item_archived",
+      subjectKind: "evidence_item",
+      subjectId: ev.id,
+      projectId,
+      metadata: { evidenceCode: ev.evidenceCode },
+    });
+
+    revalidateEvidenceSurfaces(projectId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: toUserMessage(e) };
+  }
+}
+
+export async function deleteEvidenceItem(raw: z.infer<typeof evidenceIdProjectSchema>): Promise<EvidenceMutationResult> {
+  try {
+    await requireCurrentUser();
+    const parsed = evidenceIdProjectSchema.safeParse(raw);
+    if (!parsed.success) return { ok: false, error: "Invalid input." };
+    const { projectId, evidenceId } = parsed.data;
+
+    const ev = await prisma.evidenceItem.findFirst({ where: { id: evidenceId, projectId } });
+    if (!ev) return { ok: false, error: "Evidence item not found." };
+
+    await prisma.evidenceItem.delete({ where: { id: ev.id } });
+
+    await recordAudit({
+      action: "evidence.item_deleted",
+      subjectKind: "evidence_item",
+      subjectId: evidenceId,
+      projectId,
+      metadata: { evidenceCode: ev.evidenceCode },
+    });
+
+    revalidateEvidenceSurfaces(projectId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: toUserMessage(e) };
+  }
+}
+
+const linkGateOnlySchema = z.object({
+  projectId: z.string().min(1),
+  evidenceId: z.string().min(1),
+  gateCode: z.string().regex(/^G(10|[1-9])$/i),
+  rationale: z.string().min(1).max(2000),
+});
+
+export async function linkEvidenceToGate(raw: z.infer<typeof linkGateOnlySchema>): Promise<LinkEvidencePhaseResult> {
+  try {
+    await requireCurrentUser();
+    const parsed = linkGateOnlySchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    }
+    const gate = parsed.data.gateCode.toUpperCase() as GateId;
+    if (!ALL_GATES.includes(gate)) {
+      return { ok: false, error: "Unsupported gate." };
+    }
+    const templates = getTemplatesForGate(gate);
+    const phaseNumber = templates[0]?.phase ?? 1;
+
+    return linkEvidenceToWorkspacePhase({
+      projectId: parsed.data.projectId,
+      evidenceId: parsed.data.evidenceId,
+      phaseNumber,
+      gateCode: gate,
+      artifactId: null,
+      rationale: parsed.data.rationale,
+    });
   } catch (e) {
     return { ok: false, error: toUserMessage(e) };
   }

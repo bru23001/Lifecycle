@@ -1,7 +1,8 @@
-import { ApprovalCenterPage } from "@/components/approval-center/approval-center-page";
+import { redirect } from "next/navigation";
+
 import { loadApprovalCenterData } from "@/lib/server/approvals";
 
-export default async function ApprovalsPage() {
+export default async function ApprovalsIndexPage() {
   const data = await loadApprovalCenterData();
-  return <ApprovalCenterPage initial={data} />;
+  redirect(`/approvals/${data.selectedApproval.detail.id}`);
 }

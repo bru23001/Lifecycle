@@ -11,11 +11,13 @@ import {
   clampWorkspacePhase,
 } from "@/lib/workspacePhases";
 import type {
+  ApprovalApprover,
+  ApprovalAttachment,
   ApprovalCenterData,
-  ApprovalPackage,
-  ApproverComment,
   ApprovalDetail,
   ApprovalHistoryEvent,
+  ApprovalPackage,
+  ApproverComment,
   PendingApproval,
 } from "@/types/approval-center.types";
 
@@ -30,6 +32,14 @@ const approvalListInclude = {
     include: {
       gateDecisions: { orderBy: { createdAt: "desc" as const } },
       artifacts: true,
+      evidenceItems: {
+        take: 1,
+        orderBy: { updatedAt: "desc" as const },
+        select: { id: true },
+      },
+      _count: {
+        select: { evidenceItems: true },
+      },
     },
   },
   comments: {
@@ -160,33 +170,167 @@ function mapComments(row: LoadedApproval, fallbackName: string): ApproverComment
 }
 
 function buildHistory(row: LoadedApproval, submittedLabel: string): ApprovalHistoryEvent[] {
+  const aid = row.id;
+  const gateReviewHref =
+    row.approvalType === "gate_review" && row.gateId && row.project ?
+      `/projects/${row.project.id}/gates/${(row.gateId as string).toLowerCase()}/review`
+    : undefined;
+  const workspaceHref = row.project ? `/projects/${row.project.id}/workspace` : undefined;
+  const relatedObjectLabel =
+    row.approvalType === "gate_review" && row.gateId && row.project ?
+      `${row.gateId} — ${gateHeaderDisplayName(row.gateId as GateId)}`
+    : row.artifact ?
+      `${row.artifact.templateId} · ${row.artifact.localId}`
+    : row.project?.name ?? "Approval package";
+
   const events: ApprovalHistoryEvent[] = [
     {
-      id: `${row.id}-h-submitted`,
+      id: `${aid}-h-submitted`,
+      approvalId: aid,
       eventType: "submitted",
       title:
         row.approvalType === "gate_review" ? "Gate ready for review" : "Artifact draft submitted",
       actorName: submittedLabel,
+      actorRole: "Submitter",
       timestampLabel: formatDateTimeLabel(row.createdAt),
       description:
         row.approvalType === "gate_review"
           ? "Lifecycle phase allows this gate review."
           : "Draft queued for artifact review.",
       statusTone: "blue",
+      relatedObjectLabel,
+      relatedObjectHref: gateReviewHref ?? workspaceHref,
+      beforeValue: "Not submitted",
+      afterValue: "Submitted for review",
+      auditRecordId: `${aid}-aud-submitted`,
     },
   ];
   for (const c of row.comments) {
     events.push({
       id: `hist-${c.id}`,
+      approvalId: aid,
       eventType: "comment_added",
       title: "Comment added",
       actorName: c.author?.name?.trim() || submittedLabel,
+      actorRole: c.author?.role?.trim() || "Reviewer",
       timestampLabel: formatDateTimeLabel(c.createdAt),
       description: c.body.slice(0, 200),
       statusTone: "blue",
+      relatedObjectLabel: "Comment thread",
+      relatedObjectHref: gateReviewHref ?? workspaceHref,
+      auditRecordId: `${aid}-aud-comment-${c.id}`,
     });
   }
   return events;
+}
+
+function buildApproversForPackage(opts: {
+  approvalType: ApprovalDetail["approvalType"];
+  inputNames: string[];
+  primaryInputLabel?: string;
+}): ApprovalApprover[] {
+  const fallbackLabels =
+    opts.inputNames.length > 0 ? opts.inputNames : (["Package checklist", "Linked evidence"] as const);
+  if (opts.approvalType === "artifact_review") {
+    const label = opts.primaryInputLabel ?? fallbackLabels[0] ?? "Primary input";
+    return [
+      {
+        id: "apr-primary",
+        name: "Jordan Lee",
+        role: "Artifact reviewer",
+        initials: "JL",
+        reviewStatus: "in_review",
+        reviewComments: "Reviewing latest draft.",
+        assignedInputLabels: [label],
+      },
+    ];
+  }
+  return [
+    {
+      id: "apr-1",
+      name: "Jordan Lee",
+      role: "Technical reviewer",
+      initials: "JL",
+      reviewStatus: "in_review",
+      reviewComments: undefined,
+      reviewedOnLabel: undefined,
+      assignedInputLabels: [fallbackLabels[0] ?? "Gate checklist", fallbackLabels[1] ?? "Evidence bundle"].filter(Boolean),
+    },
+    {
+      id: "apr-2",
+      name: "Taylor Chen",
+      role: "Program manager",
+      initials: "TC",
+      reviewStatus: "pending",
+      assignedInputLabels: ["Stakeholder sign-off"],
+    },
+  ];
+}
+
+function buildSeedAttachments(
+  approvalId: string,
+  submittedByLabel: string,
+  opts: {
+    approvalType: ApprovalDetail["approvalType"];
+    requiredInputs: ApprovalPackage["requiredInputs"];
+    evidenceListHref?: string;
+  },
+): ApprovalAttachment[] {
+  const uploadedOnLabel = formatDateTimeLabel(new Date());
+  if (opts.approvalType === "gate_review") {
+    return [
+      {
+        id: `att-${approvalId}-gate-1`,
+        fileName: "Gate-review-summary.pdf",
+        mimeType: "application/pdf",
+        sizeLabel: "240 KB",
+        attachmentType: "Review packet",
+        description: "Compiled snapshots for reviewers.",
+        uploadedBy: submittedByLabel,
+        uploadedOnLabel,
+        classification: "internal",
+        link: { kind: "none" },
+        previewHint: "PDF preview opens in an external viewer after download.",
+      },
+      {
+        id: `att-${approvalId}-gate-2`,
+        fileName: "Evidence-index.xlsx",
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        sizeLabel: "88 KB",
+        attachmentType: "Evidence manifest",
+        description: "Row-level evidence pointers for this gate.",
+        uploadedBy: submittedByLabel,
+        uploadedOnLabel,
+        classification: "confidential",
+        link: opts.evidenceListHref
+          ? { kind: "evidence", label: "Evidence hub", href: opts.evidenceListHref }
+          : { kind: "evidence", label: "Evidence hub" },
+        previewHint: "Spreadsheet preview is not embedded in this view.",
+      },
+    ];
+  }
+  const inp = opts.requiredInputs[0];
+  return [
+    {
+      id: `att-${approvalId}-art-1`,
+      fileName: `${(inp?.name ?? "artifact").replace(/\s+/g, "_")}-reference.png`,
+      mimeType: "image/png",
+      sizeLabel: "128 KB",
+      attachmentType: "Supporting image",
+      uploadedBy: submittedByLabel,
+      uploadedOnLabel,
+      classification: "internal",
+      link: inp
+        ? {
+            kind: "required_input",
+            inputId: inp.id,
+            inputName: inp.name,
+            href: inp.linkedObjectHref,
+          }
+        : { kind: "none" },
+      previewHint: "PNG preview is available when the file is opened locally.",
+    },
+  ];
 }
 
 function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: string; initials: string }): ApprovalPackage {
@@ -198,27 +342,38 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
   if (row.approvalType === "gate_review" && row.gateId && row.project) {
     const gate = row.gateId as GateId;
     const anchorPhase = gateAnchorPhase(gate);
-    const gateReviewHref = `/projects/${row.project.id}/gates/${gate.toLowerCase()}/review`;
+    const pid = row.project.id;
+    const gateReviewHref = `/projects/${pid}/gates/${gate.toLowerCase()}/review`;
+    const firstEvidence = row.project.evidenceItems[0];
+    const artifacts = row.project.artifacts;
+    const primaryArtifact =
+      artifacts.length === 0 ? null : artifacts.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b));
+
     const detail: ApprovalDetail = {
       id,
       approvalCode: gate,
       title: `${gate} — ${gateHeaderDisplayName(gate)}`,
       description: `Gate review package for ${row.project.name}.`,
       approvalType: "gate_review",
-      projectId: row.project.id,
+      projectId: pid,
       projectName: row.project.name,
       phaseNumber: anchorPhase,
       phaseName: workspacePhaseMeta(anchorPhase).title,
       gateCode: gate,
       gateName: gateHeaderDisplayName(gate),
       gateReviewHref,
+      workspaceHref: `/projects/${pid}/workspace?phase=${anchorPhase}`,
+      artifactsLibraryHref: `/projects/${pid}/artifacts`,
+      evidenceListHref: `/projects/${pid}/evidence`,
+      primaryArtifactDetailHref: primaryArtifact ? `/projects/${pid}/artifacts/${primaryArtifact.id}` : undefined,
+      primaryEvidenceDetailHref: firstEvidence ? `/projects/${pid}/evidence/${firstEvidence.id}` : undefined,
       status: detailStatus,
       submittedBy: submittedLabel,
       submittedOnLabel: formatDateTimeLabel(row.updatedAt),
       dueDateLabel: "Open",
       priority,
-      linkedArtifactsCount: row.project.artifacts.length,
-      evidenceItemsCount: 0,
+      linkedArtifactsCount: artifacts.length,
+      evidenceItemsCount: row.project._count.evidenceItems,
       approversCount: 2,
       reviewType: "standard",
     };
@@ -233,10 +388,21 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
       blockers: [],
     };
     const history = buildHistory(row, submittedLabel);
+    const approvers = buildApproversForPackage({
+      approvalType: "gate_review",
+      inputNames: [],
+    });
+    const attachments = buildSeedAttachments(id, submittedLabel, {
+      approvalType: "gate_review",
+      requiredInputs: [],
+      evidenceListHref: detail.evidenceListHref,
+    });
     const base: ApprovalPackage = {
       detail,
       requiredInputs,
       comments,
+      approvers,
+      attachments,
       decisionDraft,
       history,
       actionState: {
@@ -253,21 +419,31 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
 
   const art = row.artifact!;
   const project = row.project!;
+  const phase = clampWorkspacePhase(project.currentPhase);
+  const firstEvidence = project.evidenceItems[0];
+  const pid = project.id;
   const detail: ApprovalDetail = {
     id,
     approvalCode: art.templateId,
     title: `${art.templateId} · ${art.localId}`,
     description: "Artifact draft pending approval.",
     approvalType: "artifact_review",
-    projectId: project.id,
+    projectId: pid,
     projectName: project.name,
+    phaseNumber: phase,
+    phaseName: workspacePhaseMeta(phase).title,
+    workspaceHref: `/projects/${pid}/workspace?phase=${phase}`,
+    artifactsLibraryHref: `/projects/${pid}/artifacts`,
+    evidenceListHref: `/projects/${pid}/evidence`,
+    primaryArtifactDetailHref: `/projects/${pid}/artifacts/${art.id}`,
+    primaryEvidenceDetailHref: firstEvidence ? `/projects/${pid}/evidence/${firstEvidence.id}` : undefined,
     status: detailStatus,
     submittedBy: submittedLabel,
     submittedOnLabel: formatDateTimeLabel(row.updatedAt),
     dueDateLabel: "Draft",
     priority,
     linkedArtifactsCount: 1,
-    evidenceItemsCount: 0,
+    evidenceItemsCount: project._count.evidenceItems,
     approversCount: 1,
     reviewType: "standard",
   };
@@ -278,6 +454,7 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
       name: art.localId,
       description: "Latest artifact version",
       status: "incomplete",
+      requiredLevel: "required",
       linkedObjectLabel: "Artifact",
       linkedObjectHref: `/projects/${project.id}/artifacts/${art.id}`,
     },
@@ -292,10 +469,22 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
     blockers: ["Approve artifact in Template / Artifact workflow."],
   };
   const history = buildHistory(row, submittedLabel);
+  const approvers = buildApproversForPackage({
+    approvalType: "artifact_review",
+    inputNames: requiredInputs.map((r) => r.name),
+    primaryInputLabel: requiredInputs[0]?.name,
+  });
+  const attachments = buildSeedAttachments(id, submittedLabel, {
+    approvalType: "artifact_review",
+    requiredInputs,
+    evidenceListHref: detail.evidenceListHref,
+  });
   const base: ApprovalPackage = {
     detail,
     requiredInputs,
     comments,
+    approvers,
+    attachments,
     decisionDraft,
     history,
     actionState: {
@@ -387,6 +576,8 @@ function emptyPackage(id: string, submittedByLabel: string): ApprovalPackage {
     },
     requiredInputs: [],
     comments: [],
+    approvers: [],
+    attachments: [],
     decisionDraft: {
       approvalId: id,
       comments: "",

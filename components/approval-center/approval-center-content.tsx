@@ -15,7 +15,7 @@ import type {
   ApproverComment,
   PendingApproval,
 } from "@/types/approval-center.types";
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
 
 type ApprovalCenterContentProps = {
   mobilePane: "queue" | "detail" | "review";
@@ -27,7 +27,9 @@ type ApprovalCenterContentProps = {
   filters: QueueFilters;
   isLoading: boolean;
   mergedHistoryEvents: ApprovalHistoryEvent[];
+  fullHistoryHref?: string;
   selectedPackage?: ApprovalPackage;
+  currentUser: { name: string; role: string; initials: string };
   commentDraft: string;
   commentVisibility: ApproverComment["visibility"];
   decisionDraft: ApprovalDecisionDraft;
@@ -39,12 +41,25 @@ type ApprovalCenterContentProps = {
   onFilterChange: (next: QueueFilters) => void;
   onSelectApproval: (approvalId: string) => void;
   onClearFilters: () => void;
+  onHistoryEventClick: (event: ApprovalHistoryEvent) => void;
   onCommentDraftChange: (value: string) => void;
   onCommentVisibilityChange: (value: ApproverComment["visibility"]) => void;
   onAddComment: () => void;
+  onAppendComment: (comment: ApproverComment) => void;
+  onReplaceComments: (next: ApproverComment[]) => void;
+  onPatchSelectedPackage: (updater: (prev: ApprovalPackage) => ApprovalPackage) => void;
   onDecisionDraftChange: Dispatch<SetStateAction<ApprovalDecisionDraft>>;
   onSaveReview: () => void;
   onSubmitDecision: () => void;
+  submitDisabled?: boolean;
+  saveNotice?: string | null;
+  reviewerDisplayName: string;
+  /** Renders above the three-pane grid (e.g. bulk selection toolbar). */
+  bulkToolbar?: ReactNode;
+  bulkSelectEnabled: boolean;
+  bulkSelectedIds: ReadonlySet<string>;
+  onToggleBulkSelect: (approvalId: string) => void;
+  onSelectAllBulkVisible: () => void;
 };
 
 export function ApprovalCenterContent({
@@ -56,7 +71,9 @@ export function ApprovalCenterContent({
   filters,
   isLoading,
   mergedHistoryEvents,
+  fullHistoryHref,
   selectedPackage,
+  currentUser,
   commentDraft,
   commentVisibility,
   decisionDraft,
@@ -68,15 +85,30 @@ export function ApprovalCenterContent({
   onFilterChange,
   onSelectApproval,
   onClearFilters,
+  onHistoryEventClick,
   onCommentDraftChange,
   onCommentVisibilityChange,
   onAddComment,
+  onAppendComment,
+  onReplaceComments,
+  onPatchSelectedPackage,
   onDecisionDraftChange,
   onSaveReview,
   onSubmitDecision,
+  submitDisabled,
+  saveNotice,
+  reviewerDisplayName,
+  bulkToolbar,
+  bulkSelectEnabled,
+  bulkSelectedIds,
+  onToggleBulkSelect,
+  onSelectAllBulkVisible,
 }: ApprovalCenterContentProps) {
   return (
     <>
+      {bulkToolbar ? (
+        <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pb-2 min-[901px]:px-8">{bulkToolbar}</div>
+      ) : null}
       <ApprovalCenterGrid
         mobilePane={mobilePane}
         left={
@@ -88,22 +120,32 @@ export function ApprovalCenterContent({
             filters={filters}
             isLoading={isLoading}
             mergedHistoryEvents={mergedHistoryEvents}
+            fullHistoryHref={fullHistoryHref}
             onQueueTabChange={onQueueTabChange}
             onFilterChange={onFilterChange}
             onSelectApproval={onSelectApproval}
             onClearFilters={onClearFilters}
+            onHistoryEventClick={onHistoryEventClick}
+            bulkSelectEnabled={bulkSelectEnabled}
+            bulkSelectedIds={bulkSelectedIds}
+            onToggleBulkSelect={onToggleBulkSelect}
+            onSelectAllBulkVisible={onSelectAllBulkVisible}
           />
         }
         center={
           <ApprovalDetailPanel
             selectedPackage={selectedPackage}
             isLoading={isLoading}
+            currentUser={currentUser}
             commentDraft={commentDraft}
             commentVisibility={commentVisibility}
             commentBoxRef={commentBoxRef}
             onCommentDraftChange={onCommentDraftChange}
             onCommentVisibilityChange={onCommentVisibilityChange}
             onAddComment={onAddComment}
+            onAppendComment={onAppendComment}
+            onReplaceComments={onReplaceComments}
+            onPatchSelectedPackage={onPatchSelectedPackage}
           />
         }
         right={
@@ -113,6 +155,8 @@ export function ApprovalCenterContent({
             selectedActionState={selectedActionState}
             decisionPanelRef={decisionPanelRef}
             onDecisionDraftChange={onDecisionDraftChange}
+            onHistoryEventClick={onHistoryEventClick}
+            reviewerDisplayName={reviewerDisplayName}
           />
         }
       />
@@ -122,6 +166,8 @@ export function ApprovalCenterContent({
         submitHelperId={submitHelperId}
         onSaveReview={onSaveReview}
         onSubmitDecision={onSubmitDecision}
+        submitDisabled={submitDisabled}
+        saveNotice={saveNotice}
       />
     </>
   );

@@ -5,7 +5,7 @@ import {
   createDecisionHistoryEvent,
   evaluateDecisionState,
 } from "@/lib/approval-decision";
-import type { ApprovalDecisionDraft, ApprovalPackage } from "@/types/approval-center.types";
+import type { ApprovalApprover, ApprovalAttachment, ApprovalDecisionDraft, ApprovalPackage } from "@/types/approval-center.types";
 
 function basePackage(overrides: Partial<ApprovalPackage> = {}): ApprovalPackage {
   const detail = {
@@ -20,9 +20,9 @@ function basePackage(overrides: Partial<ApprovalPackage> = {}): ApprovalPackage 
     submittedBy: "u",
     submittedOnLabel: "t",
     priority: "medium" as const,
-    linkedArtifactsCount: 0,
-    evidenceItemsCount: 0,
-    approversCount: 1,
+        linkedArtifactsCount: 0,
+        evidenceItemsCount: 1,
+        approversCount: 1,
     reviewType: "standard" as const,
     gateCode: "G2",
     gateName: "Feasibility",
@@ -41,6 +41,8 @@ function basePackage(overrides: Partial<ApprovalPackage> = {}): ApprovalPackage 
     detail,
     requiredInputs: [],
     comments: [],
+    approvers: [] satisfies ApprovalApprover[],
+    attachments: [] satisfies ApprovalAttachment[],
     decisionDraft,
     history: [],
     actionState: {
@@ -73,6 +75,7 @@ describe("evaluateDecisionState", () => {
         gateCode: undefined,
         gateName: undefined,
         gateReviewHref: undefined,
+        evidenceItemsCount: 1,
       },
       decisionDraft: {
         ...basePackage().decisionDraft,
