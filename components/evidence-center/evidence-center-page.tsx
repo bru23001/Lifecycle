@@ -9,6 +9,7 @@ import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { Button } from "@/components/ui/button";
 import { exportEvidenceBundle } from "@/lib/evidence-export";
+import type { ExportFullEvidenceBundleOptions } from "@/lib/evidence-export";
 import { projectOverviewHref } from "@/lib/projects-url";
 import type { EvidenceCenterData } from "@/types/evidence-center.types";
 
@@ -18,6 +19,7 @@ import { EvidenceCenterGrid } from "./evidence-center-grid";
 import { EvidenceCoveragePanel } from "./evidence-coverage-panel";
 import { EvidenceDetailPanel } from "./evidence-detail-panel";
 import { EvidenceItemsPanel } from "./evidence-items-panel";
+import { ExportFullEvidenceBundleModal } from "./export-full-evidence-bundle-modal";
 import { applyEvidenceFilters } from "./evidence-center-shared";
 import type { EvidenceFilters, EvidenceTab } from "./evidence-center-shared";
 
@@ -56,6 +58,7 @@ export function EvidenceCenterPage({
     view === "detail" ? "detail" : "items",
   );
   const [addEvidenceOpen, setAddEvidenceOpen] = useState(false);
+  const [exportFullOpen, setExportFullOpen] = useState(false);
 
   const selectedEvidence = initial.evidencePackages[selectedId];
   const activeEvidence = selectedEvidence ?? initial.selectedEvidence;
@@ -100,9 +103,22 @@ export function EvidenceCenterPage({
     scope: "selected" | "gate" | "full",
     ids: string[],
   ) => {
+    if (scope === "full") {
+      setExportFullOpen(true);
+      return;
+    }
     setError(null);
     try {
       await exportEvidenceBundle(initial, scope, ids);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Export failed.");
+    }
+  };
+
+  const runFullBundleExport = async (options: ExportFullEvidenceBundleOptions) => {
+    setError(null);
+    try {
+      await exportEvidenceBundle(initial, "full", selectedForExport, options);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed.");
     }
@@ -130,7 +146,7 @@ export function EvidenceCenterPage({
         userRole={initial.user.role}
         actionButtonLabel="Export Bundle"
         actionButtonAriaLabel="Export evidence bundle"
-        onActionButtonClick={() => void runExport("full", selectedForExport)}
+        onActionButtonClick={() => setExportFullOpen(true)}
       />
 
       <main
@@ -211,7 +227,16 @@ export function EvidenceCenterPage({
               />
             }
             detailPanel={
-              <EvidenceDetailPanel selectedEvidence={activeEvidence ?? null} selectedTab={selectedTab} onTabChange={setSelectedTab} />
+              <EvidenceDetailPanel
+                projectId={initial.project.id}
+                artifacts={initial.evidenceByArtifact.map((a) => ({
+                  id: a.artifactId,
+                  label: `${a.artifactLocalId} · ${a.artifactTitle}`,
+                }))}
+                selectedEvidence={activeEvidence ?? null}
+                selectedTab={selectedTab}
+                onTabChange={setSelectedTab}
+              />
             }
             coveragePanel={
               activeEvidence ? (
@@ -225,8 +250,16 @@ export function EvidenceCenterPage({
             }
           />
 
-          <EvidenceActionBar actionState={initial.actionState} onPrimaryAction={() => void runExport("full", selectedForExport)} />
+          <EvidenceActionBar actionState={initial.actionState} onPrimaryAction={() => setExportFullOpen(true)} />
         </EvidenceCenterContent>
+
+        <ExportFullEvidenceBundleModal
+          open={exportFullOpen}
+          data={initial}
+          selectedIds={selectedForExport}
+          onClose={() => setExportFullOpen(false)}
+          onExport={runFullBundleExport}
+        />
       </main>
     </AuthenticatedAppShell>
   );

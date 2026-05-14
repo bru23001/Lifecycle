@@ -1,84 +1,220 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 
-import { loadEvidenceCenterData } from "@/lib/server/evidence";
+import type { ExportFullEvidenceBundleOptions } from "@/lib/evidence-export";
+import { prisma } from "@/lib/prisma";
+import { requireCurrentUser } from "@/lib/server/current-user";
 
-export async function GET(
-  req: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const { id } = await context.params;
-  const url = new URL(req.url);
-  const scope = url.searchParams.get("scope") ?? "full";
-  const selected = url.searchParams.getAll("selectedId");
+export const dynamic = "force-dynamic";
 
-  try {
-    const data = await loadEvidenceCenterData(id);
+function parseBool(
+  sp: URLSearchParams,
+  key: keyof ExportFullEvidenceBundleOptions,
+  defaultValue: boolean,
+): boolean {
+  const raw = sp.get(key);
+  if (raw === null || raw === "") return defaultValue;
+  return raw === "1" || raw === "true" || raw === "yes";
+}
 
-    if (scope === "selected") {
-      const body = JSON.stringify(
-        {
-          scope: "selected",
-          project: data.project,
-          selectedEvidenceIds: selected,
-          manifestVersion: "1.0",
-          generatedAt: new Date().toISOString(),
-        },
-        null,
-        2,
-      );
-      return new NextResponse(body, {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${data.exportBundle.selectedFilename}"`,
-        },
-      });
-    }
+function parseFullOptions(sp: URLSearchParams): ExportFullEvidenceBundleOptions {
+  return {
+    includeFiles: parseBool(sp, "includeFiles", true),
+    includeManifest: parseBool(sp, "includeManifest", true),
+    includePhaseMappings: parseBool(sp, "includePhaseMappings", true),
+    includeGateMappings: parseBool(sp, "includeGateMappings", true),
+    includeArtifactMappings: parseBool(sp, "includeArtifactMappings", true),
+    includeChecksums: parseBool(sp, "includeChecksums", true),
+    includeAuditManifest: parseBool(sp, "includeAuditManifest", false),
+    redactRestricted: parseBool(sp, "redactRestricted", false),
+  };
+}
 
-    if (scope === "gate") {
-      const body = JSON.stringify(
-        {
-          scope: "gate",
-          project: data.project,
-          gateCoverage: data.evidenceByGate,
-          manifestVersion: "1.0",
-          generatedAt: new Date().toISOString(),
-        },
-        null,
-        2,
-      );
-      return new NextResponse(body, {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${data.exportBundle.gateBundleFilename}"`,
-        },
-      });
-    }
+type EvidenceRow = Prisma.EvidenceItemGetPayload<{
+  include: { artifactLinks: { include: { artifact: true } } };
+}>;
 
-    const body = JSON.stringify(
-      {
-        scope: "full",
-        project: data.project,
-        evidenceItems: data.evidenceItems.map((row) => row.id),
-        gateCoverage: data.evidenceByGate,
-        phaseCoverage: data.evidenceByPhase,
-        manifestVersion: "1.0",
-        generatedAt: new Date().toISOString(),
-      },
-      null,
-      2,
-    );
+function mapEvidenceItem(
+  e: EvidenceRow,
+  opts: ExportFullEvidenceBundleOptions,
+): Record<string, unknown> {
+  const restricted = e.classification === "restricted";
+  const redact = opts.redactRestricted && restricted;
 
-    return new NextResponse(body, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${data.exportBundle.fullBundleFilename}"`,
-      },
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Export failed";
-    return NextResponse.json({ error: message }, { status: 404 });
+  const item: Record<string, unknown> = {
+    id: e.id,
+    evidenceCode: e.evidenceCode,
+    name: redact ? "[REDACTED]" : e.name,
+    description: redact ? "" : e.description,
+    evidenceType: e.evidenceType,
+    phaseNumber: e.phaseNumber,
+    gateCode: e.gateCode,
+    classification: redact ? "internal" : e.classification,
+    status: e.status,
+    completenessPercent: e.completenessPercent,
+    fileTypeLabel: e.fileTypeLabel,
+    fileSizeBytes: e.fileSizeBytes,
+    source: redact ? null : e.source,
+    retentionPolicyLabel: e.retentionPolicyLabel,
+    tagsJson: e.tagsJson,
+    notes: redact ? null : e.notes,
+    uploadedByName: e.uploadedByName,
+    createdAt: e.createdAt.toISOString(),
+    updatedAt: e.updatedAt.toISOString(),
+  };
+
+  if (opts.includeChecksums) {
+    item.checksum = e.checksum;
   }
+  if (opts.includeFiles) {
+    item.previewHref = e.previewHref;
+    item.downloadHref = e.downloadHref;
+  }
+
+  return item;
+}
+
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    await requireCurrentUser();
+  } catch {
+    return NextResponse.json({ error: "Current user is unavailable." }, { status: 401 });
+  }
+
+  const { id: projectId } = await context.params;
+  const url = new URL(req.url);
+  const scope = (url.searchParams.get("scope") ?? "full").toLowerCase();
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      evidenceItems: {
+        orderBy: { updatedAt: "desc" },
+        include: { artifactLinks: { include: { artifact: true } } },
+      },
+    },
+  });
+
+  if (!project) {
+    return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+
+  if (scope === "selected") {
+    const ids = url.searchParams.getAll("selectedId").filter(Boolean);
+    const picked = ids.length > 0 ? project.evidenceItems.filter((e) => ids.includes(e.id)) : [];
+    const opts = parseFullOptions(url.searchParams);
+    const payload = {
+      scope: "selected" as const,
+      exportedAt: new Date().toISOString(),
+      projectId: project.id,
+      projectName: project.name,
+      bundleOptions: opts,
+      items: picked.map((e) => mapEvidenceItem(e, opts)),
+    };
+    return NextResponse.json(payload, { status: 200 });
+  }
+
+  if (scope === "gate") {
+    const byGate: Record<string, string[]> = {};
+    for (const e of project.evidenceItems) {
+      const g = (e.gateCode ?? "UNASSIGNED").toUpperCase();
+      if (!byGate[g]) byGate[g] = [];
+      byGate[g].push(e.id);
+    }
+    const opts = parseFullOptions(url.searchParams);
+    const payload = {
+      scope: "gate" as const,
+      exportedAt: new Date().toISOString(),
+      projectId: project.id,
+      projectName: project.name,
+      evidenceIdsByGate: byGate,
+      items: project.evidenceItems.map((e) => mapEvidenceItem(e, opts)),
+    };
+    return NextResponse.json(payload, { status: 200 });
+  }
+
+  if (scope !== "full") {
+    return NextResponse.json({ error: "Invalid scope." }, { status: 400 });
+  }
+
+  const bundleOptions = parseFullOptions(url.searchParams);
+
+  const items = project.evidenceItems.map((e) => mapEvidenceItem(e, bundleOptions));
+
+  const phaseMappings: Record<number, string[]> = {};
+  if (bundleOptions.includePhaseMappings) {
+    for (const e of project.evidenceItems) {
+      const p = e.phaseNumber ?? 0;
+      if (p < 1) continue;
+      if (!phaseMappings[p]) phaseMappings[p] = [];
+      phaseMappings[p].push(e.id);
+    }
+  }
+
+  const gateMappings: Record<string, string[]> = {};
+  if (bundleOptions.includeGateMappings) {
+    for (const e of project.evidenceItems) {
+      const g = (e.gateCode ?? "UNASSIGNED").toUpperCase();
+      if (!gateMappings[g]) gateMappings[g] = [];
+      gateMappings[g].push(e.id);
+    }
+  }
+
+  const artifactMappings: { evidenceId: string; artifactId: string; templateId: string; localId: string }[] = [];
+  if (bundleOptions.includeArtifactMappings) {
+    for (const e of project.evidenceItems) {
+      for (const link of e.artifactLinks) {
+        artifactMappings.push({
+          evidenceId: e.id,
+          artifactId: link.artifactId,
+          templateId: link.artifact.templateId,
+          localId: link.artifact.localId,
+        });
+      }
+    }
+  }
+
+  let auditManifest: { action: string; subjectKind: string; subjectId: string; createdAt: string }[] = [];
+  if (bundleOptions.includeAuditManifest) {
+    const rows = await prisma.auditEntry.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: { action: true, subjectKind: true, subjectId: true, createdAt: true },
+    });
+    auditManifest = rows.map((r) => ({
+      action: r.action,
+      subjectKind: r.subjectKind,
+      subjectId: r.subjectId,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  const manifest = bundleOptions.includeManifest
+    ? {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        projectId: project.id,
+        projectName: project.name,
+        bundleOptions,
+        itemCount: items.length,
+      }
+    : undefined;
+
+  const payload: Record<string, unknown> = {
+    scope: "full",
+    exportedAt: new Date().toISOString(),
+    projectId: project.id,
+    projectName: project.name,
+    bundleOptions,
+    items,
+  };
+
+  if (manifest) payload.manifest = manifest;
+  if (bundleOptions.includePhaseMappings) payload.phaseMappings = phaseMappings;
+  if (bundleOptions.includeGateMappings) payload.gateMappings = gateMappings;
+  if (bundleOptions.includeArtifactMappings) payload.artifactMappings = artifactMappings;
+  if (bundleOptions.includeAuditManifest) payload.auditManifest = auditManifest;
+
+  return NextResponse.json(payload, { status: 200 });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { X } from "lucide-react";
 
@@ -25,6 +26,7 @@ export function LinkEvidenceArtifactModal({
   artifacts: ArtifactPick[];
   onClose: () => void;
 }) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [artifactId, setArtifactId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function LinkEvidenceArtifactModal({
     startTransition(async () => {
       const res = await linkEvidenceToArtifact({ evidenceId, artifactId });
       if (res.ok) {
+        router.refresh();
         onClose();
       } else {
         setError(res.error);

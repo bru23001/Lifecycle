@@ -1,5 +1,16 @@
 import type { EvidenceCenterData } from "@/types/evidence-center.types";
 
+export type ExportFullEvidenceBundleOptions = {
+  includeFiles: boolean;
+  includeManifest: boolean;
+  includePhaseMappings: boolean;
+  includeGateMappings: boolean;
+  includeArtifactMappings: boolean;
+  includeChecksums: boolean;
+  includeAuditManifest: boolean;
+  redactRestricted: boolean;
+};
+
 function triggerDownload(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -10,10 +21,17 @@ function triggerDownload(filename: string, content: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
+function appendFullBundleOptions(q: URLSearchParams, opts: ExportFullEvidenceBundleOptions) {
+  (Object.keys(opts) as (keyof ExportFullEvidenceBundleOptions)[]).forEach((key) => {
+    q.set(key, opts[key] ? "1" : "0");
+  });
+}
+
 export async function exportEvidenceBundle(
   data: EvidenceCenterData,
   scope: "selected" | "gate" | "full",
   selectedEvidenceIds: string[],
+  fullBundleOptions?: ExportFullEvidenceBundleOptions,
 ): Promise<void> {
   const base = `/api/projects/${data.project.id}/evidence/export`;
 
@@ -41,7 +59,11 @@ export async function exportEvidenceBundle(
     return;
   }
 
-  const res = await fetch(`${base}?scope=full`);
+  const qs = new URLSearchParams({ scope: "full" });
+  if (fullBundleOptions) {
+    appendFullBundleOptions(qs, fullBundleOptions);
+  }
+  const res = await fetch(`${base}?${qs.toString()}`);
   if (!res.ok) {
     const err = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new Error(err?.error ?? `Export failed (${res.status})`);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { X } from "lucide-react";
 
@@ -29,6 +30,7 @@ export function EditEvidenceMetadataDrawer({
   selectedEvidence: EvidenceCenterSelectedEvidence | null;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +88,7 @@ export function EditEvidenceMetadataDrawer({
         source: source.trim() || null,
       });
       if (res.ok) {
+        router.refresh();
         onClose();
       } else {
         setError(res.error);

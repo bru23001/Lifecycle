@@ -2,32 +2,31 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  Download,
-  FileText,
-  Menu,
-  Minus,
-  MoreHorizontal,
-  MoreVertical,
-  Plus,
-  Printer,
-  RotateCw,
-  Share2,
-  Star,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { FileText, MoreHorizontal, Share2, Star } from "lucide-react";
+
+import { archiveEvidenceItem, deleteEvidenceItem } from "@/app/actions/evidence";
 
 import {
   WorkspaceCard,
   WorkspaceCardBody,
   WorkspaceCardHeader,
 } from "@/components/lifecycle-workspace/workspace-card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { evidenceClassificationBadgeMap, evidenceStatusBadgeMap } from "@/lib/evidence-status";
 import { cn } from "@/lib/utils";
 import type { EvidenceCenterSelectedEvidence } from "@/types/evidence-center.types";
 
 import type { EvidenceTab } from "./evidence-center-shared";
 import { EvidenceBadge, MetaItem } from "./evidence-center-shared";
+import { ConfirmEvidenceActionModal } from "./confirm-evidence-action-modal";
+import { EditEvidenceMetadataDrawer } from "./edit-evidence-metadata-drawer";
+import { EvidenceFilePreview, EvidencePreviewToolbarActions } from "./evidence-file-preview";
+import { EvidencePreviewModal } from "./evidence-preview-modal";
+import { LinkEvidenceArtifactModal, type ArtifactPick } from "./link-evidence-artifact-modal";
+import { LinkEvidenceGateModal } from "./link-evidence-gate-modal";
+import { LinkEvidencePhaseModal } from "./link-evidence-phase-modal";
 
 type MetadataItem = {
   id: string;
@@ -137,120 +136,6 @@ function EvidenceTabs({
   );
 }
 
-function PdfPreviewMockup({ title }: { title: string }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-slate-300 bg-white">
-      <div className="flex h-14 items-center justify-between bg-slate-800 px-4 text-white min-[480px]:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-4 min-[480px]:gap-8">
-          <Menu className="h-6 w-6 shrink-0" aria-hidden />
-
-          <span className="hidden text-sm font-semibold sm:inline">1 / 18</span>
-
-          <div className="flex items-center gap-3 min-[480px]:gap-5">
-            <button type="button" className="rounded p-1 hover:bg-slate-700" aria-label="Zoom out">
-              <Minus className="h-5 w-5" aria-hidden />
-            </button>
-            <span className="rounded bg-slate-900 px-2 py-1 text-xs font-bold min-[480px]:px-3 min-[480px]:text-sm">
-              100%
-            </span>
-            <button type="button" className="rounded p-1 hover:bg-slate-700" aria-label="Zoom in">
-              <Plus className="h-5 w-5" aria-hidden />
-            </button>
-            <button type="button" className="rounded p-1 hover:bg-slate-700" aria-label="Rotate preview">
-              <RotateCw className="h-5 w-5" aria-hidden />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3 min-[480px]:gap-5">
-          <button type="button" className="rounded p-1 hover:bg-slate-700" aria-label="Download">
-            <Download className="h-5 w-5" aria-hidden />
-          </button>
-          <button type="button" className="hidden rounded p-1 hover:bg-slate-700 sm:block" aria-label="Print">
-            <Printer className="h-5 w-5" aria-hidden />
-          </button>
-          <button type="button" className="rounded p-1 hover:bg-slate-700" aria-label="More preview actions">
-            <MoreVertical className="h-6 w-6" aria-hidden />
-          </button>
-        </div>
-      </div>
-
-      <div className="relative h-[320px] overflow-hidden bg-slate-100 px-4 py-6 min-[640px]:h-[430px] min-[640px]:px-10 min-[640px]:py-8">
-        <div className="mx-auto h-full max-w-[1000px] overflow-y-auto bg-white px-6 py-8 shadow-sm min-[640px]:px-20 min-[640px]:py-16">
-          <h2 className="text-xl font-bold text-slate-950 min-[640px]:text-3xl">{title}</h2>
-
-          <p className="mt-4 text-lg font-semibold text-slate-800 min-[640px]:mt-5 min-[640px]:text-2xl">
-            Identity Management Solutions
-          </p>
-
-          <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">
-            1. Executive Summary
-          </h3>
-
-          <p className="mt-3 text-sm text-slate-700 min-[640px]:mt-5 min-[640px]:text-base">
-            This report provides an overview of the current market landscape for identity management solutions.
-          </p>
-
-          <table className="mt-6 w-full max-w-[760px] text-left text-xs min-[640px]:mt-8 min-[640px]:text-sm">
-            <thead>
-              <tr className="text-slate-700">
-                <th className="py-2 min-[640px]:py-3">Solution</th>
-                <th className="py-2 min-[640px]:py-3">Vendor</th>
-                <th className="py-2 min-[640px]:py-3">Share</th>
-                <th className="py-2 min-[640px]:py-3">Strengths</th>
-              </tr>
-            </thead>
-            <tbody className="text-slate-700">
-              <tr>
-                <td className="py-2 min-[640px]:py-3">Okta</td>
-                <td className="py-2 min-[640px]:py-3">Okta</td>
-                <td className="py-2 min-[640px]:py-3">18%</td>
-                <td className="py-2 min-[640px]:py-3">Security, scale</td>
-              </tr>
-              <tr>
-                <td className="py-2 min-[640px]:py-3">Azure AD</td>
-                <td className="py-2 min-[640px]:py-3">Microsoft</td>
-                <td className="py-2 min-[640px]:py-3">15%</td>
-                <td className="py-2 min-[640px]:py-3">Integration</td>
-              </tr>
-              <tr>
-                <td className="py-2 min-[640px]:py-3">Ping Identity</td>
-                <td className="py-2 min-[640px]:py-3">Ping</td>
-                <td className="py-2 min-[640px]:py-3">9%</td>
-                <td className="py-2 min-[640px]:py-3">Customization</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pointer-events-none absolute right-2 top-16 hidden h-[70%] w-2 rounded-full bg-slate-300 min-[640px]:right-4 min-[640px]:block">
-          <div className="h-16 rounded-full bg-slate-400" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function EvidencePreview({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
-  if (selectedEvidence.detail.evidenceType === "pdf") {
-    return <PdfPreviewMockup title={selectedEvidence.detail.name} />;
-  }
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
-      <p>Preview is not available for this evidence type.</p>
-      {selectedEvidence.detail.downloadHref ? (
-        <a
-          href={selectedEvidence.detail.downloadHref}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 inline-flex")}
-        >
-          Download File
-        </a>
-      ) : null}
-    </div>
-  );
-}
-
 function MetadataSection({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
   const columns = buildMetadataColumns(selectedEvidence);
 
@@ -291,11 +176,19 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
       id: "evidence-completeness",
       label: "Evidence Completeness",
       value: (
-        <div className="flex flex-wrap items-center gap-3">
-          <span>{pct}%</span>
-          <div className="h-2 w-full min-w-[6rem] max-w-[8rem] overflow-hidden rounded-full bg-slate-200 sm:w-32">
-            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, pct)}%` }} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{pct}%</span>
+            <div className="h-2 w-full min-w-[6rem] max-w-[8rem] overflow-hidden rounded-full bg-slate-200 sm:w-32">
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
           </div>
+          <Link
+            href={selectedEvidence.completeness.detailsHref}
+            className="text-sm font-medium text-blue-600 underline-offset-2 hover:underline"
+          >
+            View completeness details
+          </Link>
         </div>
       ),
     },
@@ -317,7 +210,181 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
   );
 }
 
-export function EvidenceDetailHeader({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
+function EvidenceOverflowMenu({
+  disabled,
+  onPreview,
+  onEditMetadata,
+  onLinkArtifact,
+  onLinkGate,
+  onLinkPhase,
+  onDownload,
+  onArchive,
+  onDelete,
+}: {
+  disabled?: boolean;
+  onPreview: () => void;
+  onEditMetadata: () => void;
+  onLinkArtifact: () => void;
+  onLinkGate: () => void;
+  onLinkPhase: () => void;
+  onDownload: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", down);
+    return () => document.removeEventListener("mousedown", down);
+  }, [open]);
+
+  const itemClass =
+    "block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        disabled={disabled}
+        aria-label="More evidence actions"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <MoreHorizontal className="size-4" aria-hidden />
+      </Button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onPreview();
+            }}
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onEditMetadata();
+            }}
+          >
+            Edit metadata
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onLinkArtifact();
+            }}
+          >
+            Link to artifact
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onLinkGate();
+            }}
+          >
+            Link to gate
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onLinkPhase();
+            }}
+          >
+            Link to phase
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onDownload();
+            }}
+          >
+            Download
+          </button>
+          <div className="my-1 border-t border-slate-100" />
+          <button
+            type="button"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onArchive();
+            }}
+          >
+            Archive
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={`${itemClass} text-red-700 hover:bg-red-50`}
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function EvidenceDetailHeader({
+  selectedEvidence,
+  actionsDisabled,
+  onOverflowPreview,
+  onEditMetadata,
+  onLinkArtifact,
+  onLinkGate,
+  onLinkPhase,
+  onDownload,
+  onArchive,
+  onDelete,
+}: {
+  selectedEvidence: EvidenceCenterSelectedEvidence;
+  actionsDisabled?: boolean;
+  onOverflowPreview: () => void;
+  onEditMetadata: () => void;
+  onLinkArtifact: () => void;
+  onLinkGate: () => void;
+  onLinkPhase: () => void;
+  onDownload: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
   return (
     <WorkspaceCardHeader className="border-b border-slate-100 pb-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -341,9 +408,17 @@ export function EvidenceDetailHeader({ selectedEvidence }: { selectedEvidence: E
             <Share2 className="size-3.5" aria-hidden />
             Share
           </Button>
-          <Button type="button" variant="outline" size="icon-sm" aria-label="More evidence actions">
-            <MoreHorizontal className="size-4" aria-hidden />
-          </Button>
+          <EvidenceOverflowMenu
+            disabled={actionsDisabled}
+            onPreview={onOverflowPreview}
+            onEditMetadata={onEditMetadata}
+            onLinkArtifact={onLinkArtifact}
+            onLinkGate={onLinkGate}
+            onLinkPhase={onLinkPhase}
+            onDownload={onDownload}
+            onArchive={onArchive}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </WorkspaceCardHeader>
@@ -381,14 +456,28 @@ export function EvidenceMetadata({ selectedEvidence }: { selectedEvidence: Evide
 }
 
 export function EvidenceDetailPanel({
+  projectId,
+  artifacts,
   selectedEvidence,
   selectedTab,
   onTabChange,
 }: {
+  projectId: string;
+  artifacts: ArtifactPick[];
   selectedEvidence: EvidenceCenterSelectedEvidence | null;
   selectedTab: EvidenceTab;
   onTabChange: (tab: EvidenceTab) => void;
 }) {
+  const router = useRouter();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [linkArtifactOpen, setLinkArtifactOpen] = useState(false);
+  const [linkGateOpen, setLinkGateOpen] = useState(false);
+  const [linkPhaseOpen, setLinkPhaseOpen] = useState(false);
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
   if (!selectedEvidence) {
     return (
       <WorkspaceCard fixed>
@@ -399,10 +488,42 @@ export function EvidenceDetailPanel({
     );
   }
 
+  const evidenceId = selectedEvidence.detail.id;
+  const isPlaceholder = evidenceId === "empty";
+
+  const openDownload = () => {
+    const href = selectedEvidence.detail.downloadHref;
+    if (href) {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <>
+      {mutationError ? (
+        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+          <div className="flex items-center justify-between gap-2">
+            <p>{mutationError}</p>
+            <button type="button" className="shrink-0 font-medium underline" onClick={() => setMutationError(null)}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <WorkspaceCard fixed>
-        <EvidenceDetailHeader selectedEvidence={selectedEvidence} />
+        <EvidenceDetailHeader
+          selectedEvidence={selectedEvidence}
+          actionsDisabled={isPlaceholder}
+          onOverflowPreview={() => setPreviewOpen(true)}
+          onEditMetadata={() => setEditOpen(true)}
+          onLinkArtifact={() => setLinkArtifactOpen(true)}
+          onLinkGate={() => setLinkGateOpen(true)}
+          onLinkPhase={() => setLinkPhaseOpen(true)}
+          onDownload={openDownload}
+          onArchive={() => setConfirmArchiveOpen(true)}
+          onDelete={() => setConfirmDeleteOpen(true)}
+        />
         <WorkspaceCardBody className="pt-4">
           <EvidenceMetadata selectedEvidence={selectedEvidence} />
         </WorkspaceCardBody>
@@ -413,83 +534,163 @@ export function EvidenceDetailPanel({
 
         <article className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-7">
           <div role="tabpanel" id={`evidence-tabpanel-${selectedTab}`} aria-labelledby={`evidence-tab-${selectedTab}`}>
-          {selectedTab === "overview" && (
-            <>
-              <h2 className="mb-6 text-lg font-semibold text-slate-950">File Preview</h2>
-              <EvidencePreview selectedEvidence={selectedEvidence} />
-              <MetadataSection selectedEvidence={selectedEvidence} />
-              <LinkedSummary selectedEvidence={selectedEvidence} />
-            </>
-          )}
+            {selectedTab === "overview" && (
+              <>
+                <h2 className="mb-6 text-lg font-semibold text-slate-950">File Preview</h2>
+                {!isPlaceholder ? (
+                  <EvidencePreviewToolbarActions
+                    onOpenModal={() => setPreviewOpen(true)}
+                    downloadHref={selectedEvidence.detail.downloadHref}
+                  />
+                ) : null}
+                <EvidenceFilePreview selectedEvidence={selectedEvidence} />
+                <MetadataSection selectedEvidence={selectedEvidence} />
+                <LinkedSummary selectedEvidence={selectedEvidence} />
+              </>
+            )}
 
-          {selectedTab === "linked_artifacts" && (
-            <ul className="space-y-2">
-              {selectedEvidence.linkedArtifacts.length === 0 ? (
-                <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                  No linked artifacts.
-                </li>
-              ) : (
-                selectedEvidence.linkedArtifacts.map((item) => (
-                  <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-                    <Link href={item.href} className="font-medium text-blue-600 hover:underline">
-                      {item.label}
-                    </Link>
+            {selectedTab === "linked_artifacts" && (
+              <ul className="space-y-2">
+                {selectedEvidence.linkedArtifacts.length === 0 ? (
+                  <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    No linked artifacts.
                   </li>
-                ))
-              )}
-            </ul>
-          )}
+                ) : (
+                  selectedEvidence.linkedArtifacts.map((item) => (
+                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                      <Link href={item.href} className="font-medium text-blue-600 hover:underline">
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
 
-          {selectedTab === "linked_gates" && (
-            <ul className="space-y-2">
-              {selectedEvidence.linkedGates.length === 0 ? (
-                <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">No linked gates.</li>
-              ) : (
-                selectedEvidence.linkedGates.map((item) => (
-                  <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-                    <Link href={item.href} className="font-medium text-blue-600 hover:underline">
-                      {item.label}
-                    </Link>
+            {selectedTab === "linked_gates" && (
+              <ul className="space-y-2">
+                {selectedEvidence.linkedGates.length === 0 ? (
+                  <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    No linked gates.
                   </li>
-                ))
-              )}
-            </ul>
-          )}
+                ) : (
+                  selectedEvidence.linkedGates.map((item) => (
+                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                      <Link href={item.href} className="font-medium text-blue-600 hover:underline">
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
 
-          {selectedTab === "history" && (
-            <ul className="space-y-2">
-              {selectedEvidence.history.length === 0 ? (
-                <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                  No evidence history recorded yet.
-                </li>
-              ) : (
-                selectedEvidence.history.map((item) => (
-                  <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <p className="font-medium">{item.label}</p>
-                    <p className="text-xs text-slate-500">{item.timestampLabel}</p>
+            {selectedTab === "history" && (
+              <ul className="space-y-2">
+                {selectedEvidence.history.length === 0 ? (
+                  <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    No evidence history recorded yet.
                   </li>
-                ))
-              )}
-            </ul>
-          )}
+                ) : (
+                  selectedEvidence.history.map((item) => (
+                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                      <p className="font-medium">{item.label}</p>
+                      <p className="text-xs text-slate-500">{item.timestampLabel}</p>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
 
-          {selectedTab === "comments" && (
-            <ul className="space-y-2">
-              {selectedEvidence.comments.length === 0 ? (
-                <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">No comments yet.</li>
-              ) : (
-                selectedEvidence.comments.map((item) => (
-                  <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <p className="font-medium">{item.author}</p>
-                    <p className="mt-1">{item.body}</p>
+            {selectedTab === "comments" && (
+              <ul className="space-y-2">
+                {selectedEvidence.comments.length === 0 ? (
+                  <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                    No comments yet.
                   </li>
-                ))
-              )}
-            </ul>
-          )}
+                ) : (
+                  selectedEvidence.comments.map((item) => (
+                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                      <p className="font-medium">{item.author}</p>
+                      <p className="mt-1">{item.body}</p>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
           </div>
         </article>
       </section>
+
+      {!isPlaceholder ? (
+        <>
+          <EvidencePreviewModal
+            open={previewOpen}
+            selectedEvidence={selectedEvidence}
+            onClose={() => setPreviewOpen(false)}
+          />
+          <EditEvidenceMetadataDrawer
+            open={editOpen}
+            projectId={projectId}
+            selectedEvidence={selectedEvidence}
+            onClose={() => setEditOpen(false)}
+          />
+          <LinkEvidenceArtifactModal
+            open={linkArtifactOpen}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            artifacts={artifacts}
+            onClose={() => setLinkArtifactOpen(false)}
+          />
+          <LinkEvidenceGateModal
+            open={linkGateOpen}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            onClose={() => setLinkGateOpen(false)}
+          />
+          <LinkEvidencePhaseModal
+            open={linkPhaseOpen}
+            projectId={projectId}
+            evidenceId={evidenceId}
+            artifacts={artifacts}
+            onClose={() => setLinkPhaseOpen(false)}
+          />
+          <ConfirmEvidenceActionModal
+            open={confirmArchiveOpen}
+            title="Archive evidence?"
+            description="This item will be marked archived and hidden from default lists. You can restore it from archive workflows when supported."
+            confirmLabel="Archive"
+            onClose={() => setConfirmArchiveOpen(false)}
+            onConfirm={async () => {
+              setMutationError(null);
+              const r = await archiveEvidenceItem({ projectId, evidenceId });
+              if (r.ok) {
+                router.refresh();
+              } else {
+                setMutationError(r.error);
+              }
+            }}
+          />
+          <ConfirmEvidenceActionModal
+            open={confirmDeleteOpen}
+            title="Delete evidence permanently?"
+            description="This removes the evidence record and links from the project. This action cannot be undone."
+            confirmLabel="Delete"
+            destructive
+            onClose={() => setConfirmDeleteOpen(false)}
+            onConfirm={async () => {
+              setMutationError(null);
+              const r = await deleteEvidenceItem({ projectId, evidenceId });
+              if (r.ok) {
+                router.push(`/projects/${projectId}/evidence`);
+                router.refresh();
+              } else {
+                setMutationError(r.error);
+              }
+            }}
+          />
+        </>
+      ) : null}
     </>
   );
 }

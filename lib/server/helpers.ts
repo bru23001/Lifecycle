@@ -1,4 +1,4 @@
-import type { GateId } from "@/lib/gateRules";
+export { ALL_GATES } from "@/lib/gate-constants";
 
 export function formatDateTimeLabel(d: Date): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -14,16 +14,3 @@ export function isArtifactBodyApproved(dataJson: unknown): boolean {
   const s = d.documentStatus ?? d.approvalStatus;
   return s === "Approved";
 }
-
-export const ALL_GATES: GateId[] = [
-  "G1",
-  "G2",
-  "G3",
-  "G4",
-  "G5",
-  "G6",
-  "G7",
-  "G8",
-  "G9",
-  "G10",
-];

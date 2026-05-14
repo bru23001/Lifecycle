@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 
 import { linkEvidenceToWorkspacePhase } from "@/app/actions/evidence";
 import { Button } from "@/components/ui/button";
-import { ALL_GATES } from "@/lib/server/helpers";
+import { ALL_GATES } from "@/lib/gate-constants";
 import { cn } from "@/lib/utils";
 
 import type { ArtifactPick } from "./link-evidence-artifact-modal";

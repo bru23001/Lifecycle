@@ -1,11 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { X } from "lucide-react";
 
 import { linkEvidenceToGate } from "@/app/actions/evidence";
 import { Button } from "@/components/ui/button";
-import { ALL_GATES } from "@/lib/server/helpers";
+import { ALL_GATES } from "@/lib/gate-constants";
 import { cn } from "@/lib/utils";
 
 const inputClass =
@@ -22,6 +23,7 @@ export function LinkEvidenceGateModal({
   evidenceId: string;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [gateCode, setGateCode] = useState("G1");
   const [rationale, setRationale] = useState("");
@@ -50,6 +52,7 @@ export function LinkEvidenceGateModal({
     startTransition(async () => {
       const res = await linkEvidenceToGate({ projectId, evidenceId, gateCode, rationale: r });
       if (res.ok) {
+        router.refresh();
         onClose();
       } else {
         setError(res.error);

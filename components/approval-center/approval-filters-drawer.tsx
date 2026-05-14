@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import type { PendingApproval } from "@/types/approval-center.types";
 import type { QueueFilters } from "@/components/approval-center/approval-center-ui.types";
 
-/** Mirrors `ALL_GATES` in `lib/server/helpers` for client-safe filter UI. */
+/** Mirrors `ALL_GATES` in `lib/gate-constants` for client-safe filter UI. */
 const GATE_OPTIONS = ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"] as const;
 
 const PHASE_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);

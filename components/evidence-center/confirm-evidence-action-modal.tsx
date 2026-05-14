@@ -20,7 +20,7 @@ export function ConfirmEvidenceActionModal({
   confirmLabel: string;
   destructive?: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -59,8 +59,7 @@ export function ConfirmEvidenceActionModal({
             type="button"
             className={destructive ? "bg-red-600 hover:bg-red-700" : "bg-[#2563eb] hover:bg-[#1d4ed8]"}
             onClick={() => {
-              onConfirm();
-              onClose();
+              void Promise.resolve(onConfirm()).finally(() => onClose());
             }}
           >
             {confirmLabel}
