@@ -326,6 +326,7 @@ export async function loadEvidenceCenterData(
       id: projectId,
       code,
       name: proj.name,
+      currentPhase: Math.min(14, Math.max(1, proj.currentPhase)),
     },
     evidenceItems,
     selectedEvidence,

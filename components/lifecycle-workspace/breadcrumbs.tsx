@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -8,6 +10,11 @@ export type BreadcrumbItem = {
 
 export type BreadcrumbsProps = {
   items: BreadcrumbItem[];
+  /** Intercept in-app link navigation when the editor has unsaved edits. */
+  navGuard?: {
+    shouldBlock: () => boolean;
+    onBlockedNavigate: (href: string) => void;
+  };
 };
 
 /**
@@ -22,7 +29,7 @@ export type BreadcrumbsProps = {
  *   ]}
  * />
  */
-export function Breadcrumbs({ items }: BreadcrumbsProps) {
+export function Breadcrumbs({ items, navGuard }: BreadcrumbsProps) {
   return (
     <nav
       aria-label="Breadcrumb"
@@ -32,7 +39,16 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         <span key={`${item.label}-${i}`} className="flex items-center gap-1">
           {i > 0 && <ChevronRight className="size-3.5 opacity-60" aria-hidden />}
           {item.href ? (
-            <Link href={item.href} className="hover:text-foreground hover:underline">
+            <Link
+              href={item.href}
+              className="hover:text-foreground hover:underline"
+              onClick={(e) => {
+                if (item.href && navGuard?.shouldBlock()) {
+                  e.preventDefault();
+                  navGuard.onBlockedNavigate(item.href);
+                }
+              }}
+            >
               {item.label}
             </Link>
           ) : (

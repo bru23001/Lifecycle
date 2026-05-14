@@ -6,12 +6,14 @@ export function GateReviewActionBar({
   actionState,
   onSaveReview,
   onSubmitDecision,
+  onCancelReview,
   submitHelperId,
   submitting = false,
 }: {
   actionState: GateReviewActionState;
   onSaveReview: () => void;
   onSubmitDecision: () => void;
+  onCancelReview: () => void;
   submitHelperId: string;
   /** Server action in flight */
   submitting?: boolean;
@@ -26,40 +28,51 @@ export function GateReviewActionBar({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {!actionState.canSubmitDecision && actionState.submitBlockers.length > 0 ? (
-          <>
-            <p id={submitHelperId} className="sr-only">
-              Submit disabled: {actionState.submitBlockers.join(" ")}
-            </p>
-            <p
-              className="hidden max-w-md text-right text-xs text-[#64748b] dark:text-muted-foreground lg:block"
-              aria-hidden
-            >
-              {actionState.submitBlockers.join(" · ")}
-            </p>
-          </>
-        ) : null}
+      <div className="flex w-full flex-col gap-3 min-[901px]:flex-row min-[901px]:items-center min-[901px]:justify-between">
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="lg"
-          disabled={!actionState.canSaveReview}
-          onClick={onSaveReview}
+          className="self-start text-muted-foreground hover:text-foreground min-[901px]:self-center"
+          onClick={onCancelReview}
         >
-          Save Review
+          Cancel review
         </Button>
-        <Button
-          type="button"
-          size="lg"
-          className="gap-2 bg-[#2563eb] text-white hover:bg-blue-700"
-          disabled={!actionState.canSubmitDecision || submitting}
-          aria-describedby={!actionState.canSubmitDecision ? submitHelperId : undefined}
-          onClick={onSubmitDecision}
-        >
-          {submitting ? "Recording…" : "Submit Decision"}
-          <span aria-hidden>→</span>
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {!actionState.canSubmitDecision && actionState.submitBlockers.length > 0 ? (
+            <>
+              <p id={submitHelperId} className="sr-only">
+                Submit disabled: {actionState.submitBlockers.join(" ")}
+              </p>
+              <p
+                className="hidden max-w-md text-right text-xs text-[#64748b] dark:text-muted-foreground lg:block"
+                aria-hidden
+              >
+                {actionState.submitBlockers.join(" · ")}
+              </p>
+            </>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            disabled={!actionState.canSaveReview}
+            onClick={onSaveReview}
+          >
+            Save Review
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            className="gap-2 bg-[#2563eb] text-white hover:bg-blue-700"
+            disabled={!actionState.canSubmitDecision || submitting}
+            aria-describedby={!actionState.canSubmitDecision ? submitHelperId : undefined}
+            onClick={onSubmitDecision}
+          >
+            {submitting ? "Recording…" : "Submit Decision"}
+            <span aria-hidden>→</span>
+          </Button>
+        </div>
       </div>
 
       {!actionState.canSubmitDecision && actionState.submitBlockers.length > 0 ? (

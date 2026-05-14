@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { workspacePhaseProgressPercent } from "@/lib/workspacePhases";
+import { projectOverviewHref } from "@/lib/projects-url";
 import type { ArtifactLibraryData, ArtifactListItem } from "@/types/artifact-library.types";
 
 import { ArtifactContentTabs } from "./ArtifactContentTabs";
@@ -41,13 +42,21 @@ export function ArtifactLibraryPage({
   data,
   selectedArtifactId,
   view = "library",
+  openedFromWorkspacePhase,
 }: {
   data: ArtifactLibraryData;
   selectedArtifactId?: string;
   view?: "library" | "detail";
+  /** When opened via `/artifacts?phase=N`, scopes sidebar links and default phase filter. */
+  openedFromWorkspacePhase?: number;
 }) {
   const [search, setSearch] = useState("");
-  const [phaseFilter, setPhaseFilter] = useState("all");
+  const [phaseFilter, setPhaseFilter] = useState(
+    () =>
+      openedFromWorkspacePhase !== undefined && openedFromWorkspacePhase >= 1 && openedFromWorkspacePhase <= 14
+        ? String(openedFromWorkspacePhase)
+        : "all",
+  );
   const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredItems = useMemo(
@@ -61,6 +70,16 @@ export function ArtifactLibraryPage({
 
   const headerTitle = view === "detail" ? "Artifact Detail" : "Artifact Library";
 
+  const artifactsIndexHref =
+    openedFromWorkspacePhase !== undefined && openedFromWorkspacePhase >= 1 && openedFromWorkspacePhase <= 14
+      ? `/projects/${data.project.id}/artifacts?phase=${openedFromWorkspacePhase}`
+      : `/projects/${data.project.id}/artifacts`;
+
+  const navPhaseScope =
+    openedFromWorkspacePhase !== undefined && openedFromWorkspacePhase >= 1 && openedFromWorkspacePhase <= 14
+      ? openedFromWorkspacePhase
+      : data.project.currentPhase;
+
   return (
     <AuthenticatedAppShell
       projectId={data.project.id}
@@ -69,6 +88,9 @@ export function ArtifactLibraryPage({
       phaseProgressPct={workspacePhaseProgressPercent(data.project.currentPhase)}
       navActive="artifacts"
       gatesHref={data.selectedArtifact.linkedGate.reviewHref}
+      projectCurrentPhase={data.project.currentPhase}
+      navPhaseScope={navPhaseScope}
+      workspaceHref={`/projects/${data.project.id}/workspace?phase=${navPhaseScope}`}
     >
       <TopHeader
         title={headerTitle}
@@ -81,8 +103,8 @@ export function ArtifactLibraryPage({
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: data.project.name, href: `/projects/${data.project.id}/workspace` },
-              { label: "Artifacts", href: `/projects/${data.project.id}/artifacts` },
+              { label: data.project.name, href: projectOverviewHref(data.project.id) },
+              { label: "Artifacts", href: artifactsIndexHref },
               {
                 label: `${data.selectedArtifact.detail.artifactCode} ${data.selectedArtifact.detail.name}`,
               },

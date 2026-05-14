@@ -9,6 +9,7 @@ import { getRequestIdFromHeaders } from "@/lib/server/request-context";
 const inputSchema = z.object({
   projectId: z.string().min(1),
   gateCode: z.string().min(1),
+  submissionComments: z.string().max(4000).optional(),
 });
 
 export type InitiateGateReviewSubmissionResult =
@@ -35,14 +36,18 @@ export async function initiateGateReviewSubmission(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { projectId, gateCode } = parsed.data;
+  const { projectId, gateCode, submissionComments } = parsed.data;
+  const commentsSnippet =
+    submissionComments && submissionComments.trim().length > 0
+      ? submissionComments.trim().slice(0, 400)
+      : undefined;
 
   await recordAudit({
     action: "gate_review.submission_initiated",
     subjectKind: "project",
     subjectId: projectId,
     projectId,
-    metadata: { gateCode },
+    metadata: { gateCode, submissionCommentsSnippet: commentsSnippet },
   });
 
   const requestId = await getRequestIdFromHeaders();
@@ -51,6 +56,7 @@ export async function initiateGateReviewSubmission(
     request_id: requestId,
     projectId,
     gateCode,
+    hasSubmissionComments: Boolean(commentsSnippet),
   });
 
   return { ok: true };

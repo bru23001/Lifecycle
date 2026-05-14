@@ -1,4 +1,6 @@
 import type {
+  ArtifactGateCoverage,
+  EvidenceApprovalCoverage,
   GateEvidenceCoverage,
   PhaseArtifactCoverage,
   RequirementDesignCoverage,
@@ -9,7 +11,9 @@ import type {
 
 import type { GapTabId } from "./traceability-filtering";
 import { cardVisible } from "./traceability-filtering";
+import { ArtifactGateLinksCard } from "./artifact-gate-links-card";
 import { CoverageSummaryCard } from "./coverage-summary-card";
+import { EvidenceApprovalLinksCard } from "./evidence-approval-links-card";
 import { GapsOrphansCard } from "./gaps-orphans-card";
 import { GateEvidenceLinksCard } from "./gate-evidence-links-card";
 import { PhaseArtifactLinksCard } from "./phase-artifact-links-card";
@@ -26,7 +30,12 @@ export function TraceabilityGrid({
   requirementDesignRows,
   requirementTestRows,
   gateRows,
+  artifactGateRows,
+  evidenceApprovalRows,
   gapRows,
+  gapsViewAllHref,
+  gapsShowViewAll = true,
+  onSelectGap,
 }: {
   data: TraceabilityMatrixData;
   filters: TraceabilityMatrixData["filters"];
@@ -37,7 +46,13 @@ export function TraceabilityGrid({
   requirementDesignRows: RequirementDesignCoverage[];
   requirementTestRows: RequirementTestCoverage[];
   gateRows: GateEvidenceCoverage[];
+  artifactGateRows: ArtifactGateCoverage[];
+  evidenceApprovalRows: EvidenceApprovalCoverage[];
   gapRows: TraceabilityGap[];
+  gapsViewAllHref: string;
+  /** When false, the gaps card header hides “View All” (dedicated gaps route). */
+  gapsShowViewAll?: boolean;
+  onSelectGap?: (gap: TraceabilityGap) => void;
 }) {
   return (
     <>
@@ -65,21 +80,40 @@ export function TraceabilityGrid({
         </div>
       ) : null}
 
+      {cardVisible(filters.viewMode, "artifact-gate") ? (
+        <div className="traceability-grid-span-4">
+          <ArtifactGateLinksCard rows={artifactGateRows} isLoading={isLoading} projectId={data.project.id} />
+        </div>
+      ) : null}
+
+      {cardVisible(filters.viewMode, "evidence-approval") ? (
+        <div className="traceability-grid-span-4">
+          <EvidenceApprovalLinksCard rows={evidenceApprovalRows} isLoading={isLoading} projectId={data.project.id} />
+        </div>
+      ) : null}
+
       {cardVisible(filters.viewMode, "gaps") ? (
         <div className="traceability-grid-span-4">
           <GapsOrphansCard
             rows={gapRows}
             isLoading={isLoading}
             reportHref={data.coverageSummary.reportHref}
+            viewAllHref={gapsViewAllHref}
+            showViewAll={gapsShowViewAll}
             activeGapTab={activeGapTab}
             onActiveGapTabChange={onActiveGapTabChange}
+            onSelectGap={onSelectGap}
           />
         </div>
       ) : null}
 
       {cardVisible(filters.viewMode, "coverage") ? (
         <div className="traceability-grid-span-4">
-          <CoverageSummaryCard coverageSummary={data.coverageSummary} isLoading={isLoading} />
+          <CoverageSummaryCard
+            coverageSummary={data.coverageSummary}
+            isLoading={isLoading}
+            projectId={data.project.id}
+          />
         </div>
       ) : null}
     </>

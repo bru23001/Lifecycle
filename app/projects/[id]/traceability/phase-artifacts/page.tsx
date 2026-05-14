@@ -1,5 +1,7 @@
-import { TraceabilityMatrixPage } from "@/components/traceability/traceability-matrix-page";
-import { loadTraceabilityMatrixWithView } from "@/lib/server/traceability";
+import { PhaseArtifactTraceabilityListView } from "@/components/traceability/phase-artifact-traceability-list-view";
+import { loadPhaseArtifactTraceabilityList } from "@/lib/server/phase-artifact-traceability";
+
+export const dynamic = "force-dynamic";
 
 export default async function PhaseArtifactsTraceabilityPage({
   params,
@@ -7,6 +9,6 @@ export default async function PhaseArtifactsTraceabilityPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const initial = await loadTraceabilityMatrixWithView(id, "phases");
-  return <TraceabilityMatrixPage initial={initial} />;
+  const data = await loadPhaseArtifactTraceabilityList(id);
+  return <PhaseArtifactTraceabilityListView data={data} />;
 }

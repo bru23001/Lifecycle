@@ -66,6 +66,24 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
+  const gateReviewRoute = pathname.match(/^\/projects\/([^/]+)\/gates\/([^/]+)\/review$/);
+  if (gateReviewRoute) {
+    const [, projectId, rawGate] = gateReviewRoute;
+    if (isGateIdSegment(rawGate)) {
+      const gate = rawGate.trim().toUpperCase();
+      const url = request.nextUrl.clone();
+      url.pathname = `/projects/${projectId}/gates/${gate.toLowerCase()}`;
+      const res = NextResponse.redirect(url, 301);
+      res.headers.set("X-Request-ID", rid);
+      incrementRequestCount({
+        method: request.method,
+        pathname,
+        statusCode: 301,
+      });
+      return res;
+    }
+  }
+
   const res = NextResponse.next();
   res.headers.set("X-Request-ID", rid);
   incrementRequestCount({

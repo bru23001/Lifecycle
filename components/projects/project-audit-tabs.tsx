@@ -1,8 +1,14 @@
-import Link from "next/link";
-import { ChevronRight, ClipboardList, History } from "lucide-react";
+"use client";
 
-import type { SelectedProject } from "@/types/projects.types";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronRight, ClipboardList, Download, History } from "lucide-react";
+
+import { AuditEventDetailDrawer } from "@/components/projects/audit-event-detail-drawer";
+import { ExportAuditTrailModal } from "@/components/projects/export-audit-trail-modal";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { ProjectScreenAuditEntry, SelectedProject } from "@/types/projects.types";
 
 function formatWhen(iso: string): string {
   const d = new Date(iso);
@@ -16,9 +22,23 @@ function formatWhen(iso: string): string {
   });
 }
 
-export function ProjectAuditTrailTab({ selectedProject }: { selectedProject: SelectedProject }) {
+export function ProjectAuditTrailTab({
+  selectedProject,
+  initialOpenEventId,
+}: {
+  selectedProject: SelectedProject;
+  initialOpenEventId?: string | null;
+}) {
   const entries = selectedProject.auditTrailEntries;
   const workspaceHref = `/projects/${selectedProject.header.id}/workspace`;
+  const [selected, setSelected] = useState<ProjectScreenAuditEntry | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  useEffect(() => {
+    if (!initialOpenEventId) return;
+    const match = entries.find((e) => e.id === initialOpenEventId) ?? null;
+    if (match) setSelected(match);
+  }, [initialOpenEventId, entries]);
 
   return (
     <section className="cc-card-standard flex min-h-0 flex-1 flex-col p-4">
@@ -35,6 +55,19 @@ export function ProjectAuditTrailTab({ selectedProject }: { selectedProject: Sel
             </p>
           </div>
         </div>
+        {entries.length > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5"
+            onClick={() => setExportOpen(true)}
+            aria-label="Export audit trail"
+          >
+            <Download className="size-3.5" aria-hidden />
+            Export Audit Trail
+          </Button>
+        ) : null}
       </div>
 
       {entries.length === 0 ? (
@@ -76,19 +109,17 @@ export function ProjectAuditTrailTab({ selectedProject }: { selectedProject: Sel
                 key={row.id}
                 className={cn(
                   "rounded-lg border border-border bg-background/80 shadow-sm",
-                  row.href && "transition hover:border-blue-200 hover:bg-muted/40 dark:hover:border-blue-900/50",
+                  "transition hover:border-blue-200 hover:bg-muted/40 dark:hover:border-blue-900/50",
                 )}
               >
-                {row.href ? (
-                  <Link
-                    href={row.href}
-                    className="block px-3 py-2.5 text-left no-underline outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-                  >
-                    {cardBody}
-                  </Link>
-                ) : (
-                  <div className="px-3 py-2.5">{cardBody}</div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setSelected(row)}
+                  aria-label={`Open audit event details for ${row.title}`}
+                  className="block w-full px-3 py-2.5 text-left no-underline outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                >
+                  {cardBody}
+                </button>
               </li>
             );
           })}
@@ -99,6 +130,20 @@ export function ProjectAuditTrailTab({ selectedProject }: { selectedProject: Sel
         Open lifecycle workspace
         <ChevronRight className="size-3.5" />
       </Link>
+
+      <AuditEventDetailDrawer
+        open={selected !== null}
+        entry={selected}
+        onClose={() => setSelected(null)}
+      />
+
+      <ExportAuditTrailModal
+        open={exportOpen}
+        projectId={selectedProject.header.id}
+        projectCode={selectedProject.header.code}
+        entries={entries}
+        onClose={() => setExportOpen(false)}
+      />
     </section>
   );
 }

@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils";
 import { evidenceStatusBadgeMap } from "@/lib/evidence-status";
 import type { EvidenceItem } from "@/types/evidence-center.types";
 
+import {
+  AddEvidenceModal,
+  type AddEvidenceLinkedArtifactOption,
+} from "./add-evidence-modal";
 import type { EvidenceFilters } from "./evidence-center-shared";
 
 const pagination = { page: 1, totalPages: 12 };
@@ -256,10 +260,13 @@ export function EvidenceItemsPanel({
   selectedForExport,
   isLoading,
   addEvidenceOpen,
-  onToggleAddEvidence,
+  onOpenAddEvidence,
+  onCloseAddEvidence,
   onSelectEvidence,
   onToggleExportSelection,
   onFiltersChange,
+  projectId,
+  artifactOptions,
 }: {
   evidenceItems: EvidenceItem[];
   filteredItems: EvidenceItem[];
@@ -268,10 +275,13 @@ export function EvidenceItemsPanel({
   selectedForExport: string[];
   isLoading: boolean;
   addEvidenceOpen: boolean;
-  onToggleAddEvidence: () => void;
+  onOpenAddEvidence: () => void;
+  onCloseAddEvidence: () => void;
   onSelectEvidence: (evidenceId: string) => void;
   onToggleExportSelection: (evidenceId: string) => void;
   onFiltersChange: (filters: EvidenceFilters) => void;
+  projectId: string;
+  artifactOptions?: AddEvidenceLinkedArtifactOption[];
 }) {
   return (
     <section className="flex h-full min-h-0 w-full max-w-[372px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -286,8 +296,9 @@ export function EvidenceItemsPanel({
           <button
             type="button"
             className="inline-flex h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-blue-600 px-6 text-base font-bold text-white shadow-sm hover:bg-blue-700"
-            onClick={onToggleAddEvidence}
+            onClick={onOpenAddEvidence}
             aria-expanded={addEvidenceOpen}
+            aria-haspopup="dialog"
           >
             <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden />
             Add Evidence
@@ -295,28 +306,12 @@ export function EvidenceItemsPanel({
         </div>
       </header>
 
-      {addEvidenceOpen ? (
-        <div className="shrink-0 border-y border-blue-100 bg-blue-50/70 px-6 py-4 text-sm text-slate-700">
-          <p className="font-medium text-slate-900">Add Evidence Flow (Mock Entry Point)</p>
-          <p className="mt-1">
-            Connect this action to upload, artifact linking, and source URL creation when backend endpoints are wired.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-            >
-              Upload File
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-            >
-              Link External URL
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <AddEvidenceModal
+        open={addEvidenceOpen}
+        projectId={projectId}
+        artifactOptions={artifactOptions}
+        onClose={onCloseAddEvidence}
+      />
 
       <div className="shrink-0 space-y-6 px-6 pb-6">
         <label className="relative block">
@@ -418,7 +413,7 @@ export function EvidenceItemsPanel({
             <button
               type="button"
               className="mt-4 inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-              onClick={onToggleAddEvidence}
+              onClick={onOpenAddEvidence}
             >
               Add First Evidence Item
             </button>

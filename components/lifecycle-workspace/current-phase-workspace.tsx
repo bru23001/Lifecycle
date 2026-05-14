@@ -4,6 +4,8 @@ import { AlertTriangle } from "lucide-react";
 import type { CurrentPhaseWorkspaceData } from "@/components/lifecycle-workspace/current-phase-workspace-types";
 import { PhaseHeaderBody } from "@/components/lifecycle-workspace/phase-header";
 import type { PhaseHeaderData } from "@/components/lifecycle-workspace/phase-header-types";
+import { WorkspacePhaseTools } from "@/components/lifecycle-workspace/workspace-phase-tools";
+import type { WorkspacePhaseActionsPayload } from "@/components/lifecycle-workspace/workspace-phase-tools-types";
 
 function InstructionText({ children }: { children: ReactNode }) {
   return (
@@ -42,9 +44,14 @@ function PhaseObjectiveBlock({ objectives }: { objectives: string[] }) {
 export type CurrentPhaseWorkspaceProps = {
   phaseHeader: PhaseHeaderData;
   data: CurrentPhaseWorkspaceData;
+  workspacePhaseActions?: WorkspacePhaseActionsPayload;
 };
 
-export function CurrentPhaseWorkspace({ phaseHeader, data }: CurrentPhaseWorkspaceProps) {
+export function CurrentPhaseWorkspace({
+  phaseHeader,
+  data,
+  workspacePhaseActions,
+}: CurrentPhaseWorkspaceProps) {
   return (
     <section
       id="current-phase-workspace"
@@ -53,6 +60,7 @@ export function CurrentPhaseWorkspace({ phaseHeader, data }: CurrentPhaseWorkspa
     >
       <header className="current-phase-workspace__header border-b border-border px-4 py-4">
         <PhaseHeaderBody data={phaseHeader} />
+        {workspacePhaseActions ? <WorkspacePhaseTools payload={workspacePhaseActions} /> : null}
       </header>
 
       <div className="current-phase-workspace__body p-4">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { coverageStatusBadgeMap } from "@/lib/coverage-status";
+import { coverageReportMetricHref } from "@/lib/traceability-coverage-metrics";
 import type { CoverageSummary } from "@/types/traceability.types";
 
 import { CoverageRing, MetricTile, StatusBadge } from "./traceability-shared";
@@ -10,9 +11,12 @@ import { CoverageRing, MetricTile, StatusBadge } from "./traceability-shared";
 export function CoverageSummaryCard({
   coverageSummary,
   isLoading,
+  projectId,
 }: {
   coverageSummary: CoverageSummary;
   isLoading: boolean;
+  /** When set, coverage status rows deep-link into the coverage report metric drawer. */
+  projectId?: string;
 }) {
   return (
     <section className="traceability-card flex h-full min-h-0 min-w-0 flex-col rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
@@ -28,29 +32,72 @@ export function CoverageSummaryCard({
         ) : (
           <>
             <div className="flex items-center gap-4">
-              <CoverageRing percent={coverageSummary.overallCoveragePercent} />
+              {projectId ? (
+                <Link
+                  href={coverageReportMetricHref(projectId, "overall")}
+                  className="rounded-lg focus-visible:outline-2 focus-visible:outline-blue-600"
+                  aria-label="Open overall coverage metric detail"
+                >
+                  <CoverageRing percent={coverageSummary.overallCoveragePercent} />
+                </Link>
+              ) : (
+                <CoverageRing percent={coverageSummary.overallCoveragePercent} />
+              )}
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <StatusBadge {...coverageStatusBadgeMap.complete} />
-                  <span>
-                    {coverageSummary.complete.percent}% ({coverageSummary.complete.count})
-                  </span>
+                  {projectId ? (
+                    <Link
+                      href={coverageReportMetricHref(projectId, "complete")}
+                      className="hover:text-blue-800 hover:underline"
+                    >
+                      {coverageSummary.complete.percent}% ({coverageSummary.complete.count})
+                    </Link>
+                  ) : (
+                    <span>
+                      {coverageSummary.complete.percent}% ({coverageSummary.complete.count})
+                    </span>
+                  )}
                 </li>
                 <li className="flex items-center gap-2">
                   <StatusBadge {...coverageStatusBadgeMap.partial} />
-                  <span>
-                    {coverageSummary.partial.percent}% ({coverageSummary.partial.count})
-                  </span>
+                  {projectId ? (
+                    <Link
+                      href={coverageReportMetricHref(projectId, "partial")}
+                      className="hover:text-blue-800 hover:underline"
+                    >
+                      {coverageSummary.partial.percent}% ({coverageSummary.partial.count})
+                    </Link>
+                  ) : (
+                    <span>
+                      {coverageSummary.partial.percent}% ({coverageSummary.partial.count})
+                    </span>
+                  )}
                 </li>
                 <li className="flex items-center gap-2">
                   <StatusBadge {...coverageStatusBadgeMap.missing} />
-                  <span>
-                    {coverageSummary.missing.percent}% ({coverageSummary.missing.count})
-                  </span>
+                  {projectId ? (
+                    <Link
+                      href={coverageReportMetricHref(projectId, "missing")}
+                      className="hover:text-blue-800 hover:underline"
+                    >
+                      {coverageSummary.missing.percent}% ({coverageSummary.missing.count})
+                    </Link>
+                  ) : (
+                    <span>
+                      {coverageSummary.missing.percent}% ({coverageSummary.missing.count})
+                    </span>
+                  )}
                 </li>
                 <li className="flex items-center gap-2">
                   <StatusBadge {...coverageStatusBadgeMap.orphaned} />
-                  <span>({coverageSummary.orphaned.count})</span>
+                  {projectId ? (
+                    <Link href={coverageReportMetricHref(projectId, "gaps")} className="hover:text-blue-800 hover:underline">
+                      ({coverageSummary.orphaned.count})
+                    </Link>
+                  ) : (
+                    <span>({coverageSummary.orphaned.count})</span>
+                  )}
                 </li>
               </ul>
             </div>

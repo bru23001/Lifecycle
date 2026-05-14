@@ -13,8 +13,6 @@ import {
   FileText,
   GitBranch,
   Network,
-  Package,
-  Pencil,
   Plus,
   SearchCheck,
   ShieldCheck,
@@ -22,9 +20,12 @@ import {
 } from "lucide-react";
 
 import { PROJECT_DETAIL_TABS } from "@/data/projects.constants";
+import { ProjectArtifactsTab } from "@/components/projects/project-artifacts-tab";
 import { ProjectListToolbar } from "@/components/projects/project-list-toolbar";
+import { ProjectLifecyclePhaseStrip } from "@/components/projects/project-lifecycle-phase-strip";
 import { ProjectAuditTrailTab, ProjectLifecycleTimelineTab } from "@/components/projects/project-audit-tabs";
 import { ProjectProfileTab } from "@/components/projects/project-profile-tab";
+import { QuickActionsCard } from "@/components/projects/quick-actions-card";
 import type { ParsedProjectsListQuery } from "@/lib/projects-list-query";
 import { projectsListHref } from "@/lib/projects-url";
 import { resolveProjectBlockersOverviewHref } from "@/lib/project-blockers";
@@ -347,43 +348,13 @@ function ProjectOverviewTab({
   selectedProject,
   listFilters,
   currentPage,
+  lifecycleStrip,
 }: {
   selectedProject: SelectedProject;
   listFilters: ParsedProjectsListQuery;
   currentPage: number;
+  lifecycleStrip: ProjectsScreenData["lifecycleStrip"];
 }) {
-  const phaseTitles = [
-    "Idea Capture",
-    "Problem Definition",
-    "Evaluation & Selection",
-    "Feasibility & Business Case",
-    "Approval & Funding",
-    "Planning & Scope Control",
-    "Requirements",
-    "UI/UX Design",
-    "Architecture & Data Model",
-    "Development",
-    "Testing",
-    "Deployment & Release",
-    "Maintenance",
-    "Maintenance / Review",
-  ];
-  const totalPhases = phaseTitles.length;
-  const currentPhase = Math.min(
-    totalPhases,
-    Math.max(1, selectedProject.header.currentPhase),
-  );
-  const currentIndex = currentPhase - 1;
-  const phases = phaseTitles.map((title, index) => ({
-    id: index + 1,
-    title,
-    status:
-      index < currentIndex
-        ? ("complete" as const)
-        : index === currentIndex
-          ? ("current" as const)
-          : ("pending" as const),
-  }));
   const summaryCards: SummaryCard[] = selectedProject.metrics.map((metric) => {
     const isGateMetric = metric.label.includes("Gate");
     const isTraceMetric = metric.label.includes("Trace");
@@ -452,7 +423,7 @@ function ProjectOverviewTab({
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <section className="cc-card-standard shrink-0 p-6">
-        <div className="mb-8 flex items-center justify-between gap-2">
+        <div className="mb-6 flex items-center justify-between gap-2">
           <h3 className="cc-card-title">
             Lifecycle Progress
           </h3>
@@ -468,60 +439,11 @@ function ProjectOverviewTab({
             View Full Timeline
           </Link>
         </div>
-        <div className="lifecycle-scroll overflow-x-auto pb-4">
-          <div className="relative min-w-[1900px] px-8">
-            <div className="absolute left-8 right-8 top-6 h-[3px] bg-slate-200" />
-            <div
-              className="absolute left-8 top-6 h-[3px] bg-emerald-500"
-              style={{
-                width: `calc(${(currentIndex / (phases.length - 1)) * 100}% - 0px)`,
-              }}
-            />
-
-            <div className="relative grid grid-cols-[repeat(14,minmax(0,1fr))]">
-              {phases.map((phase) => {
-                const isComplete = phase.status === "complete";
-                const isCurrent = phase.status === "current";
-                const isPending = phase.status === "pending";
-
-                return (
-                  <div
-                    key={phase.id}
-                    className="flex flex-col items-center text-center"
-                  >
-                    <div
-                      className={[
-                        "z-10 flex h-12 w-12 items-center justify-center rounded-full text-base font-bold",
-                        isComplete && "bg-emerald-500 text-white",
-                        isCurrent && "bg-blue-600 text-white",
-                        isPending && "bg-slate-100 text-slate-500",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      {phase.id === 1 && isComplete ? (
-                        <span className="text-xl leading-none">✓</span>
-                      ) : (
-                        phase.id
-                      )}
-                    </div>
-
-                    <p
-                      className={[
-                        "mt-5 max-w-[130px] text-sm leading-6",
-                        isCurrent
-                          ? "font-medium text-blue-600"
-                          : "text-slate-700",
-                      ].join(" ")}
-                    >
-                      {phase.title}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        {lifecycleStrip ? (
+          <ProjectLifecyclePhaseStrip {...lifecycleStrip} showToolbar={false} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Select a project with workspace data to use the lifecycle strip.</p>
+        )}
       </section>
 
       <section className="grid w-full shrink-0 grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -677,6 +599,9 @@ export function ActiveTabContent({
   currentPage,
   assignableUsers,
   selectedProjectProfile,
+  lifecycleStrip,
+  artifactsTab,
+  initialOpenAuditEventId,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
@@ -684,6 +609,9 @@ export function ActiveTabContent({
   currentPage: number;
   assignableUsers: ProjectsScreenData["assignableUsers"];
   selectedProjectProfile: ProjectsScreenData["selectedProjectProfile"];
+  lifecycleStrip: ProjectsScreenData["lifecycleStrip"];
+  artifactsTab: ProjectsScreenData["artifactsTab"];
+  initialOpenAuditEventId?: string | null;
 }) {
   if (selectedTab === "overview") {
     return (
@@ -691,6 +619,7 @@ export function ActiveTabContent({
         selectedProject={selectedProject}
         listFilters={listFilters}
         currentPage={currentPage}
+        lifecycleStrip={lifecycleStrip}
       />
     );
   }
@@ -704,10 +633,37 @@ export function ActiveTabContent({
     );
   }
   if (selectedTab === "lifecycle-timeline") {
-    return <ProjectLifecycleTimelineTab selectedProject={selectedProject} />;
+    return (
+      <div className="flex min-h-0 flex-col gap-4">
+        {lifecycleStrip ? (
+          <section className="cc-card-standard shrink-0 p-4">
+            <h3 className="cc-card-title text-sm">Phase map & actions</h3>
+            <p className="cc-card-meta mt-1 max-w-prose">
+              Jump to workspace milestones, inspect phase requirements, start the next phase, or open the gate review
+              queue.
+            </p>
+            <div className="mt-4">
+              <ProjectLifecyclePhaseStrip {...lifecycleStrip} showToolbar />
+            </div>
+          </section>
+        ) : null}
+        <ProjectLifecycleTimelineTab selectedProject={selectedProject} />
+      </div>
+    );
   }
   if (selectedTab === "artifacts") {
-    return <GenericDataTab selectedProject={selectedProject} title="Artifacts" description="Artifact inventory, completion status, and evidence package readiness." />;
+    if (artifactsTab) {
+      return (
+        <ProjectArtifactsTab data={artifactsTab} projectCode={selectedProject.header.code} />
+      );
+    }
+    return (
+      <GenericDataTab
+        selectedProject={selectedProject}
+        title="Artifacts"
+        description="Artifact inventory, completion status, and evidence package readiness."
+      />
+    );
   }
   if (selectedTab === "gates") {
     return <GenericDataTab selectedProject={selectedProject} title="Gates" description="Gate status matrix, latest decisions, and pending approvals." />;
@@ -715,7 +671,12 @@ export function ActiveTabContent({
   if (selectedTab === "traceability") {
     return <GenericDataTab selectedProject={selectedProject} title="Traceability" description="Links between requirements, designs, tests, and evidence records." />;
   }
-  return <ProjectAuditTrailTab selectedProject={selectedProject} />;
+  return (
+    <ProjectAuditTrailTab
+      selectedProject={selectedProject}
+      initialOpenEventId={initialOpenAuditEventId ?? null}
+    />
+  );
 }
 
 export function ProjectDetailPanel({
@@ -725,6 +686,9 @@ export function ProjectDetailPanel({
   currentPage,
   assignableUsers,
   selectedProjectProfile,
+  lifecycleStrip,
+  artifactsTab,
+  initialOpenAuditEventId,
 }: {
   selectedProject: SelectedProject;
   selectedTab: ProjectDetailTab;
@@ -732,6 +696,9 @@ export function ProjectDetailPanel({
   currentPage: number;
   assignableUsers: ProjectsScreenData["assignableUsers"];
   selectedProjectProfile: ProjectsScreenData["selectedProjectProfile"];
+  lifecycleStrip: ProjectsScreenData["lifecycleStrip"];
+  artifactsTab: ProjectsScreenData["artifactsTab"];
+  initialOpenAuditEventId?: string | null;
 }) {
   return (
     <section className="cc-card-standard flex h-full min-h-0 flex-col overflow-hidden bg-[var(--app-bg)] p-6">
@@ -750,6 +717,9 @@ export function ProjectDetailPanel({
           currentPage={currentPage}
           assignableUsers={assignableUsers}
           selectedProjectProfile={selectedProjectProfile}
+          lifecycleStrip={lifecycleStrip}
+          artifactsTab={artifactsTab}
+          initialOpenAuditEventId={initialOpenAuditEventId}
         />
       </div>
     </section>
@@ -795,40 +765,10 @@ export function ProjectContextPanel({
         </dl>
       </article>
 
-      <article className="cc-card-standard min-h-0 overflow-y-auto p-4">
-        <h3 className="cc-card-title">Quick Actions</h3>
-        <div className="mt-2 space-y-1">
-          {selectedProject.quickActions.map((action) => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className="cc-card-link flex items-center justify-between rounded-md px-2 py-2 hover:bg-blue-50"
-            >
-              <span className="inline-flex items-center gap-2">
-                {action.id.includes("profile") ? (
-                  <Pencil className="size-3.5" />
-                ) : action.id.includes("lifecycle") ? (
-                  <Clock3 className="size-3.5" />
-                ) : action.id.includes("gate") ? (
-                  <ShieldCheck className="size-3.5" />
-                ) : action.id.includes("evidence") ? (
-                  <SearchCheck className="size-3.5" />
-                ) : action.id.includes("trace") ? (
-                  <GitBranch className="size-3.5" />
-                ) : action.id.includes("audit") ? (
-                  <ClipboardList className="size-3.5" />
-                ) : action.id.includes("export") ? (
-                  <FileText className="size-3.5" />
-                ) : (
-                  <Package className="size-3.5" />
-                )}
-                {action.label}
-              </span>
-              <ChevronRight className="size-3.5 text-slate-400" />
-            </Link>
-          ))}
-        </div>
-      </article>
+      <QuickActionsCard
+        projectId={selectedProject.header.id}
+        quickActions={selectedProject.quickActions}
+      />
 
       {selectedTab === "overview" ? (
         <article className="cc-card-standard flex min-h-0 flex-col p-4">
@@ -872,6 +812,7 @@ export function ProjectsContent({
   repositoryHasProjects,
   hasVisibleProjects,
   listFilters,
+  initialOpenAuditEventId,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
@@ -881,6 +822,7 @@ export function ProjectsContent({
   repositoryHasProjects: boolean;
   hasVisibleProjects: boolean;
   listFilters: ParsedProjectsListQuery;
+  initialOpenAuditEventId?: string | null;
 }) {
   if (!repositoryHasProjects) {
     return (
@@ -944,6 +886,9 @@ export function ProjectsContent({
           currentPage={currentPage}
           assignableUsers={data.assignableUsers}
           selectedProjectProfile={data.selectedProjectProfile}
+          lifecycleStrip={data.lifecycleStrip}
+          artifactsTab={data.artifactsTab}
+          initialOpenAuditEventId={initialOpenAuditEventId}
         />
         <div className="h-full min-h-0">
           <ProjectContextPanel

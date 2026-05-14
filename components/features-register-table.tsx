@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { updateFeatureRow } from "@/app/actions/updateRegisterRows";
 import { toUserMessage } from "@/lib/toUserMessage";
+import { cn } from "@/lib/utils";
 
 const STATUSES = ["Draft", "Baselined", "Deferred", "Withdrawn"] as const;
 const SCOPES = ["InScope", "OutOfScope", "Deferred"] as const;
@@ -22,13 +23,23 @@ export type FeatureRegisterRow = {
 export function FeaturesRegisterTable({
   projectId,
   rows,
+  focusFeatureId,
 }: {
   projectId: string;
   rows: FeatureRegisterRow[];
+  /** Deep link: `?focus=` feature row id. */
+  focusFeatureId?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    const id = focusFeatureId?.trim();
+    if (!id || !highlightRowRef.current) return;
+    highlightRowRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focusFeatureId, rows]);
 
   type FeaturePatch = {
     status?: (typeof STATUSES)[number];
@@ -83,8 +94,17 @@ export function FeaturesRegisterTable({
               </td>
             </tr>
           ) : (
-            rows.map((f) => (
-              <tr key={f.id} className="border-b border-border/60 align-top">
+            rows.map((f) => {
+              const highlighted = Boolean(focusFeatureId?.trim() && focusFeatureId.trim() === f.id);
+              return (
+              <tr
+                key={f.id}
+                ref={highlighted ? highlightRowRef : undefined}
+                className={cn(
+                  "border-b border-border/60 align-top",
+                  highlighted && "bg-primary/5 ring-1 ring-inset ring-primary/30",
+                )}
+              >
                 <td className="px-4 py-3 font-mono text-xs">{f.localId}</td>
                 <td className="px-4 py-3">{f.title}</td>
                 <td className="px-4 py-3">{f.priority ?? "—"}</td>
@@ -150,7 +170,8 @@ export function FeaturesRegisterTable({
                   )}
                 </td>
               </tr>
-            ))
+              );
+            })
           )}
         </tbody>
       </table>

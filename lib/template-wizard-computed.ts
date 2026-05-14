@@ -186,6 +186,9 @@ export function buildValidationIssues(
             sectionId: section.id,
             fieldName: field.name,
             message: "Complete the scoring matrix.",
+            ruleId: "score-matrix.required",
+            requiredFix: "Open the scoring matrix and complete all criteria, weights, scores, and justifications.",
+            suggestedValue: "Weights total 100%; every option has a 1-5 score and justification.",
           });
           continue;
         }
@@ -197,6 +200,9 @@ export function buildValidationIssues(
             sectionId: section.id,
             fieldName: field.name,
             message: `Criteria weights must total 100% (currently ${w}%).`,
+            ruleId: "score-matrix.weight-total",
+            requiredFix: "Adjust criteria weights until the total equals 100%.",
+            suggestedValue: "Example: 30 + 25 + 20 + 15 + 10 = 100.",
           });
         }
         const { filledCells, totalCells, missingComments } = matrixCompleteness(m);
@@ -207,6 +213,9 @@ export function buildValidationIssues(
             sectionId: section.id,
             fieldName: field.name,
             message: "At least one score is missing in the scoring matrix.",
+            ruleId: "score-matrix.scores-complete",
+            requiredFix: "Fill every score cell with a value between 1 and 5.",
+            suggestedValue: "Use 1 for weak fit and 5 for strong fit.",
           });
         }
         if (missingComments > 0) {
@@ -216,6 +225,9 @@ export function buildValidationIssues(
             sectionId: section.id,
             fieldName: field.name,
             message: "At least one scoring justification is missing in Section 2.",
+            ruleId: "score-matrix.justifications-complete",
+            requiredFix: "Add a short justification for every scoring criterion.",
+            suggestedValue: "Example: Strong OIDC support, but migration effort remains moderate.",
           });
         }
       } else if (field.type === "evidence_link") {
@@ -226,6 +238,9 @@ export function buildValidationIssues(
             sectionId: section.id,
             fieldName: field.name,
             message: `${field.label}: link or enter at least one evidence id.`,
+            ruleId: "evidence.required",
+            requiredFix: "Link or upload at least one supporting evidence item for this field.",
+            suggestedValue: "Attach the latest approved report, decision log, screenshot, or control evidence.",
           });
         }
       } else if (field.type === "checkbox") {
@@ -236,6 +251,9 @@ export function buildValidationIssues(
             sectionId: section.id,
             fieldName: field.name,
             message: `${field.label} must be checked.`,
+            ruleId: "field.checkbox-required",
+            requiredFix: "Check the box to acknowledge or confirm this requirement.",
+            suggestedValue: "Checked",
           });
         }
       } else if (!isNonEmptyString(v) && typeof v !== "number") {
@@ -247,6 +265,13 @@ export function buildValidationIssues(
           sectionId: section.id,
           fieldName: field.name,
           message: `${field.label} is required.`,
+          ruleId: severity === "error" ? "field.required" : "field.recommended",
+          requiredFix: `Provide a value for ${field.label}.`,
+          suggestedValue:
+            field.helpPopover?.exampleValue ??
+            field.placeholder ??
+            field.helpPopover?.expectedInput ??
+            "Enter the requested artifact detail.",
         });
       }
     }

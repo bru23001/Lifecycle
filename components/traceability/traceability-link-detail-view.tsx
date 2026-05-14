@@ -3,7 +3,11 @@ import Link from "next/link";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
+import { TraceabilityLinkDetailToolbar } from "@/components/traceability/traceability-link-detail-toolbar";
+import { projectOverviewHref } from "@/lib/projects-url";
 import type { TraceabilityLinkDetail } from "@/types/traceability.types";
+
+export type TraceabilityLinkDetailEntryContext = "matrix" | "requirement-tests";
 
 export function TraceabilityLinkDetailView({
   projectId,
@@ -14,6 +18,7 @@ export function TraceabilityLinkDetailView({
   userRole,
   phaseProgressPct,
   detail,
+  entryContext = "matrix",
 }: {
   projectId: string;
   projectName: string;
@@ -23,20 +28,26 @@ export function TraceabilityLinkDetailView({
   userRole?: string;
   phaseProgressPct: number;
   detail: TraceabilityLinkDetail;
+  /** Breadcrumb + back navigation when opened from the requirement ↔ test screen. */
+  entryContext?: TraceabilityLinkDetailEntryContext;
 }) {
   const validationLabel =
     detail.validationStatus === "valid" ? "Valid" : detail.validationStatus === "warning" ? "Review needed" : "Invalid";
+
+  const fromReqTests = entryContext === "requirement-tests";
+  const matrixHref = `/projects/${projectId}/traceability`;
+  const reqTestsHref = `${matrixHref}/requirements-tests`;
 
   return (
     <AuthenticatedAppShell
       projectId={projectId}
       projectName={projectName}
-      phaseSummary="Traceability link detail"
+      phaseSummary={fromReqTests ? "Test trace link" : "Traceability link detail"}
       phaseProgressPct={phaseProgressPct}
       navActive="traceability"
     >
       <TopHeader
-        title="Traceability Detail"
+        title={fromReqTests ? "Test trace link" : "Traceability Detail"}
         userInitials={userInitials}
         userName={userName}
         userRole={userRole}
@@ -46,14 +57,18 @@ export function TraceabilityLinkDetailView({
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: `${projectName} (${projectCode})`, href: `/projects/${projectId}/workspace` },
-              { label: "Traceability Matrix", href: `/projects/${projectId}/traceability` },
+              { label: `${projectName} (${projectCode})`, href: projectOverviewHref(projectId) },
+              { label: "Traceability Matrix", href: matrixHref },
+              ...(fromReqTests
+                ? ([{ label: "Requirement ↔ Tests", href: reqTestsHref }] as const)
+                : ([] as const)),
               { label: detail.id },
             ]}
           />
           <header className="mt-6">
-            <h1 className="text-2xl font-bold text-slate-900">Trace link</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{fromReqTests ? "Test trace link" : "Trace link"}</h1>
             <p className="mt-1 text-sm text-slate-600">{detail.linkType}</p>
+            <TraceabilityLinkDetailToolbar projectId={projectId} detail={detail} />
           </header>
 
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -98,6 +113,32 @@ export function TraceabilityLinkDetailView({
                 <dd className="font-semibold text-slate-900">{detail.createdAtLabel}</dd>
               </div>
               <div className="rounded-lg bg-slate-50 px-3 py-2 sm:col-span-2">
+                <dt className="text-slate-500">Relation</dt>
+                <dd className="font-semibold text-slate-900">
+                  {detail.relation?.trim() ? detail.relation : "—"}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2 sm:col-span-2">
+                <dt className="text-slate-500">Rationale</dt>
+                <dd className="whitespace-pre-wrap font-semibold text-slate-900">
+                  {detail.rationale?.trim() ? detail.rationale : "—"}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <dt className="text-slate-500">Confidence</dt>
+                <dd className="font-semibold capitalize text-slate-900">{detail.confidence}</dd>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2 sm:col-span-2">
+                <dt className="text-slate-500">Verification note</dt>
+                <dd className="whitespace-pre-wrap font-semibold text-slate-900">
+                  {detail.verificationNote?.trim() ? detail.verificationNote : "—"}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <dt className="text-slate-500">Last verified</dt>
+                <dd className="font-semibold text-slate-900">{detail.lastVerifiedAtLabel ?? "—"}</dd>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-2 sm:col-span-2">
                 <dt className="text-slate-500">Evidence reference</dt>
                 <dd className="font-semibold text-slate-900">{detail.evidenceReference}</dd>
               </div>
@@ -108,10 +149,21 @@ export function TraceabilityLinkDetailView({
             </dl>
           </section>
 
-          <p className="mt-6 text-sm">
-            <Link href={`/projects/${projectId}/traceability`} className="font-semibold text-[#2563eb] hover:underline">
-              ← Back to traceability matrix
-            </Link>
+          <p className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            {fromReqTests ? (
+              <>
+                <Link href={reqTestsHref} className="font-semibold text-[#2563eb] hover:underline">
+                  ← Back to requirement ↔ test traceability
+                </Link>
+                <Link href={matrixHref} className="font-semibold text-slate-600 hover:underline">
+                  Traceability matrix
+                </Link>
+              </>
+            ) : (
+              <Link href={matrixHref} className="font-semibold text-[#2563eb] hover:underline">
+                ← Back to traceability matrix
+              </Link>
+            )}
           </p>
         </div>
       </main>

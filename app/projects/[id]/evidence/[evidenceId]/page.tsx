@@ -1,6 +1,7 @@
 import { EvidenceCenterPage } from "@/components/evidence-center/evidence-center-page";
 import type { EvidenceFilters } from "@/components/evidence-center/evidence-center-shared";
 import { loadEvidenceCenterData } from "@/lib/server/evidence";
+import { parseWorkspacePhaseQueryParam } from "@/lib/workspace-phase-query";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,10 @@ function searchParamFirst(value: string | string[] | undefined): string | undefi
 function evidenceFiltersFromSearchParams(
   sp: Record<string, string | string[] | undefined>,
 ): Partial<EvidenceFilters> {
+  const parsedPhase = parseWorkspacePhaseQueryParam(searchParamFirst(sp.phase));
   return {
     search: searchParamFirst(sp.search) ?? searchParamFirst(sp.q) ?? "",
-    phase: searchParamFirst(sp.phase) ?? "all",
+    phase: parsedPhase !== undefined ? String(parsedPhase) : "all",
     gate: searchParamFirst(sp.gate)?.toUpperCase() ?? "all",
   };
 }

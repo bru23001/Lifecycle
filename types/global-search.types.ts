@@ -5,6 +5,7 @@ export type GlobalSearchResultType =
   | "evidence"
   | "approval"
   | "gate_decision"
+  | "template"
   | "traceability"
   | "reports";
 

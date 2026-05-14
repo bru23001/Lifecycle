@@ -66,9 +66,26 @@ export function buildSelectedProjectFromListItem(project: ProjectListItem): Sele
       { id: "qa-lifecycle", label: "View Lifecycle Timeline", href: "/projects" },
       { id: "qa-gate", label: "Open Gate Review", href: "/projects" },
       { id: "qa-artifacts", label: "Manage Artifacts", href: "/projects" },
+      {
+        id: "qa-add-evidence",
+        label: "Add Evidence",
+        href: `/projects/${project.id}/evidence`,
+        kind: "modal-add-evidence",
+      },
       { id: "qa-trace", label: "View Traceability Matrix", href: `/projects/${project.id}/traceability` },
+      {
+        id: "qa-generate-report",
+        label: "Generate Report",
+        href: `/projects/${project.id}/reports`,
+        kind: "modal-report-selection",
+      },
       { id: "qa-audit", label: "View Audit Trail", href: "/projects" },
-      { id: "qa-export", label: "Export Project Package", href: "/projects" },
+      {
+        id: "qa-export",
+        label: "Export Project Package",
+        href: "/projects",
+        kind: "modal-export-package",
+      },
     ],
     auditTrailEntries: [],
     nextRequiredAction: {

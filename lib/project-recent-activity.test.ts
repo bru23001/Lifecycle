@@ -12,7 +12,10 @@ const baseAudit = (overrides: Partial<ProjectScreenAuditEntry>): ProjectScreenAu
   subjectId: "art_old",
   detail: "template A-1",
   actorLabel: "Tester",
+  actorEmail: null,
+  metadata: {},
   lifecycleRelevant: false,
+  relatedHrefs: [],
   ...overrides,
 });
 

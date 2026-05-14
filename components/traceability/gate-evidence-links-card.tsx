@@ -23,7 +23,11 @@ export function GateEvidenceLinksCard({
           <div className="h-8 animate-pulse rounded bg-slate-100" />
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState message="No gate-to-evidence links found." ctaLabel="Open Gate Review" ctaHref={`/projects/${projectId}/gates/g1/review`} />
+        <EmptyState
+          message="No gate-to-evidence links found."
+          ctaLabel="Gate ↔ Evidence"
+          ctaHref={`/projects/${projectId}/traceability/gate-evidence`}
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-left text-sm">
@@ -34,16 +38,16 @@ export function GateEvidenceLinksCard({
                 <th className="pb-2">Evidence</th>
                 <th className="pb-2">Required</th>
                 <th className="pb-2">Coverage</th>
-                <th className="pb-2">Action</th>
+                <th className="pb-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.gateId} className={tableRowClass()}>
                   <td className="py-2 text-slate-800">
-                    <p className="font-medium">
+                    <Link href={row.href} className="font-medium text-[#2563eb] hover:underline">
                       {row.gateCode} - {row.gateName}
-                    </p>
+                    </Link>
                   </td>
                   <td className="py-2">
                     <StatusBadge {...gateTraceStatusBadgeMap[row.gateStatus]} />
@@ -54,9 +58,20 @@ export function GateEvidenceLinksCard({
                     <CoverageProgressBar value={row.coveragePercent} label={`${row.gateCode} evidence coverage`} />
                   </td>
                   <td className="py-2">
-                    <Link href={row.href} className="rounded text-sm font-semibold text-[#2563eb] hover:underline focus-visible:outline-2 focus-visible:outline-blue-600">
-                      Open
-                    </Link>
+                    <div className="flex flex-col gap-1">
+                      <Link
+                        href={row.href}
+                        className="rounded text-sm font-semibold text-[#2563eb] hover:underline focus-visible:outline-2 focus-visible:outline-blue-600"
+                      >
+                        Coverage
+                      </Link>
+                      <Link
+                        href={row.reviewHref}
+                        className="rounded text-xs font-semibold text-slate-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600"
+                      >
+                        Review
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

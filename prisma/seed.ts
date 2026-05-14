@@ -284,6 +284,10 @@ async function main() {
       toKind: "requirement",
       toId: crs.id,
       relation: "derives",
+      rationale: "Seed: SRS derives from CRS for demo traceability.",
+      confidence: "high",
+      evidenceReference: "seed:trace-srs-crs",
+      createdByUserId: user.id,
     },
   });
 
@@ -307,6 +311,10 @@ async function main() {
       toKind: "requirement",
       toId: srs.id,
       relation: "implements",
+      rationale: "Seed: feature implements SRS functional requirement.",
+      confidence: "medium",
+      evidenceReference: "seed:trace-feat-srs",
+      createdByUserId: user.id,
     },
   });
 

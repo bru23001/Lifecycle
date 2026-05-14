@@ -5,7 +5,18 @@ export type QueueFilters = {
   type: "all" | PendingApproval["approvalType"];
   status: "all" | PendingApproval["status"];
   priority: "all" | PendingApproval["priority"];
-  sort: "due" | "priority" | "submitted" | "project";
+  sort: "due" | "priority" | "submitted" | "project" | "type" | "status" | "updated";
+  projectId: "all" | string;
+  /** Workspace phase 1–14, or "all". */
+  phase: "all" | string;
+  gate: "all" | string;
+  submitterContains: string;
+  /** Reserved for future approver assignments; UI present, no server field yet. */
+  approverContains: string;
+  dueFrom: string;
+  dueTo: string;
+  overdueOnly: boolean;
+  blockedOnly: boolean;
 };
 
 export const DEFAULT_QUEUE_FILTERS: QueueFilters = {
@@ -14,6 +25,15 @@ export const DEFAULT_QUEUE_FILTERS: QueueFilters = {
   status: "all",
   priority: "all",
   sort: "due",
+  projectId: "all",
+  phase: "all",
+  gate: "all",
+  submitterContains: "",
+  approverContains: "",
+  dueFrom: "",
+  dueTo: "",
+  overdueOnly: false,
+  blockedOnly: false,
 };
 
 export const QUEUE_TABS: { id: ApprovalQueueTab; label: string }[] = [

@@ -36,6 +36,8 @@ export default async function FeaturesPage({
   const sp = await searchParams;
   const statusFilter = parseStatus(typeof sp.status === "string" ? sp.status : "");
   const scopeFilter = parseScope(typeof sp.scope === "string" ? sp.scope : "");
+  const focusFeatureRaw = typeof sp.focus === "string" ? sp.focus : "";
+  const focusFeatureId = focusFeatureRaw.trim();
 
   const project = await prisma.project.findUnique({ where: { id } });
   if (!project) notFound();
@@ -58,7 +60,7 @@ export default async function FeaturesPage({
       orderBy: { localId: "asc" },
     }),
     prisma.traceLink.findMany({
-      where: { projectId: id },
+      where: { projectId: id, deletedAt: null },
       select: {
         fromKind: true,
         fromId: true,
@@ -176,7 +178,11 @@ export default async function FeaturesPage({
           </Link>
         </form>
 
-        <FeaturesRegisterTable projectId={id} rows={rows} />
+        <FeaturesRegisterTable
+          projectId={id}
+          rows={rows}
+          focusFeatureId={focusFeatureId || undefined}
+        />
       </div>
     </div>
   );

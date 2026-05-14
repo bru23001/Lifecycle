@@ -34,7 +34,7 @@ export async function runDataIntegrityCheck(): Promise<void> {
   const featSet = new Set(feats.map((f) => f.id));
 
   const links = await prisma.traceLink.findMany({
-    where: { projectId },
+    where: { projectId, deletedAt: null },
     select: {
       id: true,
       fromKind: true,

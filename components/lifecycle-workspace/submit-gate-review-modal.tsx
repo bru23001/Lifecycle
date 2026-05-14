@@ -47,6 +47,7 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
   const router = useRouter();
   const ref = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [submissionComments, setSubmissionComments] = useState("");
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
   useEffect(() => {
     if (!open) {
       setError(null);
+      setSubmissionComments("");
     }
   }, [open]);
 
@@ -73,6 +75,7 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
         const res = await initiateGateReviewSubmission({
           projectId: state.projectId,
           gateCode: state.gateCode,
+          submissionComments: submissionComments.trim() || undefined,
         });
         if (!res.ok) {
           setError(toUserMessage(res.error));
@@ -119,7 +122,7 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 text-sm">
-          <ReadinessBanner canSubmit={state.canSubmit} />
+          <ReadinessBanner canSubmit={state.canSubmit} readinessPercent={state.readinessPercent} />
 
           <Section title="Required inputs" icon={CircleDashed}>
             {!state.requiredInputs || state.requiredInputs.length === 0 ? (
@@ -129,6 +132,20 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
                 {state.requiredInputs.map((item) => (
                   <RequiredInputRow key={item.id} item={item} />
                 ))}
+              </ul>
+            )}
+          </Section>
+
+          <Section title="Completed artifacts" icon={CheckCircle2}>
+            {!state.requiredInputs || state.requiredInputs.every((i) => i.status !== "complete") ? (
+              <p className="text-slate-500 italic">No completed artifacts listed for this gate yet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {state.requiredInputs
+                  .filter((i) => i.status === "complete")
+                  .map((item) => (
+                    <RequiredInputRow key={`done-${item.id}`} item={item} />
+                  ))}
               </ul>
             )}
           </Section>
@@ -179,6 +196,27 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
             )}
           </Section>
 
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs dark:border-border dark:bg-muted/40">
+            <p className="font-semibold text-slate-800 dark:text-foreground">Review due date</p>
+            <p className="mt-1 text-slate-600 dark:text-muted-foreground">
+              {state.reviewDueDateLabel?.trim() ? state.reviewDueDateLabel : "— (set target date in phase details)"}
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="gate-submission-comments" className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              Submission comments
+            </label>
+            <textarea
+              id="gate-submission-comments"
+              rows={3}
+              value={submissionComments}
+              onChange={(e) => setSubmissionComments(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="Optional context for reviewers (kept in audit trail summary only)…"
+            />
+          </div>
+
           {state.missingRequirements.length > 0 ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
               <p className="font-semibold">Resolve the following before submitting:</p>
@@ -219,7 +257,7 @@ export function SubmitGateReviewModal({ open, state, onClose }: Props) {
   );
 }
 
-function ReadinessBanner({ canSubmit }: { canSubmit: boolean }) {
+function ReadinessBanner({ canSubmit, readinessPercent }: { canSubmit: boolean; readinessPercent?: number }) {
   if (canSubmit) {
     return (
       <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
@@ -227,6 +265,11 @@ function ReadinessBanner({ canSubmit }: { canSubmit: boolean }) {
         <div>
           <p className="font-semibold text-emerald-900 dark:text-emerald-100">
             Gate readiness: ready to submit
+            {readinessPercent !== undefined ? (
+              <span className="ml-2 tabular-nums text-emerald-800 dark:text-emerald-200">
+                (score {readinessPercent})
+              </span>
+            ) : null}
           </p>
           <p className="text-emerald-800 dark:text-emerald-200">
             Phase requirements are satisfied. Submitting will open the Gate Review screen so a
@@ -242,6 +285,11 @@ function ReadinessBanner({ canSubmit }: { canSubmit: boolean }) {
       <div>
         <p className="font-semibold text-amber-900 dark:text-amber-100">
           Gate readiness: not ready
+          {readinessPercent !== undefined ? (
+            <span className="ml-2 tabular-nums text-amber-800 dark:text-amber-200">
+              (score {readinessPercent})
+            </span>
+          ) : null}
         </p>
         <p className="text-amber-800 dark:text-amber-200">
           One or more requirements are still open. Resolve them before submitting.

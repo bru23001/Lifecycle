@@ -7,9 +7,12 @@ export function WizardActionBar({
   onSaveDraft,
   onExportMarkdown,
   onExportJson,
+  onExportPackage,
   onCancel,
   onSaveArtifact,
   onMarkComplete,
+  showSubmitGateReview,
+  onSubmitGateReview,
   saveArtifactDisabledReason,
   markCompleteDisabledReason,
 }: {
@@ -17,9 +20,12 @@ export function WizardActionBar({
   onSaveDraft: () => void;
   onExportMarkdown: () => void;
   onExportJson: () => void;
+  onExportPackage: () => void;
   onCancel: () => void;
   onSaveArtifact: () => void;
   onMarkComplete: () => void;
+  showSubmitGateReview?: boolean;
+  onSubmitGateReview: () => void;
   saveArtifactDisabledReason?: string | null;
   markCompleteDisabledReason?: string | null;
 }) {
@@ -45,6 +51,9 @@ export function WizardActionBar({
         <Button type="button" variant="outline" size="sm" onClick={onExportJson}>
           Export JSON Evidence (.json)
         </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onExportPackage} data-testid="wizard-export-package">
+          Export package (.zip)
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -68,13 +77,7 @@ export function WizardActionBar({
           ) : null}
         </span>
         <span className="group relative">
-          <Button
-            type="button"
-            variant="default"
-            size="sm"
-            onClick={onMarkComplete}
-            disabled={Boolean(markCompleteDisabledReason)}
-          >
+          <Button type="button" variant="default" size="sm" onClick={onMarkComplete} data-testid="wizard-mark-complete">
             Mark Complete
           </Button>
           {markCompleteDisabledReason ? (
@@ -83,6 +86,17 @@ export function WizardActionBar({
             </span>
           ) : null}
         </span>
+        {showSubmitGateReview ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onSubmitGateReview}
+            data-testid="wizard-submit-gate-review"
+          >
+            Submit for gate review
+          </Button>
+        ) : null}
       </div>
     </footer>
   );

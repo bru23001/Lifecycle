@@ -70,11 +70,14 @@ export function CardShell({
   title,
   count,
   viewAllHref,
+  showViewAll = true,
   children,
 }: {
   title: string;
   count: number;
   viewAllHref: string;
+  /** When false, hides the header “View All” link (e.g. on the full gaps screen). */
+  showViewAll?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -84,9 +87,11 @@ export function CardShell({
           <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{count}</span>
         </div>
-        <Link href={viewAllHref} className="text-xs font-semibold text-[#2563eb] hover:underline">
-          View All
-        </Link>
+        {showViewAll ? (
+          <Link href={viewAllHref} className="text-xs font-semibold text-[#2563eb] hover:underline">
+            View All
+          </Link>
+        ) : null}
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{children}</div>
     </section>

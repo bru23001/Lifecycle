@@ -1,7 +1,14 @@
-import { AlertTriangle, Calendar, Check, ClipboardCheck } from "lucide-react";
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { AlertTriangle, Calendar, Check, ClipboardCheck, Info } from "lucide-react";
+
+import { PhaseDetailDrawer } from "@/components/lifecycle-workspace/phase-detail-drawer";
+import { StartPhaseConfirmModal } from "@/components/lifecycle-workspace/start-phase-confirm-modal";
 import type { PhaseNavItem } from "@/components/lifecycle-workspace/phase-navigator-types";
+import type { PhaseNavigatorMeta } from "@/components/lifecycle-workspace/phase-navigator-types";
 import { cn } from "@/lib/utils";
 
 function PanelHeader({ title, phaseCount }: { title: string; phaseCount: number }) {
@@ -27,6 +34,12 @@ function phaseNavStatusLabel(status: PhaseNavItem["status"]): string {
       return "Blocked";
     case "ready_for_review":
       return "Ready for Review";
+    case "locked":
+      return "Locked";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
   }
 }
 
@@ -65,6 +78,14 @@ function PhaseGlyph({ item }: { item: PhaseNavItem }) {
     );
   }
 
+  if (status === "locked") {
+    return (
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 bg-muted text-xs font-semibold text-muted-foreground">
+        {phaseNumber}
+      </span>
+    );
+  }
+
   return (
     <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-muted-foreground">
       {phaseNumber}
@@ -76,30 +97,29 @@ function PhaseNavItemRow({
   item,
   stemBelowClass,
   isLast,
+  onOpenDetail,
 }: {
   item: PhaseNavItem;
   stemBelowClass: string;
   isLast: boolean;
+  onOpenDetail: (phaseNumber: number) => void;
 }) {
   const isCurrent = item.status === "current";
   const isBlocked = item.status === "blocked";
   const isReady = item.status === "ready_for_review";
+  const isLocked = item.status === "locked";
 
-  return (
-    <Link
-      href={item.href}
-      aria-current={item.status === "current" ? "step" : undefined}
-      className={cn(
-        "relative flex gap-3 py-2 pl-4 pr-3 transition-colors",
-        isCurrent &&
-          "border-l-[3px] border-l-[#2563eb] bg-sky-50/80 dark:bg-sky-950/30",
-        isBlocked &&
-          "border-l-[3px] border-l-red-600 bg-red-50/80 dark:bg-red-950/25",
-        isReady &&
-          "border-l-[3px] border-l-amber-500 bg-amber-50/70 dark:bg-amber-950/25",
-        !isCurrent && !isBlocked && !isReady && "border-l-[3px] border-l-transparent",
-      )}
-    >
+  const rowClass = cn(
+    "relative flex min-w-0 flex-1 gap-3 py-2 pl-4 pr-3 transition-colors",
+    isCurrent && "border-l-[3px] border-l-[#2563eb] bg-sky-50/80 dark:bg-sky-950/30",
+    isBlocked && "border-l-[3px] border-l-red-600 bg-red-50/80 dark:bg-red-950/25",
+    isReady && "border-l-[3px] border-l-amber-500 bg-amber-50/70 dark:bg-amber-950/25",
+    isLocked && "border-l-[3px] border-l-transparent bg-muted/20",
+    !isCurrent && !isBlocked && !isReady && !isLocked && "border-l-[3px] border-l-transparent",
+  );
+
+  const main = (
+    <>
       <div className="flex w-8 shrink-0 flex-col items-center">
         <PhaseGlyph item={item} />
         {!isLast && (
@@ -115,6 +135,8 @@ function PhaseNavItemRow({
               item.status === "not_started" && "text-muted-foreground",
               item.status === "blocked" && "text-red-900 dark:text-red-100",
               item.status === "ready_for_review" && "text-amber-950 dark:text-amber-100",
+              item.status === "completed" && "text-foreground",
+              item.status === "locked" && "text-muted-foreground",
             )}
           >
             {item.phaseNumber}. {item.name}
@@ -127,16 +149,50 @@ function PhaseNavItemRow({
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">{phaseNavStatusLabel(item.status)}</p>
       </div>
-    </Link>
+    </>
+  );
+
+  return (
+    <div className="flex items-stretch gap-1 pr-1">
+      {isLocked ? (
+        <div className={cn(rowClass, "min-w-0 flex-1")}>{main}</div>
+      ) : (
+        <Link
+          href={item.href}
+          aria-current={item.status === "current" ? "step" : undefined}
+          className={cn(rowClass, "min-w-0 flex-1 no-underline outline-none")}
+        >
+          {main}
+        </Link>
+      )}
+      <button
+        type="button"
+        data-testid={`phase-nav-detail-${item.phaseNumber}`}
+        aria-label={`Phase ${item.phaseNumber} details`}
+        className="mt-2 shrink-0 self-start rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenDetail(item.phaseNumber);
+        }}
+      >
+        <Info className="size-3.5" aria-hidden />
+      </button>
+    </div>
   );
 }
 
-function PhaseList({ items }: { items: PhaseNavItem[] }) {
+function PhaseList({
+  items,
+  onOpenDetail,
+}: {
+  items: PhaseNavItem[];
+  onOpenDetail: (phaseNumber: number) => void;
+}) {
   return (
     <ol className="phase-list flex flex-1 list-none flex-col gap-0 overflow-y-auto py-2">
       {items.map((item, index) => {
-        const stemBelow =
-          item.status === "completed" ? "bg-emerald-500" : "bg-border";
+        const stemBelow = item.status === "completed" ? "bg-emerald-500" : "bg-border";
         const isLast = index === items.length - 1;
         return (
           <li key={item.phaseNumber}>
@@ -144,6 +200,7 @@ function PhaseList({ items }: { items: PhaseNavItem[] }) {
               item={item}
               stemBelowClass={stemBelow}
               isLast={isLast}
+              onOpenDetail={onOpenDetail}
             />
           </li>
         );
@@ -167,9 +224,22 @@ function ViewFullTimelineButton({ projectId }: { projectId: string }) {
 export type PhaseNavigatorProps = {
   items: PhaseNavItem[];
   projectId: string;
+  meta: PhaseNavigatorMeta;
 };
 
-export function PhaseNavigator({ items, projectId }: PhaseNavigatorProps) {
+export function PhaseNavigator({ items, projectId, meta }: PhaseNavigatorProps) {
+  const router = useRouter();
+  const [drawerPhase, setDrawerPhase] = useState<number | null>(null);
+  const [startOpen, setStartOpen] = useState(false);
+
+  const completion =
+    drawerPhase != null && drawerPhase < meta.projectCurrentPhase
+      ? meta.completionByPhase[drawerPhase] ?? null
+      : null;
+
+  const showAdvanceInDrawer =
+    drawerPhase === meta.projectCurrentPhase && Boolean(meta.startPhaseModal);
+
   return (
     <aside
       id="phase-navigator"
@@ -178,10 +248,55 @@ export function PhaseNavigator({ items, projectId }: PhaseNavigatorProps) {
       className="phase-navigator-panel phase-navigator flex flex-col rounded-lg border bg-card shadow-sm"
     >
       <PanelHeader title="Phase Navigator" phaseCount={items.length} />
-      <PhaseList items={items} />
+      {meta.startPhaseModal ? (
+        <div className="border-b px-3 py-2">
+          <button
+            type="button"
+            data-testid="workspace-start-phase-open"
+            className="w-full rounded-md border border-slate-200 bg-background px-3 py-2 text-left text-[11px] font-semibold text-foreground hover:bg-muted dark:border-border"
+            onClick={() => setStartOpen(true)}
+          >
+            Start next phase
+          </button>
+        </div>
+      ) : null}
+      <PhaseList items={items} onOpenDetail={setDrawerPhase} />
       <div className="border-t p-3">
         <ViewFullTimelineButton projectId={projectId} />
       </div>
+
+      {drawerPhase != null ? (
+        <PhaseDetailDrawer
+          open
+          onClose={() => setDrawerPhase(null)}
+          phaseNumber={drawerPhase}
+          projectId={projectId}
+          projectCurrentPhase={meta.projectCurrentPhase}
+          applicability={meta.applicability}
+          gateReviewHref={meta.gatesHref}
+          completionDetail={completion}
+          lockedContext={drawerPhase > meta.projectCurrentPhase ? meta.lockedContext : null}
+          startPhaseModal={showAdvanceInDrawer ? meta.startPhaseModal : null}
+          onRequestAdvance={
+            showAdvanceInDrawer
+              ? () => {
+                  setDrawerPhase(null);
+                  setStartOpen(true);
+                }
+              : undefined
+          }
+        />
+      ) : null}
+
+      <StartPhaseConfirmModal
+        open={startOpen}
+        onClose={() => setStartOpen(false)}
+        projectId={projectId}
+        currentPhase={meta.projectCurrentPhase}
+        applicability={meta.applicability}
+        preview={meta.startPhaseModal}
+        onStarted={() => router.refresh()}
+      />
     </aside>
   );
 }

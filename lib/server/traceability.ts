@@ -16,6 +16,14 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import {
+  artifactDetailPath,
+  evidenceDetailPath,
+  featureRegisterPath,
+  gateReviewPath,
+  requirementDetailPath,
+  traceLinkDetailPath,
+} from "@/lib/traceability-drilldown";
+import {
   getGateVisualState,
   indexLatestGateDecisions,
   type GateDecisionRow,
@@ -28,6 +36,7 @@ import {
   projectDisplayCode,
 } from "@/lib/server/helpers";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
+import { requirementHasTestCoverage } from "@/lib/server/requirement-test-traceability";
 import {
   clampWorkspacePhase,
   gateHeaderDisplayName,
@@ -125,8 +134,8 @@ function mapLatestDecisionToGateStatus(
 }
 
 function linkStrengthForRelation(relation: string): TraceabilityLinkDetail["linkStrength"] {
-  if (relation === "implements" || relation === "derives") return "strong";
-  if (relation === "informs") return "medium";
+  if (["implements", "derives", "satisfies", "evidences"].includes(relation)) return "strong";
+  if (["informs", "validates", "verifies", "depends_on"].includes(relation)) return "medium";
   return "weak";
 }
 
@@ -150,6 +159,8 @@ export async function getTraceabilityShell(projectId: string): Promise<Traceabil
 export type LoadTraceabilityMatrixOptions = {
   viewMode?: TraceabilityViewMode;
   searchTerm?: string;
+  /** When set (1–14), matrix filters open scoped to that workspace phase. */
+  initialWorkspacePhase?: number;
 };
 
 export async function loadTraceabilityMatrix(
@@ -162,7 +173,7 @@ export async function loadTraceabilityMatrix(
       artifacts: { orderBy: { updatedAt: "desc" } },
       requirements: true,
       features: true,
-      traceLinks: { orderBy: { createdAt: "desc" } },
+      traceLinks: { where: { deletedAt: null }, orderBy: { createdAt: "desc" } },
       gateDecisions: { orderBy: { createdAt: "desc" } },
       evidenceItems: true,
       approvals: {
@@ -216,7 +227,7 @@ export async function loadTraceabilityMatrix(
       totalArtifactsRequired: total,
       coveragePercent: percent,
       status,
-      href: `/projects/${resolvedProjectId}/workspace?phase=${phaseNumber}`,
+      href: `/projects/${resolvedProjectId}/traceability/phase-artifacts/${phaseNumber}`,
     });
   }
 
@@ -245,10 +256,6 @@ export async function loadTraceabilityMatrix(
     );
   }
 
-  function hasTestIntent(req: { verificationMethod?: string | null }): boolean {
-    return Boolean(req.verificationMethod?.trim());
-  }
-
   const requirementDesignLinks: RequirementDesignCoverage[] = REQUIREMENT_BUCKET_ORDER.map((kind) => {
     const bucket = reqsByKind.get(kind) ?? [];
     const requirementsTotal = bucket.length;
@@ -268,7 +275,7 @@ export async function loadTraceabilityMatrix(
   const requirementTestLinks: RequirementTestCoverage[] = REQUIREMENT_BUCKET_ORDER.map((kind) => {
     const bucket = reqsByKind.get(kind) ?? [];
     const requirementsTotal = bucket.length;
-    const testLinksTotal = bucket.filter((r) => hasTestIntent(r)).length;
+    const testLinksTotal = bucket.filter((r) => requirementHasTestCoverage(r, links)).length;
     const { percent, status } = coverageFromRatio(testLinksTotal, requirementsTotal);
     return {
       requirementType: kind,
@@ -304,7 +311,8 @@ export async function loadTraceabilityMatrix(
       requiredEvidence,
       coveragePercent: requiredEvidence > 0 ? percent : evidenceLinked > 0 ? 100 : 0,
       status: requiredEvidence > 0 ? status : evidenceLinked > 0 ? ("complete" as const) : ("missing" as const),
-      href: `/projects/${resolvedProjectId}/gates/${gate.toLowerCase()}/review`,
+      href: `/projects/${resolvedProjectId}/traceability/gate-evidence/${gate.toLowerCase()}`,
+      reviewHref: `/projects/${resolvedProjectId}/gates/${gate.toLowerCase()}/review`,
     };
   });
 
@@ -324,13 +332,16 @@ export async function loadTraceabilityMatrix(
     const id = `${AG_PREFIX}${art.id}:${gate}`;
     artifactGateLinks.push({
       id,
+      artifactId: art.id,
       artifactLocalId: art.localId,
       artifactTitle: `${art.templateId} v${art.version}`,
       gateCode: gate,
       gateName: gateHeaderDisplayName(gate),
       status: rowStatus,
-      href: `/projects/${resolvedProjectId}/artifacts/${art.id}`,
-      detailHref: `/projects/${resolvedProjectId}/traceability/${encodeURIComponent(id)}`,
+      href: artifactDetailPath(resolvedProjectId, art.id),
+      reviewHref: gateReviewPath(resolvedProjectId, gate),
+      detailHref: traceLinkDetailPath(resolvedProjectId, id),
+      rowUpdatedAt: art.updatedAt.toISOString(),
     });
   }
 
@@ -360,8 +371,9 @@ export async function loadTraceabilityMatrix(
       approvalTitle: `${g} gate review`,
       approvalStatus,
       status: rowStatus,
-      href: `/projects/${resolvedProjectId}/evidence/${ev.id}`,
-      detailHref: `/projects/${resolvedProjectId}/traceability/${encodeURIComponent(id)}`,
+      href: evidenceDetailPath(resolvedProjectId, ev.id),
+      detailHref: traceLinkDetailPath(resolvedProjectId, id),
+      rowUpdatedAt: ev.updatedAt.toISOString(),
     });
   }
 
@@ -375,7 +387,7 @@ export async function loadTraceabilityMatrix(
       if (!r) return null;
       return {
         label: `${r.localId} — ${r.title}`,
-        href: `/projects/${resolvedProjectId}/requirements`,
+        href: requirementDetailPath(resolvedProjectId, r.id),
       };
     }
     if (kind === "feature") {
@@ -383,7 +395,7 @@ export async function loadTraceabilityMatrix(
       if (!f) return null;
       return {
         label: `${f.localId} — ${f.title}`,
-        href: `/projects/${resolvedProjectId}/features`,
+        href: featureRegisterPath(resolvedProjectId, f.id),
       };
     }
     if (kind === "artifact") {
@@ -391,7 +403,7 @@ export async function loadTraceabilityMatrix(
       if (!a) return null;
       return {
         label: `${a.templateId} · ${a.localId}`,
-        href: `/projects/${resolvedProjectId}/artifacts/${a.id}`,
+        href: artifactDetailPath(resolvedProjectId, a.id),
       };
     }
     return null;
@@ -410,7 +422,7 @@ export async function loadTraceabilityMatrix(
         objectName: r.title,
         issue: "No trace links (incoming or outgoing)",
         impact: r.kind === "CRS" ? "high" : "medium",
-        href: `/projects/${resolvedProjectId}/requirements`,
+        href: requirementDetailPath(resolvedProjectId, r.id),
       });
     } else if (!hasDesignTrace(r.id) && (r.kind === "SRS_FR" || r.kind === "SRS_NFR")) {
       traceabilityGaps.push({
@@ -420,7 +432,7 @@ export async function loadTraceabilityMatrix(
         objectName: r.title,
         issue: "No design link (feature implements)",
         impact: "medium",
-        href: `/projects/${resolvedProjectId}/requirements`,
+        href: requirementDetailPath(resolvedProjectId, r.id),
       });
     }
   }
@@ -436,7 +448,7 @@ export async function loadTraceabilityMatrix(
         objectName: f.title,
         issue: "Feature has no trace links",
         impact: "medium",
-        href: `/projects/${resolvedProjectId}/features`,
+        href: featureRegisterPath(resolvedProjectId, f.id),
       });
     }
   }
@@ -452,7 +464,7 @@ export async function loadTraceabilityMatrix(
         objectName: e.name,
         issue: "Evidence tagged to gate but no gate review approval row",
         impact: "low",
-        href: `/projects/${resolvedProjectId}/evidence/${e.id}`,
+        href: evidenceDetailPath(resolvedProjectId, e.id),
       });
     }
   }
@@ -468,7 +480,7 @@ export async function loadTraceabilityMatrix(
         objectName: `${l.fromKind} → ${l.toKind}`,
         issue: "Trace link references a missing object",
         impact: "high",
-        href: `/projects/${resolvedProjectId}/traceability/${l.id}`,
+        href: traceLinkDetailPath(resolvedProjectId, l.id),
       });
     }
   }
@@ -508,7 +520,7 @@ export async function loadTraceabilityMatrix(
     totals: {
       requirements: project.requirements.length,
       designs: project.features.length,
-      tests: project.requirements.filter((r) => hasTestIntent(r)).length,
+      tests: project.requirements.filter((r) => requirementHasTestCoverage(r, project.traceLinks)).length,
       evidenceItems: project.evidenceItems.length,
       gates: ALL_GATES.length,
       artifacts: project.artifacts.length,
@@ -524,21 +536,67 @@ export async function loadTraceabilityMatrix(
     href: `/projects/${resolvedProjectId}/traceability/report`,
   };
 
+  const assignableEndpoints = {
+    requirements: project.requirements
+      .map((r) => ({ id: r.id, localId: r.localId, label: `${r.localId} — ${r.title}` }))
+      .sort((a, b) => a.localId.localeCompare(b.localId)),
+    features: project.features
+      .map((f) => ({ id: f.id, localId: f.localId, label: `${f.localId} — ${f.title}` }))
+      .sort((a, b) => a.localId.localeCompare(b.localId)),
+    artifacts: project.artifacts
+      .map((a) => ({
+        id: a.id,
+        localId: a.localId,
+        label: `${a.templateId} · ${a.localId}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  };
+
   const stamps: Date[] = [
     project.updatedAt,
     ...project.artifacts.map((a) => a.updatedAt),
     ...project.requirements.map((r) => r.updatedAt),
     ...project.evidenceItems.map((e) => e.updatedAt),
-    ...project.traceLinks.map((t) => t.createdAt),
+    ...links.map((t) => t.createdAt),
     ...project.gateDecisions.map((d) => d.createdAt),
   ];
   const lastUpdated = stamps.reduce((a, b) => (a > b ? a : b), project.updatedAt);
+
+  const projectPickerRows = await prisma.project.findMany({
+    orderBy: { updatedAt: "desc" },
+    take: 80,
+    select: { id: true, name: true, slug: true, vaultFolder: true },
+  });
+  const projectPicker = projectPickerRows.map((p) => ({
+    id: p.id,
+    code: projectDisplayCode(p.vaultFolder, p.slug),
+    name: p.name,
+  }));
+  if (!projectPicker.some((p) => p.id === resolvedProjectId)) {
+    projectPicker.unshift({
+      id: resolvedProjectId,
+      code: projectDisplayCode(project.vaultFolder, project.slug),
+      name: project.name,
+    });
+  }
+
+  const assignableUsers = await prisma.user.findMany({
+    where: { active: true },
+    take: 100,
+    select: { id: true, name: true, email: true },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+  });
 
   const filters: TraceabilityFilters = {
     projectId: resolvedProjectId,
     searchTerm: options?.searchTerm ?? "",
     viewMode: options?.viewMode ?? "all_links",
-    phaseNumber: "all",
+    phaseNumber:
+      options?.initialWorkspacePhase !== undefined &&
+      options.initialWorkspacePhase >= 1 &&
+      options.initialWorkspacePhase <= 14
+        ? options.initialWorkspacePhase
+        : "all",
     status: "all",
     objectType: "all",
     lastUpdatedLabel: formatDateTimeLabel(lastUpdated),
@@ -550,7 +608,9 @@ export async function loadTraceabilityMatrix(
       id: resolvedProjectId,
       code: projectDisplayCode(project.vaultFolder, project.slug),
       name: project.name,
+      currentPhase: clampWorkspacePhase(project.currentPhase),
     },
+    projectPicker,
     filters,
     phaseArtifactLinks,
     requirementDesignLinks,
@@ -561,6 +621,8 @@ export async function loadTraceabilityMatrix(
     traceabilityGaps,
     coverageSummary,
     actionState,
+    assignableEndpoints,
+    assignableUsers,
   };
 }
 
@@ -580,7 +642,7 @@ export async function getTraceabilityLinkDetail(
   const baseLinkType = (a: string, b: string) => `${a} → ${b}`;
 
   const trace = await prisma.traceLink.findFirst({
-    where: { id: decoded, projectId },
+    where: { id: decoded, projectId, deletedAt: null },
   });
   if (trace) {
     const reqs = await prisma.requirement.findMany({
@@ -604,21 +666,21 @@ export async function getTraceabilityLinkDetail(
         const r = reqMap.get(id);
         return {
           label: r ? `${r.localId} — ${r.title}` : id,
-          href: `/projects/${projectId}/requirements`,
+          href: r ? requirementDetailPath(projectId, r.id) : `/projects/${projectId}/traceability`,
         };
       }
       if (kind === "feature") {
         const f = featMap.get(id);
         return {
           label: f ? `${f.localId} — ${f.title}` : id,
-          href: `/projects/${projectId}/features`,
+          href: f ? featureRegisterPath(projectId, f.id) : `/projects/${projectId}/traceability`,
         };
       }
       if (kind === "artifact") {
         const a = artMap.get(id);
         return {
           label: a ? `${a.templateId} · ${a.localId}` : id,
-          href: a ? `/projects/${projectId}/artifacts/${a.id}` : `/projects/${projectId}/workspace`,
+          href: a ? artifactDetailPath(projectId, a.id) : `/projects/${projectId}/workspace`,
         };
       }
       return { label: id.slice(0, 10), href: `/projects/${projectId}/traceability` };
@@ -632,6 +694,18 @@ export async function getTraceabilityLinkDetail(
       (trace.fromKind === "feature" ? featMap.has(trace.fromId) : true) &&
       (trace.toKind === "feature" ? featMap.has(trace.toId) : true);
 
+    let createdByLabel = "System";
+    if (trace.createdByUserId) {
+      const creator = await prisma.user.findUnique({
+        where: { id: trace.createdByUserId },
+        select: { name: true, email: true },
+      });
+      createdByLabel = creator?.name?.trim() || creator?.email || "User";
+    }
+
+    const conf = trace.confidence === "low" || trace.confidence === "high" ? trace.confidence : "medium";
+    const evidenceRef = trace.evidenceReference?.trim() || `TraceLink ${trace.id}`;
+
     return {
       id: trace.id,
       linkType: `${trace.relation} (${baseLinkType(trace.fromKind, trace.toKind)})`,
@@ -642,10 +716,17 @@ export async function getTraceabilityLinkDetail(
       targetKind: trace.toKind,
       targetLabel: tgt.label,
       targetHref: tgt.href,
-      createdBy: "System",
+      createdBy: createdByLabel,
       createdAtLabel: formatDateTimeLabel(trace.createdAt),
-      evidenceReference: `TraceLink ${trace.id}`,
+      evidenceReference: evidenceRef,
       validationStatus: valid ? "valid" : "invalid",
+      editable: true,
+      relation: trace.relation,
+      rationale: trace.rationale ?? "",
+      confidence: conf,
+      verificationNote: trace.verificationNote,
+      lastVerifiedAtLabel: trace.lastVerifiedAt ? formatDateTimeLabel(trace.lastVerifiedAt) : null,
+      createdByUserId: trace.createdByUserId,
     };
   }
 
@@ -668,14 +749,21 @@ export async function getTraceabilityLinkDetail(
       linkStrength: approved ? "strong" : art.status === "Draft" ? "medium" : "weak",
       sourceKind: "artifact",
       sourceLabel: `${art.templateId} · ${art.localId}`,
-      sourceHref: `/projects/${projectId}/artifacts/${art.id}`,
+      sourceHref: artifactDetailPath(projectId, art.id),
       targetKind: "gate",
       targetLabel: `${gate} — ${gateHeaderDisplayName(gate)}`,
-      targetHref: `/projects/${projectId}/gates/${gate.toLowerCase()}/review`,
+      targetHref: gateReviewPath(projectId, gate),
       createdBy: "Derived",
       createdAtLabel: formatDateTimeLabel(art.updatedAt),
       evidenceReference: `Template phase linkage · ${gate}`,
       validationStatus: approved ? "valid" : "warning",
+      editable: false,
+      relation: "",
+      rationale: "",
+      confidence: "medium",
+      verificationNote: "",
+      lastVerifiedAtLabel: null,
+      createdByUserId: null,
     };
   }
 
@@ -696,20 +784,31 @@ export async function getTraceabilityLinkDetail(
     const st = appr.status;
     const invalid = st === "rejected";
     const warn = st === "pending" || st === "in_review" || st === "changes_requested";
+    const gateForReview = appr.gateId ? normalizeGateParam(appr.gateId) : null;
     return {
       id: decoded,
       linkType: "Evidence → Approval",
       linkStrength: st === "approved" ? "strong" : warn ? "medium" : "weak",
       sourceKind: "evidence",
       sourceLabel: `${ev.evidenceCode} — ${ev.name}`,
-      sourceHref: `/projects/${projectId}/evidence/${ev.id}`,
+      sourceHref: evidenceDetailPath(projectId, ev.id),
       targetKind: "approval",
       targetLabel: appr.gateId ? `${appr.gateId} gate review` : "Artifact review",
-      targetHref: `/projects/${projectId}/approvals/${appr.id}`,
+      targetHref:
+        gateForReview ?
+          gateReviewPath(projectId, gateForReview)
+        : `/projects/${projectId}/workspace`,
       createdBy: appr.submittedBy?.name?.trim() || "—",
       createdAtLabel: formatDateTimeLabel(appr.updatedAt),
       evidenceReference: ev.evidenceCode,
       validationStatus: invalid ? "invalid" : warn ? "warning" : "valid",
+      editable: false,
+      relation: "",
+      rationale: "",
+      confidence: "medium",
+      verificationNote: "",
+      lastVerifiedAtLabel: null,
+      createdByUserId: null,
     };
   }
 

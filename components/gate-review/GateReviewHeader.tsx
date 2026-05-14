@@ -1,18 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { CheckCircle2, Clock3, Shield } from "lucide-react";
 
-import type { GateApprover, GateReviewHeaderData } from "@/types/gate-review.types";
-import { cn } from "@/lib/utils";
+import type {
+  GateApprover,
+  GateReviewHeaderChecklist,
+  GateReviewHeaderData,
+} from "@/types/gate-review.types";
 
-import { gateReviewStatusBadgeMap } from "./badge-maps";
-
-export type GateReviewHeaderChecklist = {
-  allRequiredInputsProvided: boolean;
-  evidenceAttached: boolean;
-  decisionCriteriaMet: boolean;
-  awaitingReviewerDecision: boolean;
-};
+import { GateStatusPopoverTrigger } from "./gate-status-popover";
+import { projectGateAuditTrailHref } from "@/lib/projects-url";
 
 type ReadinessStatus = "complete" | "waiting";
 
@@ -85,44 +83,21 @@ function formatApproversSummary(approvers: GateApprover[]) {
   return `${completed} of ${total} reviewed`;
 }
 
-function HeaderDecisionBadge({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: keyof typeof headerToneClass;
-}) {
-  return (
-    <span
-      className={cn(
-        "rounded-full px-4 py-1.5 text-xs font-semibold",
-        headerToneClass[tone],
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-const headerToneClass = {
-  gray: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-  blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-200",
-  amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300",
-  green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-  red: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300",
-  purple: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
-} as const;
-
 export function GateReviewHeader({
   data,
   checklist,
   approvers,
+  onSendReminder,
+  canSendReminders = false,
+  onPreviewAuditTrail,
 }: {
   data: GateReviewHeaderData;
   checklist: GateReviewHeaderChecklist;
   approvers: GateApprover[];
+  onSendReminder?: () => void;
+  canSendReminders?: boolean;
+  onPreviewAuditTrail?: () => void;
 }) {
-  const badge = gateReviewStatusBadgeMap[data.status];
   const projectCode = data.projectCode?.trim();
   const readinessItems: { id: string; label: string; status: ReadinessStatus }[] = [
     {
@@ -165,7 +140,31 @@ export function GateReviewHeader({
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-foreground">{data.gateName}</h2>
 
-            <HeaderDecisionBadge label={badge.label} tone={badge.tone} />
+            <GateStatusPopoverTrigger status={data.status} checklist={checklist} />
+            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Link
+                data-testid="gate-review-header-audit-trail-link"
+                href={projectGateAuditTrailHref(data.projectId, data.gateCode)}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                View audit trail
+              </Link>
+              {onPreviewAuditTrail ? (
+                <>
+                  <span className="text-sm text-slate-400 dark:text-muted-foreground" aria-hidden>
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="gate-review-header-audit-trail-preview"
+                    onClick={onPreviewAuditTrail}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Preview
+                  </button>
+                </>
+              ) : null}
+            </span>
           </div>
 
           <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 dark:text-muted-foreground">{data.purpose}</p>
@@ -226,9 +225,20 @@ export function GateReviewHeader({
 
         <div>
           <p className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Approvers</p>
-          <p className="mt-2 text-sm font-semibold text-slate-950 dark:text-foreground">
-            {formatApproversSummary(approvers)}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p className="text-sm font-semibold text-slate-950 dark:text-foreground">
+              {formatApproversSummary(approvers)}
+            </p>
+            {onSendReminder && canSendReminders ? (
+              <button
+                type="button"
+                onClick={onSendReminder}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Send reminder
+              </button>
+            ) : null}
+          </div>
         </div>
       </article>
 

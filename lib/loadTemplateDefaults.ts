@@ -30,7 +30,7 @@ export async function loadTemplateDefaults(
         orderBy: { localId: "asc" },
       });
       const links = await prisma.traceLink.findMany({
-        where: { projectId, relation: "derives", fromKind: "requirement" },
+        where: { projectId, relation: "derives", fromKind: "requirement", deletedAt: null },
       });
       const reqById = new Map(rows.map((r) => [r.id, r]));
       const crsLocals = new Map(
@@ -98,7 +98,7 @@ export async function loadTemplateDefaults(
         orderBy: { localId: "asc" },
       });
       const links = await prisma.traceLink.findMany({
-        where: { projectId, fromKind: "feature" },
+        where: { projectId, fromKind: "feature", deletedAt: null },
       });
       const reqLocals = new Map(
         (

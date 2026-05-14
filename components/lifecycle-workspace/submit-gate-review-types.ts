@@ -24,6 +24,21 @@ export type GateSubmissionApprover = {
   role: string;
 };
 
+/** Mirrors `AssignableApprover` in assign-approvers-modal (kept here to avoid circular imports). */
+export type GateSubmissionAssignableUser = {
+  userId?: string | null;
+  name: string;
+  role: string;
+};
+
+export type GateSubmissionAssignApproversPayload = {
+  gateId: import("@/lib/gateRules").GateId;
+  gateLabel: string;
+  candidates: GateSubmissionAssignableUser[];
+  initialSelection: GateSubmissionAssignableUser[];
+  initialDueAtIso: string | null;
+};
+
 export type GateSubmissionState = {
   projectId: string;
   gateCode: string;
@@ -31,6 +46,14 @@ export type GateSubmissionState = {
   canSubmit: boolean;
   missingRequirements: string[];
   submitHref: string;
+  /** 0–100 composite for the submit modal. */
+  readinessPercent?: number;
+  /** Target / review due label for the modal header area. */
+  reviewDueDateLabel?: string;
+  /** Read-only package preview before submitting. */
+  packagePreviewHref?: string;
+  /** Opens Assign Approvers from the workspace card. */
+  assignApprovers?: GateSubmissionAssignApproversPayload;
   /**
    * Preview data surfaced inside the Submit Gate Review modal. All optional
    * for backwards compatibility; the modal renders empty-state messaging when

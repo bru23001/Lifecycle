@@ -36,8 +36,10 @@ export default async function RequirementsPage({
   const sp = await searchParams;
   const kindRaw = typeof sp.kind === "string" ? sp.kind : "";
   const statusRaw = typeof sp.status === "string" ? sp.status : "";
+  const highlightLocalRaw = typeof sp.localId === "string" ? sp.localId : "";
   const kindFilter = parseKind(kindRaw);
   const statusFilter = parseStatus(statusRaw);
+  const highlightLocalId = highlightLocalRaw.trim();
 
   const project = await prisma.project.findUnique({ where: { id } });
   if (!project) notFound();
@@ -60,7 +62,7 @@ export default async function RequirementsPage({
       orderBy: [{ kind: "asc" }, { localId: "asc" }],
     }),
     prisma.traceLink.findMany({
-      where: { projectId: id },
+      where: { projectId: id, deletedAt: null },
       select: {
         fromKind: true,
         fromId: true,
@@ -177,7 +179,11 @@ export default async function RequirementsPage({
           </Link>
         </form>
 
-        <RequirementsRegisterTable projectId={id} rows={rows} />
+        <RequirementsRegisterTable
+          projectId={id}
+          rows={rows}
+          highlightLocalId={highlightLocalId || undefined}
+        />
       </div>
     </div>
   );

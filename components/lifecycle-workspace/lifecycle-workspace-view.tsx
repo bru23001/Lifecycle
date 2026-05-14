@@ -5,20 +5,32 @@ import { useState } from "react";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
-import type { PhaseNavItem } from "@/components/lifecycle-workspace/phase-navigator-types";
+import type {
+  PhaseNavItem,
+  PhaseNavigatorMeta,
+} from "@/components/lifecycle-workspace/phase-navigator-types";
 import type { PhaseHeaderData } from "@/components/lifecycle-workspace/phase-header-types";
 import { PhaseNavigator } from "@/components/lifecycle-workspace/phase-navigator";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { CurrentPhaseMainPanel } from "@/components/lifecycle-workspace/current-phase-main-panel";
-import { NextRequiredActionBar } from "@/components/lifecycle-workspace/next-required-action-bar";
+import { WorkspaceActionBar } from "@/components/lifecycle-workspace/workspace-action-bar";
 import type { NextRequiredAction } from "@/components/lifecycle-workspace/next-required-action-types";
 import { ReviewStatusPanel } from "@/components/lifecycle-workspace/review-status-panel";
-import type { CompletionChecklistItem } from "@/components/lifecycle-workspace/completion-checklist-types";
-import type { EvidenceAttachment } from "@/components/lifecycle-workspace/evidence-attachments-types";
+import type {
+  CompletionChecklistItem,
+  CompletionRulesPayload,
+} from "@/components/lifecycle-workspace/completion-checklist-types";
+import type {
+  EvidenceAttachment,
+  EvidenceWorkspaceContextPayload,
+} from "@/components/lifecycle-workspace/evidence-attachments-types";
 import type { CurrentPhaseWorkspaceData } from "./current-phase-workspace-types";
 import type { RequiredTemplate } from "./required-templates-types";
 import type { ValidationWarning } from "./validation-warnings-types";
 import type { GateSubmissionState } from "./submit-gate-review-types";
+import type { WorkspacePhaseActionsPayload } from "./workspace-phase-tools-types";
+import { projectOverviewHref } from "@/lib/projects-url";
+import { WorkspaceUnsavedChangesProvider } from "@/components/lifecycle-workspace/workspace-unsaved-context";
 
 export function LifecycleWorkspaceView({
   projectId,
@@ -26,6 +38,7 @@ export function LifecycleWorkspaceView({
   phaseSummary,
   phaseProgressPct,
   projectCurrentPhase,
+  statusPanelPhase,
   gatesHref,
   breadcrumbCode,
   userInitials,
@@ -33,20 +46,27 @@ export function LifecycleWorkspaceView({
   userRole,
   phaseHeader,
   phaseNavigatorItems,
+  phaseNavigatorMeta,
   workspace,
   requiredTemplates,
   evidenceAttachments,
+  evidenceWorkspace,
   checklistItems,
+  completionRules,
   validationWarnings,
   gateSubmissionState,
   nextRequiredAction,
+  phaseExportZipBase,
+  workspacePhaseActions,
 }: {
   projectId: string;
   projectName: string;
   phaseSummary: string;
   phaseProgressPct: number;
-  /** Workspace phase index 1–14 for shell deep-links. */
+  /** DB-backed navigator phase (shell / gates). */
   projectCurrentPhase: number;
+  /** Phase index for status pane checklist (matches URL `phase` when present). */
+  statusPanelPhase: number;
   /** Optional; default Gates nav uses DB-backed readiness when set. */
   gatesHref?: string;
   breadcrumbCode: string;
@@ -55,23 +75,32 @@ export function LifecycleWorkspaceView({
   userRole: string;
   phaseHeader: PhaseHeaderData;
   phaseNavigatorItems: PhaseNavItem[];
+  phaseNavigatorMeta: PhaseNavigatorMeta;
   workspace: CurrentPhaseWorkspaceData;
   requiredTemplates: RequiredTemplate[];
   evidenceAttachments: EvidenceAttachment[];
+  evidenceWorkspace: EvidenceWorkspaceContextPayload;
   checklistItems: CompletionChecklistItem[];
+  completionRules: CompletionRulesPayload;
   validationWarnings: ValidationWarning[];
   gateSubmissionState: GateSubmissionState;
   nextRequiredAction: NextRequiredAction;
+  /** JSON payload used by Export Phase Package (ZIP) from the workspace action bar. */
+  phaseExportZipBase: Record<string, unknown>;
+  workspacePhaseActions: WorkspacePhaseActionsPayload;
 }) {
   const [mobilePane, setMobilePane] = useState<"phase" | "workspace" | "status">("workspace");
 
   return (
+    <WorkspaceUnsavedChangesProvider>
     <AuthenticatedAppShell
       projectId={projectId}
       projectName={projectName}
       phaseSummary={phaseSummary}
       phaseProgressPct={phaseProgressPct}
       projectCurrentPhase={projectCurrentPhase}
+      navPhaseScope={statusPanelPhase}
+      workspaceHref={`/projects/${projectId}/workspace?phase=${statusPanelPhase}`}
       gatesHref={gatesHref}
     >
       <TopHeader
@@ -87,7 +116,7 @@ export function LifecycleWorkspaceView({
               { label: "Projects", href: "/projects" },
               {
                 label: `${projectName} (${breadcrumbCode})`,
-                href: `/projects/${projectId}/workspace`,
+                href: projectOverviewHref(projectId),
               },
               { label: "Lifecycle Workspace" },
             ]}
@@ -113,27 +142,38 @@ export function LifecycleWorkspaceView({
           data-active-pane={mobilePane}
           className="lifecycle-workspace mx-auto w-full max-w-[1920px]"
         >
-          <PhaseNavigator items={phaseNavigatorItems} projectId={projectId} />
+          <PhaseNavigator
+            items={phaseNavigatorItems}
+            projectId={projectId}
+            meta={phaseNavigatorMeta}
+          />
           <CurrentPhaseMainPanel
             phaseHeader={phaseHeader}
             workspace={workspace}
             requiredTemplates={requiredTemplates}
+            defaultArtifactOwnerName={userName}
             evidenceAttachments={evidenceAttachments}
+            evidenceWorkspace={evidenceWorkspace}
+            workspacePhaseActions={workspacePhaseActions}
           />
           <ReviewStatusPanel
             checklistItems={checklistItems}
+            completionRules={completionRules}
+            projectRecordId={projectId}
+            phaseNumber={statusPanelPhase}
             validationWarnings={validationWarnings}
             gateSubmissionState={gateSubmissionState}
           />
         </div>
 
-        <NextRequiredActionBar
-          label={nextRequiredAction.label}
-          description={nextRequiredAction.description}
-          ctaLabel={nextRequiredAction.ctaLabel}
-          href={nextRequiredAction.href}
+        <WorkspaceActionBar
+          projectId={projectId}
+          phaseNumber={statusPanelPhase}
+          nextRequiredAction={nextRequiredAction}
+          phaseExportZipBase={phaseExportZipBase}
         />
       </div>
     </AuthenticatedAppShell>
+    </WorkspaceUnsavedChangesProvider>
   );
 }

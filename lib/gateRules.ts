@@ -434,6 +434,7 @@ async function evaluateG4Project(projectId: string): Promise<GateEvaluationResul
     const n = await prisma.traceLink.count({
       where: {
         projectId,
+        deletedAt: null,
         fromKind: "requirement",
         fromId: srs.id,
         relation: { in: ["informs", "derives"] },
@@ -453,7 +454,7 @@ async function evaluateG4Project(projectId: string): Promise<GateEvaluationResul
   const feats = await prisma.feature.findMany({ where: { projectId } });
   for (const f of feats) {
     const n = await prisma.traceLink.count({
-      where: { projectId, fromKind: "feature", fromId: f.id },
+      where: { projectId, deletedAt: null, fromKind: "feature", fromId: f.id },
     });
     const ok = n > 0;
     pushCheck(checks, {

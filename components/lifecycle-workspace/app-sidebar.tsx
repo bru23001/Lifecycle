@@ -55,6 +55,7 @@ export function AppSidebar({
   workspaceHref,
   gatesHref,
   projectCurrentPhase,
+  navPhaseScope,
   continueWorkingHref,
   className,
   id = "app-sidebar",
@@ -70,6 +71,8 @@ export function AppSidebar({
   gatesHref?: string;
   /** Workspace phase 1–14; drives default Gates link when `gatesHref` is not set. */
   projectCurrentPhase?: number | null;
+  /** Viewed workspace phase for Artifacts / Evidence / Traceability `?phase=` links. */
+  navPhaseScope?: number | null;
   /** Overrides the sidebar card CTA when continuing the next required action. */
   continueWorkingHref?: string;
   className?: string;
@@ -91,6 +94,14 @@ export function AppSidebar({
   const resolvedGatesHref =
     gatesHref ??
     (hasProject ? `/projects/${projectId}/gates` : "/projects");
+
+  const scopedPhase =
+    typeof navPhaseScope === "number" && navPhaseScope >= 1 && navPhaseScope <= 14
+      ? navPhaseScope
+      : projectCurrentPhase != null && projectCurrentPhase >= 1 && projectCurrentPhase <= 14
+        ? projectCurrentPhase
+        : null;
+  const phaseQuerySuffix = scopedPhase != null ? `?phase=${scopedPhase}` : "";
 
   const toggleCollapsed = () => {
     const nextValue = !collapsed;
@@ -117,19 +128,19 @@ export function AppSidebar({
     },
     {
       label: "Artifacts",
-      href: hasProject ? `/projects/${projectId}/artifacts` : "/projects",
+      href: hasProject ? `/projects/${projectId}/artifacts${phaseQuerySuffix}` : "/projects",
       icon: FileText,
       active: active === "artifacts",
     },
     {
       label: "Evidence",
-      href: hasProject ? `/projects/${projectId}/evidence` : "/projects",
+      href: hasProject ? `/projects/${projectId}/evidence${phaseQuerySuffix}` : "/projects",
       icon: SearchCheck,
       active: active === "evidence",
     },
     {
       label: "Traceability",
-      href: hasProject ? `/projects/${projectId}/traceability` : "/projects",
+      href: hasProject ? `/projects/${projectId}/traceability${phaseQuerySuffix}` : "/projects",
       icon: GitBranch,
       active: active === "traceability",
     },

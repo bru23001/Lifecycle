@@ -1,5 +1,5 @@
 import type { TemplateRow } from "@/components/lifecycle-workspace/current-phase-main-panel";
-import type { ValidationWarning } from "@/components/lifecycle-workspace/validation-warnings-types";
+import { buildValidationWarnings } from "@/lib/workspacePhaseWorkspaceSlice";
 import { parseApplicability } from "@/lib/applicability";
 import type { GateDecisionRow } from "@/lib/gateStatus";
 import { nextOpenGateForPhase } from "@/lib/gateStatus";
@@ -59,45 +59,6 @@ function templateRowFromArtifact(
   };
 }
 
-function buildValidationWarnings(rows: TemplateRow[], projectId: string): ValidationWarning[] {
-  const out: ValidationWarning[] = [];
-  const a32 = rows.find((r) => r.id === "A-3.2");
-  if (a32 && a32.status !== "Completed") {
-    out.push({
-      id: "warn-a32",
-      message: "A-3.2 is missing at least one scoring justification.",
-      severity: "warning",
-      relatedObjectType: "template",
-      relatedObjectId: "A-3.2",
-      href: projectTemplateWizardHref(projectId, "A-3.2"),
-    });
-  }
-  const a31 = rows.find((r) => r.id === "A-3.1");
-  if (a31 && a31.status !== "Completed") {
-    out.push({
-      id: "warn-a31",
-      message: "A-3.1 selection scorecard requires weighted criteria.",
-      severity: "warning",
-      relatedObjectType: "template",
-      relatedObjectId: "A-3.1",
-      href: projectTemplateWizardHref(projectId, "A-3.1"),
-    });
-  }
-  const drafts = rows.filter((r) => r.status === "In Progress");
-  if (drafts.length > 0 && out.length < 3) {
-    const firstDraft = drafts[0]!;
-    out.push({
-      id: "warn-drafts",
-      message: `${drafts.length} template(s) still in draft — finalize before gate submission.`,
-      severity: "warning",
-      relatedObjectType: "template",
-      relatedObjectId: firstDraft.id,
-      href: projectTemplateWizardHref(projectId, firstDraft.id),
-    });
-  }
-  return out.slice(0, 5);
-}
-
 /**
  * Single destination for "Continue next required action" (dashboard + shell),
  * aligned with `app/projects/[id]/workspace/page.tsx` prioritization (canonical `/templates/` wizard).
@@ -144,7 +105,7 @@ export function resolveContinueNextActionHref(args: {
 
   const evidenceRows = artifacts.filter((a) => phaseTemplates.some((t) => t.templateId === a.templateId));
 
-  const validationWarnings = buildValidationWarnings(templateRows, projectId);
+  const validationWarnings = buildValidationWarnings(templateRows, projectId, navPhase, []);
 
   const firstIncompleteTemplate = templateRows.find((t) => t.status !== "Completed");
   if (firstIncompleteTemplate) {

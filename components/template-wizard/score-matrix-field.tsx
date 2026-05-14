@@ -1,14 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { FileDown, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { addRow, removeRow, totalWeight, updateRow } from "@/lib/score-matrix-ops";
 import { cn } from "@/lib/utils";
 import type { WizardScoreMatrix } from "@/types/template-wizard.types";
 
-function totalWeight(m: WizardScoreMatrix): number {
-  return m.criteria.reduce((acc, c) => acc + (Number.isFinite(c.weight) ? c.weight : 0), 0);
-}
+import {
+  AddTableRowModal,
+  type NewMatrixRow,
+} from "@/components/template-wizard/add-table-row-modal";
+import { DeleteRowConfirmationModal } from "@/components/template-wizard/delete-row-confirmation-modal";
+import { ImportRowsModal, type ImportRowDraft } from "@/components/template-wizard/import-rows-modal";
+import {
+  MatrixRowDetailDrawer,
+  type RowDetailPatch,
+} from "@/components/template-wizard/matrix-row-detail-drawer";
 
 export function ScoreMatrixField({
   value,
@@ -22,81 +31,123 @@ export function ScoreMatrixField({
   const tw = useMemo(() => totalWeight(value), [value]);
   const balanced = tw >= 99 && tw <= 101;
 
-  function updateCriteria(nextCriteria: WizardScoreMatrix["criteria"]) {
-    onChange({ ...value, criteria: nextCriteria });
-  }
+  const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   function setWeight(idx: number, weight: number) {
-    const next = value.criteria.map((c, i) =>
-      i === idx ? { ...c, weight: Number.isFinite(weight) ? weight : 0 } : c,
-    );
-    updateCriteria(next);
+    const target = value.criteria[idx];
+    if (!target) return;
+    onChange(updateRow(value, target.id, { weight: Number.isFinite(weight) ? weight : 0 }));
   }
 
   function setComment(criterionId: string, comment: string) {
-    onChange({
-      ...value,
-      rowComments: { ...value.rowComments, [criterionId]: comment },
-    });
+    onChange(updateRow(value, criterionId, { comment }));
   }
 
   function setScore(criterionId: string, optionKey: string, score: number) {
-    onChange({
-      ...value,
-      scores: {
-        ...value.scores,
-        [criterionId]: {
-          ...(value.scores[criterionId] ?? {}),
-          [optionKey]: score,
-        },
-      },
-    });
+    onChange(updateRow(value, criterionId, { scores: { [optionKey]: score } }));
   }
 
-  function addCriterion() {
-    const n = value.criteria.length + 1;
-    const id = `c-new-${n}`;
-    updateCriteria([
-      ...value.criteria,
-      {
-        id,
-        name: `Criterion ${n}`,
-        description: "",
-        weight: 0,
-      },
-    ]);
-    onChange({
-      ...value,
-      scores: { ...value.scores, [id]: Object.fromEntries(value.optionKeys.map((k) => [k, undefined])) },
-      rowComments: { ...value.rowComments, [id]: "" },
-    });
+  function handleAddRow(row: NewMatrixRow) {
+    onChange(
+      addRow(value, {
+        name: row.name,
+        description: row.description,
+        weight: row.weight,
+        scores: row.scores,
+        comment: row.comment,
+      }),
+    );
+    setAddOpen(false);
+  }
+
+  function handleSaveDetail(criterionId: string, patch: RowDetailPatch) {
+    onChange(updateRow(value, criterionId, patch));
+    setDetailId(null);
+  }
+
+  function handleDelete(criterionId: string) {
+    onChange(removeRow(value, criterionId));
+    setDeleteId(null);
+  }
+
+  function handleImport(drafts: ImportRowDraft[]) {
+    let next = value;
+    for (const draft of drafts) {
+      next = addRow(next, {
+        name: draft.name,
+        description: draft.description,
+        weight: draft.weight,
+        scores: draft.scores,
+        comment: draft.comment,
+        evidence: draft.evidence,
+      });
+    }
+    onChange(next);
+    setImportOpen(false);
   }
 
   return (
     <div className="space-y-8">
       <section aria-labelledby={`${idPrefix}-weighting-heading`}>
-        <h4 id={`${idPrefix}-weighting-heading`} className="text-base font-semibold text-foreground">
-          2.1 Evaluation Criteria Weighting
-        </h4>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Adjust weights so priorities reflect your evaluation goals (must total 100%).
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h4 id={`${idPrefix}-weighting-heading`} className="text-base font-semibold text-foreground">
+              2.1 Evaluation Criteria Weighting
+            </h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Adjust weights so priorities reflect your evaluation goals (must total 100%).
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="score-matrix-add-row"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="size-3.5" /> Add row
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="score-matrix-import-rows"
+              onClick={() => setImportOpen(true)}
+            >
+              <FileDown className="size-3.5" /> Import rows
+            </Button>
+          </div>
+        </div>
 
         <div className="mt-4 overflow-x-auto rounded-xl border bg-card">
-          <table className="w-full min-w-[520px] border-collapse text-sm">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                 <th className="px-3 py-2.5 font-medium">#</th>
                 <th className="px-3 py-2.5 font-medium">Criteria</th>
                 <th className="px-3 py-2.5 font-medium">Description</th>
                 <th className="px-3 py-2.5 font-medium">Weight (%)</th>
+                <th className="px-3 py-2.5 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {value.criteria.map((c, idx) => (
                 <tr key={c.id} className="border-b last:border-b-0">
                   <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                  <td className="px-3 py-2 font-medium text-foreground">{c.name}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      type="button"
+                      className="text-left font-medium text-[#2563eb] hover:underline"
+                      data-testid="matrix-row-identity"
+                      onClick={() => setDetailId(c.id)}
+                    >
+                      {c.name}
+                    </button>
+                  </td>
                   <td className="px-3 py-2 text-muted-foreground">{c.description}</td>
                   <td className="px-3 py-2">
                     <label htmlFor={`${idPrefix}-w-${c.id}`} className="sr-only">
@@ -113,16 +164,24 @@ export function ScoreMatrixField({
                       aria-required="true"
                     />
                   </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      data-testid="matrix-row-delete"
+                      aria-label={`Delete row ${c.name}`}
+                      onClick={() => setDeleteId(c.id)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={addCriterion}>
-            + Add Criteria
-          </Button>
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
           <p
             className={cn(
               "text-sm font-semibold",
@@ -160,7 +219,7 @@ export function ScoreMatrixField({
           2.3 Scoring Matrix
         </h4>
         <p className="mt-1 text-sm text-muted-foreground">
-          Score each option from 1 (low) to 5 (high) for every criterion.
+          Score each option from 1 (low) to 5 (high) for every criterion. Click a row name to open its detail drawer.
         </p>
         <div className="mt-4 overflow-x-auto rounded-xl border bg-card">
           <table className="w-full min-w-[720px] border-collapse text-sm">
@@ -179,7 +238,13 @@ export function ScoreMatrixField({
               {value.criteria.map((c) => (
                 <tr key={c.id} className="border-b last:border-b-0">
                   <td className="px-3 py-2 align-top">
-                    <div className="font-medium text-foreground">{c.name}</div>
+                    <button
+                      type="button"
+                      className="block text-left font-medium text-[#2563eb] hover:underline"
+                      onClick={() => setDetailId(c.id)}
+                    >
+                      {c.name}
+                    </button>
                     <div className="text-xs text-muted-foreground">({c.weight}%)</div>
                   </td>
                   {value.optionKeys.map((ok) => {
@@ -227,6 +292,36 @@ export function ScoreMatrixField({
           </table>
         </div>
       </section>
+
+      <AddTableRowModal
+        open={addOpen}
+        matrix={value}
+        onClose={() => setAddOpen(false)}
+        onAdd={handleAddRow}
+      />
+
+      <MatrixRowDetailDrawer
+        open={detailId != null}
+        matrix={value}
+        criterionId={detailId}
+        onClose={() => setDetailId(null)}
+        onSave={handleSaveDetail}
+      />
+
+      <DeleteRowConfirmationModal
+        open={deleteId != null}
+        matrix={value}
+        criterionId={deleteId}
+        onCancel={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+      />
+
+      <ImportRowsModal
+        open={importOpen}
+        matrix={value}
+        onClose={() => setImportOpen(false)}
+        onImport={handleImport}
+      />
     </div>
   );
 }

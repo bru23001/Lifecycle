@@ -1,8 +1,12 @@
 import type { Prisma } from "@prisma/client";
 
+import { maskEmail, redactSensitive } from "@/lib/audit-event-details";
 import { phaseShortLabel } from "@/lib/phaseLabels";
 import { prisma } from "@/lib/prisma";
-import type { ProjectScreenAuditEntry } from "@/types/projects.types";
+import type {
+  ProjectScreenAuditEntry,
+  ProjectScreenAuditRelated,
+} from "@/types/projects.types";
 
 const FETCH_LIMIT = 200;
 
@@ -170,6 +174,95 @@ function hrefForAuditRow(
   return undefined;
 }
 
+/**
+ * Best-effort derivation of related entity deep-links from an audit row.
+ *
+ * Reads three sources of truth:
+ *   1. Subject kind/id (e.g. `subjectKind = "gate"`, `subjectId = "G3"`).
+ *   2. Metadata keys we observe in `app/actions/*` (gateId, artifactId, evidenceId, …).
+ *   3. The single `hrefForAuditRow` primary link, included here so the
+ *      drawer's "related" list always has at least the primary deep-link.
+ */
+function relatedHrefsForAuditRow(
+  projectId: string,
+  row: {
+    action: string;
+    subjectKind: string;
+    subjectId: string;
+    metadata: Record<string, unknown>;
+  },
+): ProjectScreenAuditRelated[] {
+  const out: ProjectScreenAuditRelated[] = [];
+  const seen = new Set<string>();
+
+  const push = (entry: ProjectScreenAuditRelated) => {
+    const key = `${entry.kind}:${entry.href}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(entry);
+  };
+
+  const sk = row.subjectKind.toLowerCase();
+  if (sk === "gate" && row.subjectId.length > 0) {
+    push({
+      kind: "gate",
+      label: `Gate ${row.subjectId}`,
+      href: `/projects/${projectId}/gates/${row.subjectId.toLowerCase()}/review`,
+    });
+  }
+  if (sk === "approval" && row.subjectId.length > 0) {
+    push({
+      kind: "approval",
+      label: `Approval ${row.subjectId.slice(0, 8)}`,
+      href: `/approvals?selected=${row.subjectId}`,
+    });
+  }
+
+  const gateId = metaStr(row.metadata, "gateId");
+  if (gateId) {
+    push({
+      kind: "gate",
+      label: `Gate ${gateId}`,
+      href: `/projects/${projectId}/gates/${gateId.toLowerCase()}/review`,
+    });
+  }
+  const artifactId = metaStr(row.metadata, "artifactId");
+  if (artifactId) {
+    push({
+      kind: "artifact",
+      label: `Artifact ${artifactId.slice(0, 8)}`,
+      href: `/projects/${projectId}/artifacts/${artifactId}`,
+    });
+  }
+  const evidenceId = metaStr(row.metadata, "evidenceId");
+  if (evidenceId) {
+    push({
+      kind: "evidence",
+      label: `Evidence ${evidenceId.slice(0, 8)}`,
+      href: `/projects/${projectId}/evidence/${evidenceId}`,
+    });
+  }
+
+  const primary = hrefForAuditRow(projectId, {
+    action: row.action,
+    subjectKind: row.subjectKind,
+    subjectId: row.subjectId,
+    metadata: row.metadata as Prisma.JsonValue,
+  });
+  if (primary) {
+    const kind: ProjectScreenAuditRelated["kind"] = primary.includes("/evidence/")
+      ? "evidence"
+      : primary.includes("/artifacts/")
+        ? "artifact"
+        : primary.includes("/gates/")
+          ? "gate"
+          : "artifact";
+    push({ kind, label: "Primary subject", href: primary });
+  }
+
+  return out;
+}
+
 export async function getProjectAuditScreenEntries(projectId: string): Promise<ProjectScreenAuditEntry[]> {
   const rows = await prisma.auditEntry.findMany({
     where: { projectId },
@@ -180,6 +273,7 @@ export async function getProjectAuditScreenEntries(projectId: string): Promise<P
 
   return rows.map((row) => {
     const { title, detail, lifecycleRelevant } = mapParts(row.action, row.subjectKind, row.subjectId, row.metadata);
+    const sanitized = redactSensitive(metaRecord(row.metadata));
     return {
       id: row.id,
       createdAt: row.createdAt.toISOString(),
@@ -189,8 +283,16 @@ export async function getProjectAuditScreenEntries(projectId: string): Promise<P
       subjectId: row.subjectId,
       detail,
       actorLabel: actorLabel(row.actor),
+      actorEmail: row.actor?.email ? maskEmail(row.actor.email) : null,
+      metadata: sanitized,
       lifecycleRelevant,
       href: hrefForAuditRow(projectId, row),
+      relatedHrefs: relatedHrefsForAuditRow(projectId, {
+        action: row.action,
+        subjectKind: row.subjectKind,
+        subjectId: row.subjectId,
+        metadata: sanitized,
+      }),
     };
   });
 }

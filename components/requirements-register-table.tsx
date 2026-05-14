@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { updateRequirementStatus } from "@/app/actions/updateRegisterRows";
 import { toUserMessage } from "@/lib/toUserMessage";
+import { cn } from "@/lib/utils";
 
 const STATUSES = ["Draft", "Baselined", "Deferred", "Withdrawn"] as const;
 
@@ -20,13 +22,23 @@ export type RequirementRegisterRow = {
 export function RequirementsRegisterTable({
   projectId,
   rows,
+  highlightLocalId,
 }: {
   projectId: string;
   rows: RequirementRegisterRow[];
+  /** Deep link: `?localId=` from requirements register URL. */
+  highlightLocalId?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    const key = highlightLocalId?.trim();
+    if (!key || !highlightRowRef.current) return;
+    highlightRowRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [highlightLocalId, rows]);
 
   function onStatusChange(requirementId: string, status: string) {
     setError(null);
@@ -75,11 +87,27 @@ export function RequirementsRegisterTable({
               </td>
             </tr>
           ) : (
-            rows.map((r) => (
-              <tr key={r.id} className="border-b border-border/60 align-top">
+            rows.map((r) => {
+              const highlighted = Boolean(highlightLocalId?.trim() && highlightLocalId.trim() === r.localId);
+              return (
+              <tr
+                key={r.id}
+                ref={highlighted ? highlightRowRef : undefined}
+                className={cn(
+                  "border-b border-border/60 align-top",
+                  highlighted && "bg-primary/5 ring-1 ring-inset ring-primary/30",
+                )}
+              >
                 <td className="px-4 py-3 font-mono text-xs">{r.localId}</td>
                 <td className="px-4 py-3">{r.kind}</td>
-                <td className="px-4 py-3">{r.title}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/projects/${projectId}/requirements/${r.id}`}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    {r.title}
+                  </Link>
+                </td>
                 <td className="px-4 py-3">
                   <select
                     aria-label={`Status for ${r.localId}`}
@@ -118,7 +146,8 @@ export function RequirementsRegisterTable({
                   )}
                 </td>
               </tr>
-            ))
+              );
+            })
           )}
         </tbody>
       </table>

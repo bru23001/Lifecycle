@@ -1,9 +1,12 @@
+import type { Applicability } from "@/lib/applicability";
+
 export type PhaseNavItemStatus =
   | "completed"
   | "current"
   | "not_started"
   | "blocked"
-  | "ready_for_review";
+  | "ready_for_review"
+  | "locked";
 
 export type PhaseNavItem = {
   phaseNumber: number;
@@ -11,6 +14,46 @@ export type PhaseNavItem = {
   status: PhaseNavItemStatus;
   href: string;
   gateCode?: string;
+  /** Selected workspace phase from `?phase=` (visual focus). */
+  isSelected?: boolean;
+};
+
+export type PhaseCompletionDetailPayload = {
+  phaseNumber: number;
+  phaseName: string;
+  completedOnLabel: string;
+  gateCode: string;
+  gateName: string;
+  decisionLabel: string;
+  artifactSummaries: string[];
+};
+
+export type StartPhaseModalPayload = {
+  nextPhase: number;
+  nextPhaseTitle: string;
+  currentPhaseTitle: string;
+  checklistPreview: string[];
+  nextTemplateLabels: string[];
+  evidenceExpectation: string;
+  gateCode: string;
+  gateName: string;
+};
+
+export type LockedPhaseContextPayload = {
+  currentPhaseTitle: string;
+  gateCode: string;
+  gateName: string;
+  missingBullets: string[];
+};
+
+export type PhaseNavigatorMeta = {
+  gatesHref: string;
+  projectCurrentPhase: number;
+  completionByPhase: Record<number, PhaseCompletionDetailPayload>;
+  startPhaseModal: StartPhaseModalPayload | null;
+  lockedContext: LockedPhaseContextPayload;
+  /** Project applicability (template applicability flags). */
+  applicability: Applicability;
 };
 
 /** Documentation sample aligned with product examples (paths use slug-style id). */
@@ -38,8 +81,8 @@ export const EXAMPLE_PHASE_NAVIGATOR_ITEMS: PhaseNavItem[] = [
   {
     phaseNumber: 4,
     name: "Feasibility & Business Case",
-    status: "not_started",
-    href: "/projects/sip-001/workspace?phase=4",
+    status: "locked",
+    href: "#",
     gateCode: "G3",
   },
 ];

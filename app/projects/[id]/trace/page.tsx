@@ -15,7 +15,7 @@ export default async function TracePage({
   if (!project) notFound();
 
   const links = await prisma.traceLink.findMany({
-    where: { projectId: id },
+    where: { projectId: id, deletedAt: null },
     orderBy: { createdAt: "desc" },
   });
 

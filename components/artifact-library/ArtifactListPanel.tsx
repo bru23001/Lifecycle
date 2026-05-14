@@ -43,6 +43,7 @@ export function ArtifactListPanel({
   totalArtifactCount: number;
 }) {
   const phaseNumbers = [...new Set(items.map((i) => i.phaseNumber))].sort((a, b) => a - b);
+  const phaseQuery = phaseFilter !== "all" ? `?phase=${encodeURIComponent(phaseFilter)}` : "";
 
   return (
     <section className="cc-card-standard flex max-h-[min(70vh,720px)] flex-col overflow-hidden p-0">
@@ -100,7 +101,7 @@ export function ArtifactListPanel({
             return (
               <li key={item.id} className="mb-1">
                 <Link
-                  href={item.href}
+                  href={`${item.href}${phaseQuery}`}
                   className={cn(
                     "block rounded-lg border px-3 py-2.5 text-left transition",
                     active
@@ -130,7 +131,10 @@ export function ArtifactListPanel({
         )}
       </ul>
       <footer className="border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
-        <Link href={`/projects/${projectId}/workspace`} className="font-medium text-[#2563eb] hover:underline">
+        <Link
+          href={`/projects/${projectId}/workspace${phaseQuery}`}
+          className="font-medium text-[#2563eb] hover:underline"
+        >
           Open lifecycle workspace
         </Link>
       </footer>

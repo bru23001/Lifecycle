@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { impactBadgeMap } from "@/lib/coverage-status";
+import { deriveRecommendedFix } from "@/lib/traceability-gap-details";
 import { cn } from "@/lib/utils";
 import type { TraceabilityGap } from "@/types/traceability.types";
 
@@ -12,17 +11,29 @@ export function GapsOrphansCard({
   rows,
   isLoading,
   reportHref,
+  viewAllHref,
+  showViewAll = true,
   activeGapTab,
   onActiveGapTabChange,
+  onSelectGap,
 }: {
   rows: TraceabilityGap[];
   isLoading: boolean;
   reportHref: string;
+  /** Defaults to `reportHref` when omitted (legacy matrix card). */
+  viewAllHref?: string;
+  showViewAll?: boolean;
   activeGapTab: GapTabId;
   onActiveGapTabChange: (tab: GapTabId) => void;
+  onSelectGap?: (gap: TraceabilityGap) => void;
 }) {
   return (
-    <CardShell title="Gaps / Orphans" count={rows.length} viewAllHref={reportHref}>
+    <CardShell
+      title="Gaps / Orphans"
+      count={rows.length}
+      viewAllHref={viewAllHref ?? reportHref}
+      showViewAll={showViewAll}
+    >
       <div role="tablist" aria-label="Gap categories" className="mb-3 flex flex-wrap gap-2">
         {gapTabConfig.map((tab) => (
           <button
@@ -56,31 +67,57 @@ export function GapsOrphansCard({
           <EmptyState message="No gaps or orphan records found." ctaLabel="Open Coverage Report" ctaHref={reportHref} tone="success" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[540px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="pb-2">Type</th>
                   <th className="pb-2">ID / Name</th>
                   <th className="pb-2">Issue</th>
+                  <th className="pb-2">Recommended fix</th>
                   <th className="pb-2">Impact</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className={tableRowClass()}>
-                    <td className="py-2 capitalize text-slate-700">{row.type.replaceAll("_", " ")}</td>
-                    <td className="py-2">
-                      <Link href={row.href} className="rounded font-medium text-slate-800 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-blue-600">
-                        {row.objectId}
-                      </Link>
-                      <p className="text-xs text-slate-500">{row.objectName}</p>
-                    </td>
-                    <td className="py-2 text-slate-700">{row.issue}</td>
-                    <td className="py-2">
-                      <StatusBadge {...impactBadgeMap[row.impact]} />
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((row) => {
+                  const interactive = Boolean(onSelectGap);
+                  return (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        tableRowClass(),
+                        interactive && "cursor-pointer hover:bg-slate-50 focus-within:bg-slate-50",
+                      )}
+                      onClick={interactive ? () => onSelectGap?.(row) : undefined}
+                    >
+                      <td className="py-2 capitalize text-slate-700">{row.type.replaceAll("_", " ")}</td>
+                      <td className="py-2">
+                        {interactive ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectGap?.(row);
+                            }}
+                            className="rounded text-left font-medium text-slate-800 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-blue-600"
+                            aria-label={`Open gap details for ${row.objectId}`}
+                          >
+                            {row.objectId}
+                          </button>
+                        ) : (
+                          <span className="font-medium text-slate-800">{row.objectId}</span>
+                        )}
+                        <p className="text-xs text-slate-500">{row.objectName}</p>
+                      </td>
+                      <td className="py-2 text-slate-700">{row.issue}</td>
+                      <td className="max-w-[220px] py-2 text-slate-600" title={deriveRecommendedFix(row).text}>
+                        <span className="line-clamp-2 text-xs">{deriveRecommendedFix(row).text}</span>
+                      </td>
+                      <td className="py-2">
+                        <StatusBadge {...impactBadgeMap[row.impact]} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

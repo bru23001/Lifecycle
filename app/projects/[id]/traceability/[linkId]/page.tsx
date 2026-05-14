@@ -18,6 +18,8 @@ export default async function TraceabilityLinkDetailPage({
       projectName={shell.projectName}
       projectCode={shell.projectCode}
       userInitials={shell.user.initials}
+      userName={shell.user.name}
+      userRole={shell.user.role}
       phaseProgressPct={shell.phaseProgressPct}
       detail={detail}
     />

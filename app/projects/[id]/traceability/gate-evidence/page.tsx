@@ -1,5 +1,7 @@
-import { TraceabilityMatrixPage } from "@/components/traceability/traceability-matrix-page";
-import { loadTraceabilityMatrixWithView } from "@/lib/server/traceability";
+import { GateEvidenceTraceabilityListView } from "@/components/traceability/gate-evidence-traceability-list-view";
+import { loadGateEvidenceTraceabilityList } from "@/lib/server/gate-evidence-traceability";
+
+export const dynamic = "force-dynamic";
 
 export default async function GateEvidenceTraceabilityPage({
   params,
@@ -7,6 +9,6 @@ export default async function GateEvidenceTraceabilityPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const initial = await loadTraceabilityMatrixWithView(id, "gates");
-  return <TraceabilityMatrixPage initial={initial} />;
+  const data = await loadGateEvidenceTraceabilityList(id);
+  return <GateEvidenceTraceabilityListView data={data} />;
 }

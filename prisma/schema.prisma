@@ -27,6 +27,9 @@ model User {
   submittedApprovals   Approval[]        @relation("ApprovalSubmitter")
   approvalComments     ApprovalComment[] @relation("ApprovalCommentAuthor")
   auditEntries         AuditEntry[]      @relation("AuditActor")
+  wizardCollaborationComments WizardCollaborationComment[] @relation("WizardCommentAuthor")
+  artifactReviewAssignmentsAsAssignee ArtifactReviewRequest[] @relation("ReviewRequestAssignee")
+  artifactReviewAssignmentsAsAssigner ArtifactReviewRequest[] @relation("ReviewRequestAssigner")
 }
 
 model Project {
@@ -44,6 +47,8 @@ model Project {
   currentPhase  Int            @default(1)
   /** Phase 7 applicability toggles: data (ERD), apis (API contract), ui (UXD), modules, blueprint */
   applicabilityJson Json       @default("{}")
+  /** Per workspace phase (1–14) editable metadata: owner override, dates, notes, priority, risk, contributors. */
+  workspacePhaseDetailsJson Json @default("{}")
   /** Confirmed complexity for G4 (align `23. Project Complexity Levels.md`). */
   complexityLevel   String?
   /** STD-ENG-001 / Namespace M notes for G6. */
@@ -63,6 +68,10 @@ model Project {
   applicabilityRecords ApplicabilityRecord[]
   approvals       Approval[]
   auditEntries    AuditEntry[]
+  gateApproverAssignments GateApproverAssignment[]
+  wizardCollaborationComments WizardCollaborationComment[]
+  artifactReviewRequests ArtifactReviewRequest[]
+  traceabilityReportSchedules TraceabilityReportSchedule[]
 
   @@index([ownerId])
 }
@@ -110,11 +119,42 @@ model TraceLink {
   fromId    String
   toKind    String
   toId      String
-  relation  String   // informs | derives | validates | implements | tests
+  relation  String   // informs | derives | validates | implements | tests | satisfies | verifies | evidences | depends_on | blocks
+  rationale String   @default("")
+  /** low | medium | high */
+  confidence        String    @default("medium")
+  evidenceReference String    @default("")
+  verificationNote  String    @default("")
+  lastVerifiedAt    DateTime?
+  deletedAt         DateTime?
+  createdByUserId   String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([projectId, fromKind, fromId])
   @@index([projectId, toKind, toId])
+  @@index([projectId, deletedAt])
+}
+
+model TraceabilityReportSchedule {
+  id                  String   @id @default(cuid())
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reportName          String
+  /** daily | weekly | monthly | gate_submission */
+  frequency           String
+  /** JSON array of email strings */
+  recipientsJson      String   @default("[]")
+  /** csv | json | html_print | zip */
+  format              String   @default("html_print")
+  includeGapsOnly     Boolean  @default(false)
+  includeFullMatrix   Boolean  @default(true)
+  active              Boolean  @default(true)
+  createdByUserId     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model GateDecision {
@@ -129,6 +169,31 @@ model GateDecision {
   /** Whether `evaluateGate` passed at submit time (advance decisions require true). */
   evidencePassSnapshot Boolean
   createdAt            DateTime @default(now())
+
+  @@index([projectId, gateId])
+}
+
+/**
+ * Pre-decision approver assignment for a gate review. Distinct from
+ * `Approval` (which is artifact-scoped) and `GateDecision` (immutable record
+ * of the rendered decision). Captures snapshot fields so the audit trail
+ * stays intact even if the underlying `User` row is later deactivated.
+ *
+ * CYBERCUBE 3.3 (Data Classification): CON-class — `approverName`/`approverRole`
+ * are display fields; never log raw values outside structured audit entries.
+ */
+model GateApproverAssignment {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  gateId        String
+  /** Soft reference (no FK) to `User.id`. May be null when assigning by role only. */
+  userId        String?
+  approverName  String
+  approverRole  String
+  dueAt         DateTime?
+  assignedById  String?
+  createdAt     DateTime @default(now())
 
   @@index([projectId, gateId])
 }
@@ -149,6 +214,47 @@ model Artifact {
   approvals    Approval[]
 
   @@unique([projectId, templateId, localId, version])
+}
+
+/** Threaded comments on a template wizard context (project + template; optional field/section anchor). */
+model WizardCollaborationComment {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId  String
+  artifactId  String?
+  sectionId   String?
+  fieldName   String?
+  authorId    String?
+  author      User?    @relation("WizardCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body        String
+  resolved    Boolean  @default(false)
+  visibility  String   @default("internal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId, templateId, createdAt])
+}
+
+/** Reviewer assignment request from the template wizard (snapshot fields; not the approval queue). */
+model ArtifactReviewRequest {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId     String
+  artifactId     String?
+  assigneeUserId String?
+  assignee       User?     @relation("ReviewRequestAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  assigneeName   String
+  assigneeRole   String
+  dueAt          DateTime?
+  reviewScope    String    @default("full")
+  instructions   String?
+  assignedById   String?
+  assignedBy     User?     @relation("ReviewRequestAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+
+  @@index([projectId, templateId])
 }
 
 /** Gate or artifact review queue item (distinct from immutable `GateDecision` record). */

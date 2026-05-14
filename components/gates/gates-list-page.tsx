@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Eye, ShieldCheck } from "lucide-react";
+import { ChevronRight, Eye, ShieldCheck, UserPlus } from "lucide-react";
 
 import { DecisionRecordDrawer } from "@/components/gate-review/decision-record-drawer";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
@@ -122,6 +122,16 @@ export function GatesListPage({ data }: { data: GatesListScreenData }) {
                         <Eye className="size-3.5" aria-hidden />
                         View Decision Record
                       </button>
+                    ) : null}
+                    {!hasDecision ? (
+                      <Link
+                        href={`${row.reviewHref}#approver-review`}
+                        className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                        aria-label={`Assign approvers for ${row.gateId}`}
+                      >
+                        <UserPlus className="size-3.5" aria-hidden />
+                        Assign Approvers
+                      </Link>
                     ) : null}
                     <Link
                       href={row.reviewHref}

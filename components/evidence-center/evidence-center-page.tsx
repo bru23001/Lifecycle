@@ -9,6 +9,7 @@ import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { Button } from "@/components/ui/button";
 import { exportEvidenceBundle } from "@/lib/evidence-export";
+import { projectOverviewHref } from "@/lib/projects-url";
 import type { EvidenceCenterData } from "@/types/evidence-center.types";
 
 import { EvidenceActionBar } from "./evidence-action-bar";
@@ -62,6 +63,18 @@ export function EvidenceCenterPage({
 
   const filteredItems = useMemo(() => applyEvidenceFilters(initial.evidenceItems, filters), [initial.evidenceItems, filters]);
 
+  const evidenceListHref =
+    filters.phase !== "all"
+      ? `/projects/${initial.project.id}/evidence?phase=${encodeURIComponent(filters.phase)}`
+      : `/projects/${initial.project.id}/evidence`;
+  const detailPhaseQuery = filters.phase !== "all" ? `?phase=${encodeURIComponent(filters.phase)}` : "";
+
+  const navPhaseParsed = filters.phase !== "all" ? Number.parseInt(filters.phase, 10) : NaN;
+  const navPhaseScope =
+    Number.isFinite(navPhaseParsed) && navPhaseParsed >= 1 && navPhaseParsed <= 14
+      ? navPhaseParsed
+      : initial.project.currentPhase;
+
   const onSelectEvidence = (evidenceId: string) => {
     if (!initial.evidencePackages[evidenceId]) {
       setError("Unable to load evidence detail. Please retry.");
@@ -74,7 +87,7 @@ export function EvidenceCenterPage({
       setSelectedForExport((prev) => (prev.includes(evidenceId) ? prev : [evidenceId, ...prev]));
       setSelectedTab("overview");
       setIsLoading(false);
-      router.push(`/projects/${initial.project.id}/evidence/${evidenceId}`);
+      router.push(`/projects/${initial.project.id}/evidence/${evidenceId}${detailPhaseQuery}`);
     }, 120);
   };
 
@@ -106,6 +119,9 @@ export function EvidenceCenterPage({
       phaseSummary={`Evidence readiness: ${activeEvidence.completeness.overallPercent}%`}
       phaseProgressPct={activeEvidence.completeness.overallPercent}
       navActive="evidence"
+      projectCurrentPhase={initial.project.currentPhase}
+      navPhaseScope={navPhaseScope}
+      workspaceHref={`/projects/${initial.project.id}/workspace?phase=${navPhaseScope}`}
     >
       <TopHeader
         title={isDetailView ? "Evidence Detail" : "Evidence Center"}
@@ -129,9 +145,9 @@ export function EvidenceCenterPage({
                     { label: "Projects", href: "/projects" },
                     {
                       label: initial.project.name,
-                      href: `/projects/${initial.project.id}/workspace`,
+                      href: projectOverviewHref(initial.project.id),
                     },
-                    { label: "Evidence", href: `/projects/${initial.project.id}/evidence` },
+                    { label: "Evidence", href: evidenceListHref },
                     {
                       label: `${activeEvidence.detail.evidenceCode} · ${activeEvidence.detail.name}`,
                     },
@@ -140,9 +156,9 @@ export function EvidenceCenterPage({
                     { label: "Projects", href: "/projects" },
                     {
                       label: initial.project.name,
-                      href: `/projects/${initial.project.id}/workspace`,
+                      href: projectOverviewHref(initial.project.id),
                     },
-                    { label: "Evidence", href: `/projects/${initial.project.id}/evidence` },
+                    { label: "Evidence", href: evidenceListHref },
                   ]
             }
           />
@@ -182,10 +198,16 @@ export function EvidenceCenterPage({
                 selectedForExport={selectedForExport}
                 isLoading={isLoading}
                 addEvidenceOpen={addEvidenceOpen}
-                onToggleAddEvidence={() => setAddEvidenceOpen((prev) => !prev)}
+                onOpenAddEvidence={() => setAddEvidenceOpen(true)}
+                onCloseAddEvidence={() => setAddEvidenceOpen(false)}
                 onSelectEvidence={onSelectEvidence}
                 onToggleExportSelection={onToggleExportSelection}
                 onFiltersChange={setFilters}
+                projectId={initial.project.id}
+                artifactOptions={initial.evidenceByArtifact.map((a) => ({
+                  id: a.artifactId,
+                  label: `${a.artifactLocalId} · ${a.artifactTitle}`,
+                }))}
               />
             }
             detailPanel={

@@ -1,33 +1,85 @@
-import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { ArtifactLibraryPage } from "@/components/artifact-library/artifact-library-page";
+import { ArtifactDetailView } from "@/components/artifact-detail-view";
 import { prisma } from "@/lib/prisma";
-import { loadArtifactLibraryScreenData } from "@/lib/server/artifact-library-screen";
+import { getTemplate } from "@/templates/registry";
 
-export const dynamic = "force-dynamic";
-
-export default async function ProjectArtifactDetailPage({
+export default async function ArtifactDetailPage({
   params,
 }: {
   params: Promise<{ id: string; artifactId: string }>;
 }) {
-  const { id, artifactId } = await params;
+  const { id: projectId, artifactId } = await params;
 
-  const counts = await prisma.project.findUnique({
-    where: { id },
-    select: { _count: { select: { artifacts: true } } },
+  const [artifact, project] = await Promise.all([
+    prisma.artifact.findFirst({
+      where: { id: artifactId, projectId },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  if (!artifact || !project) {
+    notFound();
+  }
+
+  let template;
+  try {
+    template = getTemplate(artifact.templateId);
+  } catch {
+    notFound();
+  }
+
+  const data = artifact.dataJson as Record<string, unknown>;
+  const markdown = template.toMarkdown(data);
+
+  const historyRows = await prisma.artifact.findMany({
+    where: { projectId, templateId: artifact.templateId },
+    orderBy: { createdAt: "desc" },
+    take: 25,
+    select: {
+      id: true,
+      version: true,
+      localId: true,
+      status: true,
+      createdAt: true,
+    },
   });
-  if (!counts) {
-    notFound();
-  }
 
-  const data = await loadArtifactLibraryScreenData(id, artifactId);
-  if (!data) {
-    if (counts._count.artifacts === 0) {
-      redirect(`/projects/${id}/artifacts`);
-    }
-    notFound();
-  }
-
-  return <ArtifactLibraryPage data={data} selectedArtifactId={artifactId} view="detail" />;
+  return (
+    <div className="min-h-full bg-background">
+      <div className="border-b bg-muted/20 px-4 py-3 text-sm">
+        <Link href="/" className="text-muted-foreground underline-offset-4 hover:underline">
+          Home
+        </Link>
+      </div>
+      <ArtifactDetailView
+        projectId={project.id}
+        projectName={project.name}
+        artifact={{
+          id: artifact.id,
+          templateId: artifact.templateId,
+          localId: artifact.localId,
+          version: artifact.version,
+          status: artifact.status,
+          markdownPath: artifact.markdownPath,
+          createdAt: artifact.createdAt.toISOString(),
+          updatedAt: artifact.updatedAt.toISOString(),
+        }}
+        templateTitle={template.title}
+        markdown={markdown}
+        dataJson={data}
+        history={historyRows.map((r) => ({
+          id: r.id,
+          version: r.version,
+          localId: r.localId,
+          status: r.status,
+          createdAt: r.createdAt.toISOString(),
+        }))}
+      />
+    </div>
+  );
 }

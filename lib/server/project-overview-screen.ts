@@ -197,15 +197,28 @@ export async function loadProjectOverviewScreenData(
       { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${row.id}/artifacts` },
       { id: "qa-evidence", label: "View Evidence", href: `/projects/${row.id}/evidence` },
       {
+        id: "qa-add-evidence",
+        label: "Add Evidence",
+        href: `/projects/${row.id}/evidence`,
+        kind: "modal-add-evidence",
+      },
+      {
         id: "qa-trace",
         label: "View Traceability Matrix",
         href: `/projects/${row.id}/traceability`,
+      },
+      {
+        id: "qa-generate-report",
+        label: "Generate Report",
+        href: `/projects/${row.id}/reports`,
+        kind: "modal-report-selection",
       },
       { id: "qa-audit", label: "View Audit Trail", href: projectAuditTrailListHref(row.id) },
       {
         id: "qa-export",
         label: "Export Project Package",
         href: `/projects/${row.id}/reports/evidence-package/configure`,
+        kind: "modal-export-package",
       },
     ],
     nextRequiredAction: {

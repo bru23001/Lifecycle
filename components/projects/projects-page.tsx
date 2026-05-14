@@ -14,6 +14,7 @@ export function ProjectsPage({
   repositoryHasProjects,
   hasVisibleProjects,
   listFilters,
+  initialOpenAuditEventId,
 }: {
   data: ProjectsScreenData;
   selectedProjectId: string;
@@ -23,6 +24,7 @@ export function ProjectsPage({
   repositoryHasProjects: boolean;
   hasVisibleProjects: boolean;
   listFilters: ParsedProjectsListQuery;
+  initialOpenAuditEventId?: string | null;
 }) {
   const activeProject = hasVisibleProjects
     ? (data.projects.find((p) => p.id === selectedProjectId) ?? data.projects[0])
@@ -63,6 +65,7 @@ export function ProjectsPage({
           repositoryHasProjects={repositoryHasProjects}
           hasVisibleProjects={hasVisibleProjects}
           listFilters={listFilters}
+          initialOpenAuditEventId={initialOpenAuditEventId}
         />
       </main>
     </AuthenticatedAppShell>

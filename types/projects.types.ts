@@ -1,4 +1,64 @@
+import type { Applicability } from "@/lib/applicability";
+import type { ArtifactWorkflowStatus } from "@/types/artifact-library.types";
+
 export type ProjectStatus = "In Progress" | "Blocked" | "Pending" | "Not Started";
+
+/** Template row inside the Projects screen “Create artifact” modal. */
+export type ProjectsArtifactsTabTemplateOption = {
+  templateId: string;
+  title: string;
+  phaseNumber: number;
+  phaseName: string;
+  marker: "required" | "optional" | "conditional";
+};
+
+/** One revision row for the version history drawer. */
+export type ProjectsArtifactsTabVersionRow = {
+  artifactRowId: string;
+  version: string;
+  author: string;
+  timestampLabel: string;
+  changeSummary: string;
+  isCurrent: boolean;
+  /** Truncated JSON snapshot for compare / inspect in the drawer. */
+  jsonPayload: string;
+};
+
+/** Latest logical artifact row for the Projects screen Artifacts tab. */
+export type ProjectsArtifactsTabRow = {
+  id: string;
+  artifactCode: string;
+  name: string;
+  templateId: string;
+  localId: string;
+  phaseNumber: number;
+  status: ArtifactWorkflowStatus;
+  version: string;
+  lastUpdatedLabel: string;
+  detailHref: string;
+  templateWizardHref: string;
+  evidenceCenterHref: string;
+  exportMarkdown: string;
+  exportJson: string;
+  versions: ProjectsArtifactsTabVersionRow[];
+};
+
+export type ProjectsArtifactsTabData = {
+  projectId: string;
+  projectName: string;
+  currentPhase: number;
+  templatesForModal: ProjectsArtifactsTabTemplateOption[];
+  artifacts: ProjectsArtifactsTabRow[];
+  fullLibraryHref: string;
+};
+
+/** Server-fed context for the 14-phase strip on Overview + Lifecycle timeline tabs. */
+export type ProjectsLifecycleStripModel = {
+  projectId: string;
+  currentPhase: number;
+  applicability: Applicability;
+  gateReviewHref: string;
+};
 
 export type ProjectDetailTab =
   | "overview"
@@ -86,8 +146,30 @@ export type SelectedProjectSnapshotItem = {
   value: string;
 };
 
+/**
+ * Discriminator for `SelectedProjectQuickAction`. Defaults to `navigate`
+ * (a plain link). Modal kinds open the corresponding modal in
+ * `ProjectContextPanel` without navigating away from the projects shell.
+ */
+export type SelectedProjectQuickActionKind =
+  | "navigate"
+  | "modal-add-evidence"
+  | "modal-report-selection"
+  | "modal-export-package";
+
 export type SelectedProjectQuickAction = {
   id: string;
+  label: string;
+  href: string;
+  /** Optional UX hint: when set to a modal kind, the action opens a modal instead of navigating. */
+  kind?: SelectedProjectQuickActionKind;
+};
+
+/** Kinds of related entity links surfaced from an audit entry. */
+export type ProjectScreenAuditRelatedKind = "artifact" | "gate" | "evidence" | "approval";
+
+export type ProjectScreenAuditRelated = {
+  kind: ProjectScreenAuditRelatedKind;
   label: string;
   href: string;
 };
@@ -102,10 +184,16 @@ export type ProjectScreenAuditEntry = {
   subjectId: string;
   detail: string;
   actorLabel: string | null;
+  /** Email of the actor (already PII-masked for display). May be null. */
+  actorEmail: string | null;
+  /** Sanitized `AuditEntry.metadata` snapshot (sensitive keys dropped, emails masked). */
+  metadata: Record<string, unknown>;
   /** When true, row appears on the Lifecycle Timeline tab. */
   lifecycleRelevant: boolean;
   /** When set, row links to artifact detail or related workspace routes. */
   href?: string;
+  /** Additional related-entity deep links surfaced in the drawer. */
+  relatedHrefs: ProjectScreenAuditRelated[];
 };
 
 export type SelectedProject = {
@@ -140,6 +228,10 @@ export type ProjectsScreenData = {
   assignableUsers: { id: string; name: string; email: string }[];
   /** Populated when the selected row maps to a live DB project. */
   selectedProjectProfile: SelectedProjectProfile | null;
+  /** Phase strip + actions; null when no DB-backed selection. */
+  lifecycleStrip: ProjectsLifecycleStripModel | null;
+  /** Artifacts tab (template modal, list, actions); null when no DB-backed selection. */
+  artifactsTab: ProjectsArtifactsTabData | null;
 };
 
 /** Editable project profile fields for the Projects screen profile tab. */

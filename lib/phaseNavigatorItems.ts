@@ -8,24 +8,33 @@ function navPhaseName(fullTitle: string): string {
 
 export function buildPhaseNavigatorItems(args: {
   projectId: string;
-  activeWorkspacePhase: number;
-  /** True when the active phase row should show blocked styling (e.g. validation severity). */
-  activeBlocked: boolean;
-  /** True when templates for the active phase view are all complete. */
-  activeReadyForReview: boolean;
+  /** DB-backed lifecycle milestone (1–14). */
+  projectCurrentPhase: number;
+  /** Selected workspace phase from the URL (`?phase=`), defaults to project phase. */
+  selectedWorkspacePhase: number;
+  /** Validation severity on the project’s current phase row. */
+  projectPhaseBlocked: boolean;
+  /** All required templates complete for the project’s current phase. */
+  projectPhaseReadyForReview: boolean;
 }): PhaseNavItem[] {
-  const { projectId, activeWorkspacePhase, activeBlocked, activeReadyForReview } = args;
+  const {
+    projectId,
+    projectCurrentPhase,
+    selectedWorkspacePhase,
+    projectPhaseBlocked,
+    projectPhaseReadyForReview,
+  } = args;
 
   return WORKSPACE_PHASES.map((meta) => {
     const n = meta.index;
     let status: PhaseNavItem["status"];
-    if (n < activeWorkspacePhase) {
+    if (n > projectCurrentPhase) {
+      status = "locked";
+    } else if (n < projectCurrentPhase) {
       status = "completed";
-    } else if (n > activeWorkspacePhase) {
-      status = "not_started";
-    } else if (activeBlocked) {
+    } else if (projectPhaseBlocked) {
       status = "blocked";
-    } else if (activeReadyForReview) {
+    } else if (projectPhaseReadyForReview) {
       status = "ready_for_review";
     } else {
       status = "current";
@@ -35,7 +44,11 @@ export function buildPhaseNavigatorItems(args: {
       phaseNumber: n,
       name: navPhaseName(meta.title),
       status,
-      href: `/projects/${projectId}/workspace?phase=${n}`,
+      href:
+        status === "locked"
+          ? "#"
+          : `/projects/${projectId}/workspace?phase=${n}`,
+      isSelected: n === selectedWorkspacePhase,
     };
 
     if (meta.gate) {

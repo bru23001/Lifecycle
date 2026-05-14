@@ -50,7 +50,16 @@ function CompletionRing({ pct }: { pct: number }) {
   );
 }
 
-export function WizardHeader({ data }: { data: WizardHeaderData }) {
+export function WizardHeader({
+  data,
+  onTemplateVersionClick,
+  onArtifactVersionHistoryClick,
+}: {
+  data: WizardHeaderData;
+  onTemplateVersionClick?: () => void;
+  /** Opens artifact save history (per project), distinct from template schema version. */
+  onArtifactVersionHistoryClick?: () => void;
+}) {
   const badge = statusStyles[data.status];
   const metaCards = [
     { label: "Project", value: `${data.projectName} (${data.projectId})` },
@@ -92,7 +101,29 @@ export function WizardHeader({ data }: { data: WizardHeaderData }) {
                   <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {meta.label}
                   </dt>
-                  <dd className="truncate text-sm font-semibold text-foreground">{meta.value}</dd>
+                  <dd className="truncate text-sm font-semibold text-foreground">
+                    {meta.label === "Template Version" && onTemplateVersionClick ? (
+                      <button
+                        type="button"
+                        className="rounded bg-background px-1.5 py-0.5 text-left font-semibold text-[#2563eb] hover:underline"
+                        data-testid="template-version-badge"
+                        onClick={onTemplateVersionClick}
+                      >
+                        {meta.value}
+                      </button>
+                    ) : meta.label === "Artifact Version" && onArtifactVersionHistoryClick ? (
+                      <button
+                        type="button"
+                        className="rounded bg-background px-1.5 py-0.5 text-left font-semibold text-[#2563eb] hover:underline"
+                        data-testid="artifact-version-history-open"
+                        onClick={onArtifactVersionHistoryClick}
+                      >
+                        {meta.value}
+                      </button>
+                    ) : (
+                      meta.value
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>

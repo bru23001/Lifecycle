@@ -25,6 +25,8 @@ export type PhaseHeaderData = {
   /** Human-readable gate name (e.g. Feasibility Approval). */
   gateName: string;
   completionPercent: number;
+  /** DB project id for mutations and package route. */
+  projectRecordId: string;
 };
 
 /** Sample payload matching UI examples / documentation. */
@@ -43,6 +45,7 @@ export const EXAMPLE_PHASE_HEADER_DATA: PhaseHeaderData = {
   gateCode: "G2",
   gateName: "Feasibility Approval",
   completionPercent: 65,
+  projectRecordId: "prj_example",
 };
 
 export function derivePhaseHeaderStatus(args: {

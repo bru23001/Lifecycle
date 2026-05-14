@@ -16,6 +16,16 @@ export type PendingApproval = {
   projectName: string;
   submittedBy: string;
   submittedOnLabel: string;
+  /** `createdAt` for stable sort / filters (ms). */
+  submittedAtMs: number;
+  /** `updatedAt` for “recently updated” sort (ms). */
+  updatedAtMs: number;
+  /** When set, used for due-date sort and range / overdue filters. */
+  dueAtMs: number | null;
+  /** Workspace phase anchor for gate reviews (1–14); absent for non–gate rows. */
+  phaseNumber?: number;
+  /** Gate id for gate reviews (e.g. G3); absent for artifact rows. */
+  gateCode?: string;
   dueDateLabel?: string;
   priority: "low" | "medium" | "high" | "critical";
   status: "pending" | "in_review" | "overdue" | "blocked";

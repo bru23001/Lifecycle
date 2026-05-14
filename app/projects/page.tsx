@@ -6,6 +6,7 @@ import {
   emptyPlaceholderSelectedProject,
 } from "@/data/projects.constants";
 import { prisma } from "@/lib/prisma";
+import { parseApplicability } from "@/lib/applicability";
 import {
   ownerDisplayFromProjectRow,
   parseProjectApplicabilityMetadata,
@@ -28,6 +29,7 @@ import {
 import { projectAuditTrailListHref, projectsListHref } from "@/lib/projects-url";
 import { formatProjectCode } from "@/lib/format-project-code";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
+import { loadProjectsArtifactsTabData } from "@/lib/server/projects-artifacts-tab";
 import { buildSelectedProjectProfileFromRow } from "@/lib/server/selected-project-profile";
 import type { ProjectDetailTab, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
 
@@ -60,6 +62,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
   const selected = searchParamFirst(sp.selected);
   const tab = normalizeProjectDetailTabQueryParam(searchParamFirst(sp.tab));
   const page = searchParamFirst(sp.page);
+  const openAuditEventId = searchParamFirst(sp.openAuditEvent) ?? null;
   const newRaw = searchParamFirst(sp.new);
   const intentRaw = searchParamFirst(sp.intent);
   if (newRaw === "1" || newRaw === "true") {
@@ -82,7 +85,16 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
     where: { archivedAt: null },
     orderBy: { updatedAt: "desc" },
     take: 50,
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      vaultFolder: true,
+      currentPhase: true,
+      ownerId: true,
+      applicabilityJson: true,
+      createdAt: true,
+      updatedAt: true,
       owner: { select: { id: true, name: true } },
       _count: {
         select: { artifacts: true, traceLinks: true },
@@ -324,15 +336,28 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
         { id: "qa-artifacts", label: "Manage Artifacts", href: `/projects/${selectedDbProject.id}/artifacts` },
         { id: "qa-evidence", label: "View Evidence", href: `/projects/${selectedDbProject.id}/evidence` },
         {
+          id: "qa-add-evidence",
+          label: "Add Evidence",
+          href: `/projects/${selectedDbProject.id}/evidence`,
+          kind: "modal-add-evidence",
+        },
+        {
           id: "qa-trace",
           label: "View Traceability Matrix",
           href: `/projects/${selectedDbProject.id}/traceability`,
+        },
+        {
+          id: "qa-generate-report",
+          label: "Generate Report",
+          href: `/projects/${selectedDbProject.id}/reports`,
+          kind: "modal-report-selection",
         },
         { id: "qa-audit", label: "View Audit Trail", href: projectAuditTrailListHref(selectedDbProject.id) },
         {
           id: "qa-export",
           label: "Export Project Package",
           href: `/projects/${selectedDbProject.id}/reports/evidence-package/configure`,
+          kind: "modal-export-package",
         },
       ],
       nextRequiredAction: {
@@ -360,6 +385,22 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
         })
       : null;
 
+  const lifecycleStrip =
+    selectedDbProject != null && hasVisibleProjects
+      ? {
+          projectId: selectedDbProject.id,
+          currentPhase: selectedDbProject.currentPhase,
+          applicability: parseApplicability(selectedDbProject.applicabilityJson),
+          gateReviewHref:
+            selectedProject.gatesNavHref ?? `/projects/${selectedDbProject.id}/gates/g1/review`,
+        }
+      : null;
+
+  const artifactsTab =
+    selectedDbProject != null && hasVisibleProjects
+      ? await loadProjectsArtifactsTabData(selectedDbProject.id)
+      : null;
+
   const screenData: ProjectsScreenData = {
     user: screenUser,
     projects,
@@ -370,6 +411,8 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       email: u.email,
     })),
     selectedProjectProfile,
+    lifecycleStrip,
+    artifactsTab,
   };
 
   return (
@@ -382,6 +425,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       repositoryHasProjects={repositoryHasProjects}
       hasVisibleProjects={hasVisibleProjects}
       listFilters={listQuery}
+      initialOpenAuditEventId={openAuditEventId}
     />
   );
 }

@@ -1,12 +1,51 @@
 export type CoverageStatus = "complete" | "partial" | "missing";
 
+export type GateTraceStatus =
+  | "not_reached"
+  | "not_submitted"
+  | "pending_decision"
+  | "approved"
+  | "changes_requested"
+  | "rejected";
+
+export type EvidenceApprovalStatus = "pending" | "approved" | "rejected" | "changes_requested";
+
+/** Advanced drawer: which matrix link families to include (empty = all). */
+export type TraceabilityLinkTypeKey =
+  | "phase_artifact"
+  | "requirement_design"
+  | "requirement_test"
+  | "gate_evidence"
+  | "artifact_evidence"
+  | "gate_decision_record";
+
+export type TraceabilityGapObjectKind =
+  | "phase"
+  | "artifact"
+  | "requirement"
+  | "design"
+  | "test"
+  | "gate"
+  | "evidence";
+
 export type TraceabilityFilters = {
   projectId: string;
   searchTerm?: string;
-  viewMode: "all_links" | "requirements" | "phases" | "gates" | "gaps";
+  viewMode: "all_links" | "requirements" | "phases" | "gates" | "evidence" | "gaps";
   phaseNumber?: number | "all";
   status?: "all" | CoverageStatus | "orphaned";
-  objectType?: "all" | "phase" | "artifact" | "requirement" | "design" | "test" | "gate" | "evidence";
+  /** @deprecated Prefer `objectTypes`; kept for URL/older payloads. */
+  objectType?: "all" | TraceabilityGapObjectKind;
+  /** Gap/orphan tab: empty = all object kinds. */
+  objectTypes?: TraceabilityGapObjectKind[];
+  linkTypes?: TraceabilityLinkTypeKey[];
+  impactLevels?: Array<"low" | "medium" | "high" | "critical">;
+  ownerAssigneeContains?: string;
+  /** Inclusive YYYY-MM-DD (evidence / artifact row timestamps). */
+  updatedFrom?: string;
+  updatedTo?: string;
+  gateStatuses?: GateTraceStatus[];
+  evidenceStatuses?: EvidenceApprovalStatus[];
   lastUpdatedLabel: string;
 };
 
@@ -43,14 +82,6 @@ export type RequirementTestCoverage = {
   href: string;
 };
 
-export type GateTraceStatus =
-  | "not_reached"
-  | "not_submitted"
-  | "pending_decision"
-  | "approved"
-  | "changes_requested"
-  | "rejected";
-
 export type GateEvidenceCoverage = {
   gateId: string;
   gateCode: string;
@@ -60,21 +91,31 @@ export type GateEvidenceCoverage = {
   requiredEvidence: number;
   coveragePercent: number;
   status: CoverageStatus;
+  /** Gate ↔ evidence drill-down (`/traceability/gate-evidence/[gateId]`). */
   href: string;
+  /** Gate review workspace. */
+  reviewHref: string;
 };
 
 /** Artifact → Gate readiness (UI-UX Traceability Matrix). */
 export type ArtifactGateCoverage = {
   /** Stable id for matrix rows: see `lib/server/traceability.ts` (`ag:{artifactId}:{gateId}`). */
   id: string;
+  /** `Artifact.id` for deep links. */
+  artifactId: string;
   artifactLocalId: string;
   artifactTitle: string;
   gateCode: string;
   gateName: string;
   status: CoverageStatus;
+  /** Artifact detail screen. */
   href: string;
+  /** Gate review workspace for this readiness row. */
+  reviewHref: string;
   /** Route to link detail; must match `id` encoding in `lib/server/traceability.ts`. */
   detailHref: string;
+  /** Artifact `updatedAt` for advanced “last updated” filtering. */
+  rowUpdatedAt: string;
 };
 
 /** Evidence → Approval record linkage. */
@@ -83,10 +124,12 @@ export type EvidenceApprovalCoverage = {
   id: string;
   evidenceLabel: string;
   approvalTitle: string;
-  approvalStatus: "pending" | "approved" | "rejected" | "changes_requested";
+  approvalStatus: EvidenceApprovalStatus;
   status: CoverageStatus;
   href: string;
   detailHref: string;
+  /** Evidence item `updatedAt` for advanced “last updated” filtering. */
+  rowUpdatedAt: string;
 };
 
 export type TraceabilityGapType =
@@ -130,6 +173,22 @@ export type TraceabilityActionState = {
   href: string;
 };
 
+/** One endpoint a manual trace link can point at. */
+export type TraceableEndpoint = {
+  /** Internal database id (`Requirement.id` / `Feature.id` / `Artifact.id`). */
+  id: string;
+  /** Project-local code such as `CRS-001` / `FEAT-001`. Useful for prefill matching. */
+  localId: string;
+  /** Display label rendered in selects. */
+  label: string;
+};
+
+export type TraceableEndpoints = {
+  requirements: TraceableEndpoint[];
+  features: TraceableEndpoint[];
+  artifacts: TraceableEndpoint[];
+};
+
 export type TraceabilityMatrixData = {
   user: {
     name: string;
@@ -140,7 +199,11 @@ export type TraceabilityMatrixData = {
     id: string;
     code: string;
     name: string;
+    /** DB-backed lifecycle navigator phase (1–14); used for shell shortcuts. */
+    currentPhase: number;
   };
+  /** Recent projects for the matrix project switcher (same screen navigation). */
+  projectPicker: { id: string; code: string; name: string }[];
   filters: TraceabilityFilters;
   phaseArtifactLinks: PhaseArtifactCoverage[];
   requirementDesignLinks: RequirementDesignCoverage[];
@@ -151,6 +214,9 @@ export type TraceabilityMatrixData = {
   traceabilityGaps: TraceabilityGap[];
   coverageSummary: CoverageSummary;
   actionState: TraceabilityActionState;
+  assignableEndpoints: TraceableEndpoints;
+  /** Active users for gap remediation assignment (workspace directory). */
+  assignableUsers: { id: string; name: string | null; email: string }[];
 };
 
 /** Single trace link inspection (UI-UX Traceability Detail). */
@@ -168,4 +234,12 @@ export type TraceabilityLinkDetail = {
   createdAtLabel: string;
   evidenceReference: string;
   validationStatus: "valid" | "warning" | "invalid";
+  /** True when this row maps to a persisted, non-deleted `TraceLink`. */
+  editable: boolean;
+  relation: string;
+  rationale: string;
+  confidence: "low" | "medium" | "high";
+  verificationNote: string;
+  lastVerifiedAtLabel: string | null;
+  createdByUserId: string | null;
 };

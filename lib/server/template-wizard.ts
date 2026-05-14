@@ -13,6 +13,7 @@ import type {
   ArtifactSaveState,
   DynamicField,
   JsonEvidence,
+  OptionalSectionDefinition,
   TemplateSection,
   TemplateSelectionItem,
   TemplateWizardData,
@@ -79,6 +80,12 @@ function mapRegistryFieldToDynamic(
       delegateToWorkspace: true,
       placeholder: field.description,
       helpText: [field.description, hint].filter(Boolean).join(" "),
+      expandable: true,
+      helpPopover: {
+        purpose: field.description,
+        expectedInput: "Structured rows are managed in the workspace; this draft accepts free-form notes.",
+        evidenceExpectation: hint,
+      },
     };
   }
   if (field.type === "refPicker") {
@@ -92,6 +99,12 @@ function mapRegistryFieldToDynamic(
       delegateToWorkspace: true,
       placeholder: field.placeholder,
       helpText: [field.description, hint].filter(Boolean).join(" "),
+      expandable: true,
+      helpPopover: {
+        purpose: field.description,
+        expectedInput: "Paste one reference id per line.",
+        evidenceExpectation: hint,
+      },
     };
   }
   if (field.type === "tags") {
@@ -103,9 +116,16 @@ function mapRegistryFieldToDynamic(
       required: Boolean(field.required),
       placeholder: field.placeholder,
       helpText: "Comma-separated tags.",
+      expandable: true,
+      helpPopover: {
+        purpose: field.description,
+        expectedInput: "Comma-separated tags. Lowercase, hyphenated.",
+        exampleValue: "security, performance, ux",
+      },
     };
   }
 
+  const helpPopover = buildHelpPopover(field);
   const base = {
     id: `${sectionId}-${field.name}`,
     name: field.name,
@@ -113,6 +133,7 @@ function mapRegistryFieldToDynamic(
     required: Boolean(field.required),
     placeholder: field.placeholder,
     helpText: field.description,
+    helpPopover,
     options: field.options,
   };
 
@@ -120,7 +141,7 @@ function mapRegistryFieldToDynamic(
     case "text":
       return { ...base, type: "text" };
     case "textarea":
-      return { ...base, type: "textarea" };
+      return { ...base, type: "textarea", expandable: true };
     case "number":
       return { ...base, type: "number" };
     case "date":
@@ -130,8 +151,58 @@ function mapRegistryFieldToDynamic(
     case "checkbox":
       return { ...base, type: "checkbox" };
     default:
-      return { ...base, type: "textarea" };
+      return { ...base, type: "textarea", expandable: true };
   }
+}
+
+function buildHelpPopover(field: {
+  type: "text" | "textarea" | "number" | "date" | "select" | "checkbox" | "tags";
+  description?: string;
+  placeholder?: string;
+  options?: { label: string; value: string }[];
+  required?: boolean;
+}): DynamicField["helpPopover"] {
+  const purpose = field.description?.trim() || undefined;
+  let expectedInput: string | undefined;
+  let exampleValue: string | undefined;
+  let validationRule: string | undefined;
+
+  switch (field.type) {
+    case "text":
+      expectedInput = "Single-line text.";
+      exampleValue = field.placeholder;
+      break;
+    case "textarea":
+      expectedInput = "Multi-line text. Use full sentences and reference evidence where possible.";
+      exampleValue = field.placeholder;
+      break;
+    case "number":
+      expectedInput = "Numeric value.";
+      break;
+    case "date":
+      expectedInput = "ISO date (YYYY-MM-DD).";
+      exampleValue = "2026-03-15";
+      break;
+    case "select":
+      expectedInput = "Choose one of the provided options.";
+      exampleValue = field.options?.[0]?.label;
+      break;
+    case "checkbox":
+      expectedInput = "Check to confirm.";
+      break;
+    case "tags":
+      expectedInput = "Comma-separated tags.";
+      exampleValue = "security, performance, ux";
+      break;
+  }
+  if (field.required) {
+    validationRule = "Required before the artifact can be marked complete or exported.";
+  }
+
+  if (!purpose && !expectedInput && !exampleValue && !validationRule) {
+    return undefined;
+  }
+  return { purpose, expectedInput, exampleValue, validationRule };
 }
 
 export function buildWizardSectionsFromTemplate(
@@ -144,6 +215,7 @@ export function buildWizardSectionsFromTemplate(
     title: section.title,
     description: section.description,
     required: true,
+    optional: false,
     status: "not_started" as const,
     fields: section.fields.map((f) => mapRegistryFieldToDynamic(section.id, f, nav)),
   }));
@@ -204,7 +276,8 @@ export async function loadTemplateWizardData(
 
   const template = getTemplate(registryId);
 
-  const [project, viewer, phaseArtifacts] = await Promise.all([
+  const [project, viewer, phaseArtifacts, artifactVersionHistory, collaborationCommentRows, collaborationReviewRows] =
+    await Promise.all([
     prisma.project.findUnique({
       where: { id: resolvedProjectId },
       select: {
@@ -220,15 +293,36 @@ export async function loadTemplateWizardData(
       where: {
         projectId: resolvedProjectId,
         templateId: {
-          in: getAllTemplates()
-            .filter((t) => t.phase === template.phase)
-            .map((t) => t.templateId),
+          in: getAllTemplates().map((t) => t.templateId),
         },
       },
       orderBy: { updatedAt: "desc" },
       include: {
         evidenceLinks: true,
       },
+    }),
+    prisma.artifact.findMany({
+      where: { projectId: resolvedProjectId, templateId: registryId },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      select: {
+        id: true,
+        version: true,
+        localId: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.wizardCollaborationComment.findMany({
+      where: { projectId: resolvedProjectId, templateId: registryId },
+      orderBy: { createdAt: "asc" },
+      include: { author: { select: { name: true, initials: true } } },
+    }),
+    prisma.artifactReviewRequest.findMany({
+      where: { projectId: resolvedProjectId, templateId: registryId },
+      orderBy: { createdAt: "desc" },
+      take: 25,
     }),
   ]);
 
@@ -280,15 +374,19 @@ export async function loadTemplateWizardData(
     completionPercent: validationSummary.completionPercent,
   };
 
-  const phaseTemplates = getAllTemplates()
-    .filter((t) => t.phase === template.phase)
-    .sort((a, b) => a.templateId.localeCompare(b.templateId));
+  const selectableTemplates = getAllTemplates().sort(
+    (a, b) => a.phase - b.phase || a.templateId.localeCompare(b.templateId),
+  );
 
-  const templateSelections: TemplateSelectionItem[] = phaseTemplates.map((t) => {
+  const templateSelections: TemplateSelectionItem[] = selectableTemplates.map((t) => {
     const art = latestByTemplate.get(t.templateId) ?? null;
     const data = asRecord(art?.dataJson ?? {});
     const itemNav: TemplateWizardNavContext = { projectId: project.id, workspacePhase: t.phase };
+    const itemPhaseMeta = workspacePhaseMeta(t.phase);
     const pct = selectionCompletionForTemplate(t, data, itemNav);
+    const fieldLabels = t.sections.flatMap((section) =>
+      section.fields.map((field) => `${section.title}: ${field.label}`),
+    );
     return {
       id: t.templateId,
       templateCode: t.templateId,
@@ -297,16 +395,34 @@ export async function loadTemplateWizardData(
       status: selectionStatusForArtifact(art, t, itemNav),
       completionPercent: pct,
       href: projectTemplateWizardHref(project.id, t.templateId),
+      phaseNumber: t.phase,
+      phaseName: itemPhaseMeta.title,
+      gateCode: t.gate,
+      version: "v1",
+      schemaVersion: "schema:v1",
+      releaseDateLabel: "Catalog v1",
+      changeSummary: `${t.title} is available in the current lifecycle template registry.`,
+      addedFields: fieldLabels.slice(0, 12),
+      deprecatedFields: [],
+      compatibilityNotes:
+        t.maturity === "scaffold"
+          ? "Scaffold template: compatible with the wizard, with detailed evidence completed in workspace tools."
+          : "Compatible with the current Template Wizard form, Markdown preview, and JSON evidence export.",
+      migrationImpact: art
+        ? "Existing artifact data is reused when opening this template."
+        : "No existing artifact data was found; switching opens a fresh draft.",
       maturity: t.maturity ?? "full",
     };
   });
 
+  const optionalSections: OptionalSectionDefinition[] = [];
   const selectedTemplate = {
     id: template.templateId,
     code: template.templateId,
     name: template.title,
     version: "v1",
     sections: sectionsHydrated,
+    optionalSections,
   };
 
   const generatedAtLabel = formatDateTimeLabel(new Date());
@@ -375,5 +491,33 @@ export async function loadTemplateWizardData(
     markdownPreview,
     jsonEvidence,
     artifactSaveState,
+    artifactVersionHistory: artifactVersionHistory.map((r) => ({
+      id: r.id,
+      version: r.version,
+      localId: r.localId,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    })),
+    collaborationComments: collaborationCommentRows.map((c) => ({
+      id: c.id,
+      body: c.body,
+      resolved: c.resolved,
+      visibility: c.visibility === "reviewers" ? "reviewers" : "internal",
+      sectionId: c.sectionId ?? undefined,
+      fieldName: c.fieldName ?? undefined,
+      artifactId: c.artifactId ?? undefined,
+      createdAt: c.createdAt.toISOString(),
+      authorName: c.author?.name?.trim() || "Unknown",
+      authorInitials: c.author?.initials?.trim() || "?",
+    })),
+    collaborationReviewRequests: collaborationReviewRows.map((r) => ({
+      id: r.id,
+      assigneeName: r.assigneeName,
+      assigneeRole: r.assigneeRole,
+      reviewScope: r.reviewScope,
+      dueAt: r.dueAt?.toISOString() ?? null,
+      createdAt: r.createdAt.toISOString(),
+    })),
   };
 }

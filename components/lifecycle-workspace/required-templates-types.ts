@@ -4,6 +4,13 @@ export type RequiredTemplateStatus =
   | "completed"
   | "changes_requested";
 
+export type RequiredTemplatePreviewSection = {
+  id: string;
+  title: string;
+  fieldCount: number;
+  requiredFieldCount: number;
+};
+
 export type RequiredTemplate = {
   id: string;
   templateCode: string;
@@ -12,7 +19,14 @@ export type RequiredTemplate = {
   status: RequiredTemplateStatus;
   progressPercent: number;
   lastUpdatedLabel?: string;
+  /** Template wizard URL for this row. */
   href: string;
+  /** When an artifact exists, link to artifact detail. */
+  artifactDetailHref?: string;
+  workspacePhaseNumber?: number;
+  gateCode?: string;
+  validationIssues?: string[];
+  previewSections?: RequiredTemplatePreviewSection[];
 };
 
 export const EXAMPLE_REQUIRED_TEMPLATES: RequiredTemplate[] = [

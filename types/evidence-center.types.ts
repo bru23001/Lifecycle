@@ -131,6 +131,8 @@ export type EvidenceCenterData = {
     id: string;
     code: string;
     name: string;
+    /** DB lifecycle navigator phase (1–14). */
+    currentPhase: number;
   };
   evidenceItems: EvidenceItem[];
   selectedEvidence: EvidenceCenterSelectedEvidence;

@@ -12,13 +12,26 @@ export function ApproverReview({
   projectId,
   gateId,
   approvers,
+  onOpenDetail,
   onOpenComments,
+  onAssignApprovers,
+  onViewApprovers,
+  onSendReminder,
+  canSendReminders = false,
   embedded = false,
 }: {
   projectId: string;
   gateId: string;
   approvers: GateApprover[];
+  onOpenDetail?: (approver: GateApprover) => void;
   onOpenComments: (approver: GateApprover) => void;
+  /** When set, renders an "Assign approvers" button next to "View approvers". */
+  onAssignApprovers?: () => void;
+  /** Opens full approver list in a drawer instead of navigating away. */
+  onViewApprovers?: () => void;
+  onSendReminder?: () => void;
+  /** When true and `onSendReminder` is set, shows Send reminder (persisted assignments only). */
+  canSendReminders?: boolean;
   /** When true, render without outer card chrome (used inside combined decision card). */
   embedded?: boolean;
 }) {
@@ -37,12 +50,42 @@ export function ApproverReview({
           <GateCountBadge count={approvers.length} />
         </div>
 
-        <Link
-          href={viewHref}
-          className="text-base font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          View approvers
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {onSendReminder && canSendReminders ? (
+            <button
+              type="button"
+              onClick={onSendReminder}
+              className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
+            >
+              Send reminder
+            </button>
+          ) : null}
+          {onAssignApprovers ? (
+            <button
+              type="button"
+              onClick={onAssignApprovers}
+              className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
+            >
+              Assign approver
+            </button>
+          ) : null}
+          {onViewApprovers ? (
+            <button
+              type="button"
+              onClick={onViewApprovers}
+              className="text-base font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              View approvers
+            </button>
+          ) : (
+            <Link
+              href={viewHref}
+              className="text-base font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              View approvers
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -69,7 +112,19 @@ export function ApproverReview({
           <tbody>
             {approvers.map((row) => (
               <tr key={row.id} className="border-b border-slate-100 text-base last:border-b-0 dark:border-border">
-                <td className="py-5 pr-8 font-semibold text-slate-950 dark:text-foreground">{row.name}</td>
+                <td className="py-5 pr-8">
+                  {onOpenDetail ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenDetail(row)}
+                      className="text-left font-semibold text-slate-950 underline-offset-2 hover:underline dark:text-foreground"
+                    >
+                      {row.name}
+                    </button>
+                  ) : (
+                    <span className="font-semibold text-slate-950 dark:text-foreground">{row.name}</span>
+                  )}
+                </td>
 
                 <td className="py-5 pr-8 text-slate-700 dark:text-foreground/90">{row.role}</td>
 
@@ -85,9 +140,8 @@ export function ApproverReview({
                   <button
                     type="button"
                     aria-label={`View comments from ${row.name}`}
-                    disabled={!row.comments}
                     onClick={() => onOpenComments(row)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-blue-600 hover:bg-blue-50 disabled:pointer-events-none disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40"
                   >
                     <MessageSquare className="h-5 w-5" aria-hidden />
                   </button>

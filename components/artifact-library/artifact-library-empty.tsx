@@ -6,14 +6,22 @@ import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenti
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { workspacePhaseProgressPercent } from "@/lib/workspacePhases";
+import { projectOverviewHref } from "@/lib/projects-url";
 
 export default function ArtifactLibraryEmpty({
   user,
   project,
+  openedFromWorkspacePhase,
 }: {
   user: { name: string; role: string; initials: string };
   project: { id: string; name: string; code: string; currentPhase: number };
+  openedFromWorkspacePhase?: number;
 }) {
+  const navPhase =
+    openedFromWorkspacePhase !== undefined && openedFromWorkspacePhase >= 1 && openedFromWorkspacePhase <= 14
+      ? openedFromWorkspacePhase
+      : project.currentPhase;
+  const workspacePhaseHref = `/projects/${project.id}/workspace?phase=${navPhase}`;
   return (
     <AuthenticatedAppShell
       projectId={project.id}
@@ -22,6 +30,8 @@ export default function ArtifactLibraryEmpty({
       phaseProgressPct={workspacePhaseProgressPercent(project.currentPhase)}
       navActive="artifacts"
       projectCurrentPhase={project.currentPhase}
+      navPhaseScope={navPhase}
+      workspaceHref={workspacePhaseHref}
     >
       <TopHeader
         title="Artifact Library"
@@ -34,7 +44,7 @@ export default function ArtifactLibraryEmpty({
           <Breadcrumbs
             items={[
               { label: "Projects", href: "/projects" },
-              { label: project.name, href: `/projects/${project.id}/workspace` },
+              { label: project.name, href: projectOverviewHref(project.id) },
               { label: "Artifacts" },
             ]}
           />
@@ -46,7 +56,7 @@ export default function ArtifactLibraryEmpty({
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
-                href={`/projects/${project.id}/workspace`}
+                href={workspacePhaseHref}
                 className="inline-flex h-10 items-center justify-center rounded-md bg-[#2563eb] px-4 text-sm font-semibold text-white hover:bg-[#1d4ed8]"
               >
                 Open lifecycle workspace

@@ -17,9 +17,15 @@ function searchParamFirst(value: string | string[] | undefined): string | undefi
 function evidenceFiltersFromSearchParams(
   sp: Record<string, string | string[] | undefined>,
 ): Partial<EvidenceFilters> {
+  const rawPhase = searchParamFirst(sp.phase) ?? "all";
+  let phase: EvidenceFilters["phase"] = "all";
+  if (rawPhase && rawPhase !== "all") {
+    const n = Number.parseInt(rawPhase, 10);
+    phase = Number.isFinite(n) && n >= 1 && n <= 14 ? String(n) : "all";
+  }
   return {
     search: searchParamFirst(sp.search) ?? searchParamFirst(sp.q) ?? "",
-    phase: searchParamFirst(sp.phase) ?? "all",
+    phase,
     gate: searchParamFirst(sp.gate)?.toUpperCase() ?? "all",
   };
 }

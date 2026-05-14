@@ -1,22 +1,68 @@
+"use client";
+
+import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import type { RequiredGateInput } from "@/types/gate-review.types";
 
 import { GateCountBadge, RequiredInputStatusPill } from "./gate-review-shared-widgets";
+import { RequiredInputCorrectionDrawer } from "./required-input-correction-drawer";
+
+function needsCorrectionFlow(status: RequiredGateInput["status"]): boolean {
+  return status !== "complete";
+}
 
 export function RequiredInputs({
   projectId,
   gateId,
   inputs,
+  gateLabel,
+  linkedPhaseLabel,
 }: {
   projectId: string;
   gateId: string;
   inputs: RequiredGateInput[];
+  gateLabel: string;
+  linkedPhaseLabel: string;
 }) {
+  const router = useRouter();
+  const [correctionRow, setCorrectionRow] = useState<RequiredGateInput | null>(null);
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+
   const viewAllHref = `/projects/${projectId}/gates/${gateId}/inputs`;
+
+  const openCorrection = useCallback((row: RequiredGateInput) => {
+    setCorrectionRow(row);
+    setCorrectionOpen(true);
+  }, []);
+
+  const onRowActivate = useCallback(
+    (row: RequiredGateInput) => {
+      if (needsCorrectionFlow(row.status)) {
+        openCorrection(row);
+        return;
+      }
+      if (row.href) {
+        router.push(row.href);
+      }
+    },
+    [openCorrection, router],
+  );
 
   return (
     <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card">
+      <RequiredInputCorrectionDrawer
+        open={correctionOpen}
+        onClose={() => {
+          setCorrectionOpen(false);
+          setCorrectionRow(null);
+        }}
+        row={correctionRow}
+        gateLabel={gateLabel}
+        linkedPhaseLabel={linkedPhaseLabel}
+      />
+
       <header className="mb-0 shrink-0 border-b border-slate-100 px-8 pb-4 pt-8 dark:border-border">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-4">
@@ -27,6 +73,7 @@ export function RequiredInputs({
           <Link
             href={viewAllHref}
             className="text-base font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            data-testid="required-inputs-view-all"
           >
             View all inputs
           </Link>
@@ -52,31 +99,56 @@ export function RequiredInputs({
             </thead>
 
             <tbody>
-              {inputs.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 text-base last:border-b-0 dark:border-border">
-                  <td className="py-5 pr-8 font-semibold text-slate-950 dark:text-foreground">
-                    {row.href ? (
-                      <Link href={row.href} className="hover:text-blue-600 hover:underline dark:hover:text-blue-400">
-                        {row.inputCode} {row.name}
-                      </Link>
-                    ) : (
-                      <span>
-                        {row.inputCode} {row.name}
-                      </span>
-                    )}
-                  </td>
+              {inputs.map((row) => {
+                const interactive = needsCorrectionFlow(row.status) || Boolean(row.href);
+                return (
+                  <tr
+                    key={row.id}
+                    className={
+                      interactive ?
+                        "cursor-pointer border-b border-slate-100 text-base last:border-b-0 hover:bg-slate-50/80 dark:border-border dark:hover:bg-muted/40"
+                      : "border-b border-slate-100 text-base last:border-b-0 dark:border-border"
+                    }
+                    tabIndex={interactive ? 0 : undefined}
+                    onClick={() => interactive && onRowActivate(row)}
+                    onKeyDown={(e) => {
+                      if (!interactive) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onRowActivate(row);
+                      }
+                    }}
+                    data-testid={`required-input-row-${row.inputCode}`}
+                  >
+                    <td className="py-5 pr-8 font-semibold text-slate-950 dark:text-foreground">
+                      {row.status === "complete" && row.href ? (
+                        <Link
+                          href={row.href}
+                          className="text-blue-600 hover:underline dark:text-blue-400"
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`required-input-link-${row.inputCode}`}
+                        >
+                          {row.inputCode} {row.name}
+                        </Link>
+                      ) : (
+                        <span>
+                          {row.inputCode} {row.name}
+                        </span>
+                      )}
+                    </td>
 
-                  <td className="py-5 pr-8 text-slate-600 dark:text-muted-foreground">{row.description}</td>
+                    <td className="py-5 pr-8 text-slate-600 dark:text-muted-foreground">{row.description}</td>
 
-                  <td className="py-5 pr-8 font-semibold text-emerald-600 dark:text-emerald-400">
-                    {row.provided ? "Yes" : "No"}
-                  </td>
+                    <td className="py-5 pr-8 font-semibold text-emerald-600 dark:text-emerald-400">
+                      {row.provided ? "Yes" : "No"}
+                    </td>
 
-                  <td className="py-5">
-                    <RequiredInputStatusPill status={row.status} />
-                  </td>
-                </tr>
-              ))}
+                    <td className="py-5">
+                      <RequiredInputStatusPill status={row.status} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

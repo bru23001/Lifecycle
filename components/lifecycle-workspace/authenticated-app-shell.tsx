@@ -29,6 +29,11 @@ export function AuthenticatedAppShell(props: {
   /** Workspace phase 1–14 for default Gates link when `gatesHref` is omitted. */
   projectCurrentPhase?: number | null;
   /**
+   * Optional workspace phase index (1–14) for sidebar shortcuts (Artifacts, Evidence,
+   * Traceability) `?phase=` — defaults to `projectCurrentPhase` when omitted.
+   */
+  navPhaseScope?: number | null;
+  /**
    * When set, the sidebar "Continue Working" CTA uses this href (e.g. next approval,
    * template form, or workspace anchor) instead of the default workspace URL.
    */
@@ -44,6 +49,7 @@ export function AuthenticatedAppShell(props: {
     navActive = "lifecycle",
     gatesHref,
     projectCurrentPhase,
+    navPhaseScope,
     continueWorkingHref,
     workspaceHref,
     children,
@@ -79,6 +85,7 @@ export function AuthenticatedAppShell(props: {
           workspaceHref={workspaceHref}
           gatesHref={gatesHref}
           projectCurrentPhase={projectCurrentPhase}
+          navPhaseScope={navPhaseScope}
           continueWorkingHref={continueWorkingHref ?? undefined}
           collapsed={collapsed}
           onCollapsedChange={setCollapsed}

@@ -13,6 +13,10 @@ import {
 import { z } from "zod";
 
 import { saveArtifact } from "@/app/actions/saveArtifact";
+import {
+  WizardMarkdownPreview,
+  type SavedArtifactMeta,
+} from "@/components/wizard-markdown-preview";
 import { Button } from "@/components/ui/button";
 import {
   buildTemplateDefaultValues,
@@ -134,13 +138,18 @@ export function PhaseWizardForm({
     return () => window.clearTimeout(handle);
   }, [watched, templateId, projectId]);
 
-  const previewMarkdown = useMemo(() => {
-    const merged = {
+  const mergedPreviewData = useMemo(() => {
+    return {
       ...buildTemplateDefaultValues(template),
       ...(watched as Record<string, unknown>),
     };
-    return template.toMarkdown(merged);
   }, [template, watched]);
+
+  const previewMarkdown = useMemo(() => {
+    return template.toMarkdown(mergedPreviewData);
+  }, [template, mergedPreviewData]);
+
+  const [savedArtifactMeta, setSavedArtifactMeta] = useState<SavedArtifactMeta | null>(null);
 
   const currentSection = template.sections[stepIndex]!;
   const currentFieldNames = currentSection.fields.map((f) => f.name);
@@ -186,6 +195,11 @@ export function PhaseWizardForm({
       setMessage(
         `Saved artifact ${res.localId} (v${res.version}). File: vault/${res.markdownPath}`,
       );
+      setSavedArtifactMeta({
+        dbId: res.artifactId,
+        localId: res.localId,
+        version: res.version,
+      });
       clearWizardDraft(templateId);
     } catch (e) {
       setSubmitError(toUserMessage(e));
@@ -440,18 +454,13 @@ export function PhaseWizardForm({
         </div>
 
         <aside className="lg:sticky lg:top-10 lg:self-start">
-          <div className="rounded-2xl border bg-muted/30 p-4">
-            <h3 className="text-sm font-semibold tracking-tight">
-              Markdown preview
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Live preview from current values (empty fields show as not
-              provided).
-            </p>
-            <pre className="mt-3 max-h-[min(70vh,560px)] overflow-auto rounded-xl border bg-background p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">
-              {previewMarkdown}
-            </pre>
-          </div>
+          <WizardMarkdownPreview
+            template={template}
+            mergedData={mergedPreviewData}
+            bodyMarkdown={previewMarkdown}
+            projectId={projectId}
+            savedArtifactMeta={savedArtifactMeta}
+          />
         </aside>
       </div>
     </div>

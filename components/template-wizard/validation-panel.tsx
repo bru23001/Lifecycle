@@ -12,9 +12,13 @@ function severityDot(sev: ValidationIssue["severity"]) {
 export function ValidationPanel({
   summary,
   onIssueClick,
+  onViewAllIssues,
+  onRunValidation,
 }: {
   summary: ValidationSummary;
   onIssueClick?: (issue: ValidationIssue) => void;
+  onViewAllIssues?: () => void;
+  onRunValidation?: () => void;
 }) {
   const pct = summary.completionPercent;
 
@@ -30,9 +34,18 @@ export function ValidationPanel({
             Export readiness and blocking issues for this artifact.
           </p>
         </div>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-          {pct}% overall
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onRunValidation}
+            className="rounded-md border border-input px-2 py-1 text-xs font-semibold text-[#2563eb] hover:bg-[#eff6ff]"
+          >
+            Run Validation
+          </button>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+            {pct}% overall
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -95,6 +108,7 @@ export function ValidationPanel({
           </p>
           <button
             type="button"
+            onClick={onViewAllIssues}
             className="text-xs font-semibold text-[#2563eb] hover:underline"
           >
             View all issues

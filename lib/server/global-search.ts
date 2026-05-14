@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { projectTemplateWizardHref } from "@/lib/projects-url";
 import type { GlobalSearchResultItem } from "@/types/global-search.types";
 
 const MIN_LEN = 2;
@@ -103,7 +104,7 @@ export async function executeGlobalSearch(rawQuery: string): Promise<GlobalSearc
             type: "traceability",
             title: `Traceability — ${p.name}`,
             subtitle: "Coverage matrix",
-            href: `/projects/${p.id}/traceability`,
+            href: `/projects/${p.id}/traceability?phase=${phase}`,
           },
           seen,
         );
@@ -192,6 +193,41 @@ export async function executeGlobalSearch(rawQuery: string): Promise<GlobalSearc
         },
         seen,
       );
+    }
+
+    const templateProjectId =
+      projects[0]?.id ??
+      (
+        await prisma.project.findFirst({
+          where: { archivedAt: null },
+          orderBy: { updatedAt: "desc" },
+          select: { id: true },
+        })
+      )?.id;
+
+    if (templateProjectId) {
+      const catalogHits = await prisma.templateRegistryEntry.findMany({
+        where: {
+          status: "active",
+          OR: [{ templateCode: { contains: q } }, { name: { contains: q } }],
+        },
+        take: 6,
+        orderBy: { templateCode: "asc" },
+        select: { id: true, templateCode: true, name: true },
+      });
+      for (const t of catalogHits) {
+        pushUnique(
+          out,
+          {
+            id: `template-${t.id}`,
+            type: "template",
+            title: `${t.templateCode} — ${t.name}`,
+            subtitle: "Template wizard",
+            href: projectTemplateWizardHref(templateProjectId, t.templateCode),
+          },
+          seen,
+        );
+      }
     }
   } catch {
     return [];

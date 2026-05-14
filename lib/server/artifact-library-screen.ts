@@ -1,9 +1,10 @@
 import { indexLatestGateDecisions, type GateDecisionRow } from "@/lib/gateStatus";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
-import { getTemplate, hasTemplate } from "@/templates/registry";
+import { getTemplate, getTemplatesForPhase, hasTemplate } from "@/templates/registry";
 import type { LifecycleGateId } from "@/templates/types";
 import {
+  domainPhaseForWorkspaceIndex,
   gateHeaderDisplayName,
   workspacePhaseMeta,
 } from "@/lib/workspacePhases";
@@ -45,6 +46,7 @@ function isArtifactBodyApprovedJson(data: unknown): boolean {
 }
 
 function mapDbToWorkflowStatus(dbStatus: string, dataJson: unknown): ArtifactWorkflowStatus {
+  if (dbStatus === "Archived") return "archived";
   if (dbStatus !== "Draft") return "approved";
   if (isArtifactBodyApprovedJson(dataJson)) return "approved";
   return "draft";
@@ -495,7 +497,10 @@ export async function loadArtifactLibraryEmptyProject(
   };
 }
 
-export async function getDefaultArtifactIdForLibrary(projectId: string): Promise<string | null> {
+export async function getDefaultArtifactIdForLibrary(
+  projectId: string,
+  options?: { workspacePhase?: number },
+): Promise<string | null> {
   const row = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
@@ -506,7 +511,14 @@ export async function getDefaultArtifactIdForLibrary(projectId: string): Promise
     },
   });
   if (!row || row.artifacts.length === 0) return null;
-  const latest = latestPerLogicalArtifact(row.artifacts as ArtifactRow[]);
-  return latest[0]?.id ?? null;
+  let pool = latestPerLogicalArtifact(row.artifacts as ArtifactRow[]);
+  const ws = options?.workspacePhase;
+  if (ws !== undefined && ws >= 1 && ws <= 14) {
+    const domain = domainPhaseForWorkspaceIndex(ws);
+    const allowed = new Set(getTemplatesForPhase(domain).map((t) => t.templateId));
+    const scoped = pool.filter((a) => allowed.has(a.templateId));
+    if (scoped.length > 0) pool = scoped;
+  }
+  return pool[0]?.id ?? null;
 }
 
