@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: lifecycle-platform
@@ -26,7 +26,24 @@ jobs:
           cache: "npm"
           cache-dependency-path: lifecycle-platform/package-lock.json
 
-      - name: Install and CI
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lifecycle CI pipeline
+        run: npm run ci
+
+      - name: Lifecycle tests
+        run: npm test
+
+      - name: Lifecycle pre-release dry run
+        run: npm run pre-release:fast
+
+      - name: Route smoke (ephemeral next start)
+        env:
+          # Dedicated port avoids clashes with local defaults / other jobs.
+          SMOKE_PORT: "3099"
+        run: npm run ci-route-smoke
+
+      - name: Duration check
         run: |
-          npm ci
-          npm run ci
+          echo "Pipeline kept in job timeout budget (<20 min)."
