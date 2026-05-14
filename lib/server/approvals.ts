@@ -315,8 +315,13 @@ function buildPendingRow(row: LoadedApproval, userDisplay: { name: string }): Pe
   const id = row.id;
   const href = `/approvals/${id}`;
 
+  const submittedAtMs = row.createdAt.getTime();
+  const updatedAtMs = row.updatedAt.getTime();
+  const dueAtMs = row.dueAt?.getTime() ?? null;
+
   if (row.approvalType === "gate_review" && row.gateId && row.project) {
     const gate = row.gateId as GateId;
+    const anchorPhase = gateAnchorPhase(gate);
     return {
       id,
       approvalCode: gate,
@@ -326,6 +331,11 @@ function buildPendingRow(row: LoadedApproval, userDisplay: { name: string }): Pe
       projectName: row.project.name,
       submittedBy: submittedLabel,
       submittedOnLabel: formatDateTimeLabel(row.updatedAt),
+      submittedAtMs,
+      updatedAtMs,
+      dueAtMs,
+      phaseNumber: anchorPhase,
+      gateCode: gate,
       dueDateLabel: "Open",
       priority,
       status: mapPrismaToPendingStatus(row.status),
@@ -345,6 +355,9 @@ function buildPendingRow(row: LoadedApproval, userDisplay: { name: string }): Pe
     projectName: project.name,
     submittedBy: submittedLabel,
     submittedOnLabel: formatDateTimeLabel(row.updatedAt),
+    submittedAtMs,
+    updatedAtMs,
+    dueAtMs,
     dueDateLabel: "Draft",
     priority,
     status: mapPrismaToPendingStatus(row.status),
@@ -425,6 +438,7 @@ export async function loadApprovalCenterData(
 
   if (pendingApprovals.length === 0) {
     const placeholderId = "approval-none";
+    const now = Date.now();
     pendingApprovals.push({
       id: placeholderId,
       approvalCode: "—",
@@ -434,6 +448,9 @@ export async function loadApprovalCenterData(
       projectName: projects[0]?.name ?? "No projects",
       submittedBy: userDisplay.name,
       submittedOnLabel: formatDateTimeLabel(new Date()),
+      submittedAtMs: now,
+      updatedAtMs: now,
+      dueAtMs: null,
       priority: "low",
       status: "pending",
       href: "/projects",
