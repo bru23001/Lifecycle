@@ -443,6 +443,7 @@ export function ApprovalCenterPage({ initial }: { initial: ApprovalCenterData })
           mobilePane={mobilePane}
           queueTab={queueTab}
           queueRows={queueRows}
+          unfilteredTabRows={unfilteredTabRows}
           selectedApprovalId={selectedApprovalId}
           filters={filters}
           isLoading={isLoading}
