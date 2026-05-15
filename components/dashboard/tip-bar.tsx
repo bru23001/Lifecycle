@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ChevronDown, Sparkles } from "lucide-react";
 
+import { DetailsExpandedAfterMount } from "@/components/dashboard/details-expanded-after-mount";
 import type { DashboardTip } from "@/types/dashboard.types";
 
 export function TipBar({ tip }: { tip: DashboardTip }) {
   return (
-    <details open className="cc-card-standard span-12 overflow-hidden dark:border-[var(--cc-border)] dark:bg-card">
+    <DetailsExpandedAfterMount className="cc-card-standard span-12 overflow-hidden dark:border-[var(--cc-border)] dark:bg-card">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-2.5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <Sparkles className="size-[13px] shrink-0 text-amber-500" aria-hidden />
@@ -19,6 +20,6 @@ export function TipBar({ tip }: { tip: DashboardTip }) {
           {tip.ctaLabel}
         </Link>
       </div>
-    </details>
+    </DetailsExpandedAfterMount>
   );
 }

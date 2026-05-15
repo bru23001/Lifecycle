@@ -104,7 +104,6 @@ export default async function ProjectReportsHubPage({
           ]}
         />
         <header className="mt-6 space-y-2" data-testid="project-reports-hub">
-          <h1 className="text-2xl font-semibold text-foreground">Project reports</h1>
           <p className="text-sm text-muted-foreground">
             {phase
               ? `Showing report shortcuts scoped to workspace phase ${phase}. Filters are passed to each report via query string.`

@@ -1,16 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowRight, CheckCircle2, Circle, Clock3, FileText } from "lucide-react";
 
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
+import { PaneSwitcher } from "@/components/lifecycle-workspace/pane-switcher";
+import { PhaseNavigator } from "@/components/lifecycle-workspace/phase-navigator";
+import { ReviewStatusPanel } from "@/components/lifecycle-workspace/review-status-panel";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import type {
   NextPhaseWorkspaceViewData,
   RequiredTemplateStatus,
   RequiredTemplateSummary,
 } from "@/types/next-phase-workspace.types";
+import { projectOverviewHref } from "@/lib/projects-url";
 import { workspacePhaseProgressPercent } from "@/lib/workspacePhases";
 import { cn } from "@/lib/utils";
 
@@ -115,7 +120,8 @@ export function NextPhaseWorkspaceRoute({
   data: NextPhaseWorkspaceViewData;
   user: { name: string; role: string; initials: string };
 }) {
-  const progress = workspacePhaseProgressPercent(data.phaseNumber);
+  const progress = workspacePhaseProgressPercent(data.projectCurrentPhase);
+  const [mobilePane, setMobilePane] = useState<"phase" | "workspace" | "status">("workspace");
 
   return (
     <AuthenticatedAppShell
@@ -124,126 +130,170 @@ export function NextPhaseWorkspaceRoute({
       phaseSummary={`Phase ${data.phaseNumber}: ${data.phaseTitle}`}
       phaseProgressPct={progress}
       navActive="lifecycle"
-      projectCurrentPhase={data.phaseNumber}
+      projectCurrentPhase={data.projectCurrentPhase}
       navPhaseScope={data.phaseNumber}
+      workspaceHref={`/projects/${data.projectId}/workspace?phase=${data.phaseNumber}`}
+      gatesHref={`/projects/${data.projectId}/gates`}
     >
       <TopHeader title="Lifecycle Workspace" userInitials={user.initials} userName={user.name} userRole={user.role} />
 
-      <div className="mx-auto w-full max-w-[1100px] px-5 py-6 min-[901px]:px-8">
-        <Breadcrumbs
-          items={[
-            { label: "Projects", href: "/projects" },
-            { label: data.projectName, href: `/projects/${data.projectId}` },
-            { label: "Lifecycle Workspace" },
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
+        <div className="mx-auto w-full max-w-[1920px] shrink-0 px-5 pt-4">
+          <Breadcrumbs
+            items={[
+              { label: "Projects", href: "/projects" },
+              {
+                label: `${data.projectName} (${data.projectCode})`,
+                href: projectOverviewHref(data.projectId),
+              },
+              { label: "Lifecycle Workspace" },
+            ]}
+          />
+        </div>
+
+        <PaneSwitcher
+          panes={[
+            { id: "phase", label: "Phases" },
+            { id: "workspace", label: "Workspace" },
+            { id: "status", label: "Status" },
           ]}
+          active={mobilePane}
+          onChange={(id) => setMobilePane(id as typeof mobilePane)}
+          className="mx-auto w-full max-w-[1920px]"
         />
 
-        <header className="mt-8 border-b border-slate-200 pb-6 dark:border-border">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
-            Phase {data.phaseNumber}
-            {data.phaseGateCode ? ` · ${data.phaseGateCode}` : ""}
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-foreground">{data.phaseTitle}</h1>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-600 dark:text-muted-foreground">
-            {data.phasePurpose}
-          </p>
-          <p className="mt-2 text-sm text-slate-500 dark:text-muted-foreground">
-            Project {data.projectName} ({data.projectCode})
-          </p>
-        </header>
+        <div
+          role="region"
+          aria-label="Lifecycle workspace"
+          data-active-pane={mobilePane}
+          className="lifecycle-workspace mx-auto w-full max-w-[1920px] min-h-0 flex-1"
+        >
+          <PhaseNavigator
+            items={data.phaseNavigatorItems}
+            projectId={data.projectId}
+            meta={data.phaseNavigatorMeta}
+          />
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-2">
-          <section aria-labelledby="req-templates-heading">
-            <div className="flex items-baseline justify-between gap-2">
-              <h2
-                id="req-templates-heading"
-                className="text-lg font-semibold text-slate-950 dark:text-foreground"
+          <div className="min-h-0 min-w-0 space-y-6 overflow-y-auto px-0.5 pb-6 min-[901px]:px-0">
+            <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-border dark:bg-card">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
+                Phase {data.phaseNumber}
+                {data.phaseGateCode ? ` · ${data.phaseGateCode}` : ""}
+              </p>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-foreground">
+                {data.phaseTitle}
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 dark:text-muted-foreground">
+                {data.phasePurpose}
+              </p>
+            </header>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <section aria-labelledby="req-templates-heading">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h2
+                    id="req-templates-heading"
+                    className="text-base font-semibold text-slate-950 dark:text-foreground"
+                  >
+                    Templates for this phase
+                  </h2>
+                  <span className="text-[11px] text-muted-foreground">Click a card to open the wizard</span>
+                </div>
+                {data.requiredTemplates.length > 0 ? (
+                  <ul className="mt-3 space-y-2" data-testid="required-templates-list">
+                    {data.requiredTemplates.map((t) => (
+                      <li key={t.templateId}>
+                        <TemplateCard t={t} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-700 dark:border-border dark:bg-muted/30 dark:text-foreground/90">
+                    <p>
+                      {data.requiredTemplatesEmptyMessage ??
+                        "No templates are registered for this phase yet."}
+                    </p>
+                    <Link
+                      href={`/settings/templates?projectId=${encodeURIComponent(data.projectId)}`}
+                      className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                    >
+                      Open Template Registry
+                      <ArrowRight className="size-3" aria-hidden />
+                    </Link>
+                  </div>
+                )}
+              </section>
+
+              <section
+                id="evidence-attachments"
+                aria-labelledby="evidence-exp-heading"
+                className="evidence-attachments rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-border dark:bg-card"
               >
-                Templates for this phase
-              </h2>
-              <span className="text-[11px] text-muted-foreground">
-                Click a card to open the wizard
-              </span>
+                <h2 id="evidence-exp-heading" className="text-base font-semibold text-slate-950 dark:text-foreground">
+                  Required evidence expectations
+                </h2>
+                <ul className="mt-3 list-inside list-disc space-y-2 text-sm text-slate-700 dark:text-foreground/90">
+                  {data.evidenceExpectations.map((e) => (
+                    <li key={e}>{e}</li>
+                  ))}
+                </ul>
+              </section>
             </div>
-            {data.requiredTemplates.length > 0 ? (
-              <ul className="mt-3 space-y-2" data-testid="required-templates-list">
-                {data.requiredTemplates.map((t) => (
-                  <li key={t.templateId}>
-                    <TemplateCard t={t} />
+
+            <section aria-labelledby="objectives-heading" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border dark:bg-card">
+              <h2 id="objectives-heading" className="text-base font-semibold text-slate-950 dark:text-foreground">
+                Phase objectives
+              </h2>
+              <ul className="mt-3 space-y-2">
+                {data.initialChecklist.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex items-start gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm text-slate-800 dark:border-border dark:text-foreground/90"
+                  >
+                    <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden />
+                    <span>{row.label}</span>
                   </li>
                 ))}
               </ul>
-            ) : (
-              <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-700 dark:border-border dark:bg-muted/30 dark:text-foreground/90">
-                <p>
-                  {data.requiredTemplatesEmptyMessage ??
-                    "No templates are registered for this phase yet."}
-                </p>
-                <Link
-                  href={`/settings/templates?projectId=${encodeURIComponent(
-                    data.projectId,
-                  )}`}
-                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700 hover:underline dark:text-blue-300"
-                >
-                  Open Template Registry
-                  <ArrowRight className="size-3" aria-hidden />
-                </Link>
-              </div>
-            )}
-          </section>
+            </section>
 
-          <section aria-labelledby="evidence-exp-heading">
-            <h2 id="evidence-exp-heading" className="text-lg font-semibold text-slate-950 dark:text-foreground">
-              Required evidence expectations
-            </h2>
-            <ul className="mt-3 list-inside list-disc space-y-2 text-sm text-slate-700 dark:text-foreground/90">
-              {data.evidenceExpectations.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
-          </section>
+            <section aria-labelledby="carry-heading" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border dark:bg-card">
+              <h2 id="carry-heading" className="text-base font-semibold text-slate-950 dark:text-foreground">
+                Carried-forward artifacts
+              </h2>
+              {data.carriedForwardArtifacts.length ? (
+                <ul className="mt-3 space-y-2">
+                  {data.carriedForwardArtifacts.map((a) => (
+                    <li key={a.id}>
+                      <Link
+                        href={a.href}
+                        className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {a.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">No artifacts on this project yet.</p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-border dark:bg-muted/30">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Gate dependency</h2>
+              <p className="mt-2 text-sm text-slate-700 dark:text-foreground/90">{data.gateDependencyLabel}</p>
+            </section>
+          </div>
+
+          <ReviewStatusPanel
+            checklistItems={data.checklistItems}
+            completionRules={data.completionRules}
+            projectRecordId={data.projectId}
+            phaseNumber={data.phaseNumber}
+            validationWarnings={data.validationWarnings}
+            gateSubmissionState={data.gateSubmissionState}
+          />
         </div>
-
-        <section className="mt-10" aria-labelledby="checklist-heading">
-          <h2 id="checklist-heading" className="text-lg font-semibold text-slate-950 dark:text-foreground">
-            Initial checklist
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {data.initialChecklist.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-start gap-3 rounded-lg border border-slate-100 px-3 py-2 dark:border-border"
-              >
-                <input type="checkbox" disabled className="mt-1 size-4 rounded border-slate-300" aria-label={row.label} />
-                <span className="text-sm text-slate-800 dark:text-foreground/90">{row.label}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="mt-10" aria-labelledby="carry-heading">
-          <h2 id="carry-heading" className="text-lg font-semibold text-slate-950 dark:text-foreground">
-            Carried-forward artifacts
-          </h2>
-          {data.carriedForwardArtifacts.length ? (
-            <ul className="mt-3 space-y-2">
-              {data.carriedForwardArtifacts.map((a) => (
-                <li key={a.id}>
-                  <Link href={a.href} className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
-                    {a.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">No artifacts on this project yet.</p>
-          )}
-        </section>
-
-        <section className="mt-10 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-border dark:bg-muted/30">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Gate dependency</h2>
-          <p className="mt-2 text-sm text-slate-700 dark:text-foreground/90">{data.gateDependencyLabel}</p>
-        </section>
       </div>
     </AuthenticatedAppShell>
   );

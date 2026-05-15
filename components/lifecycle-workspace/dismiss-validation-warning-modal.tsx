@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 
@@ -28,8 +29,23 @@ export function DismissValidationWarningModal({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    function handleNativeClose() {
+      onClose();
+    }
+    node.addEventListener("close", handleNativeClose);
+    return () => node.removeEventListener("close", handleNativeClose);
+  }, [onClose]);
+
+  useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
     if (open) {
@@ -45,6 +61,10 @@ export function DismissValidationWarningModal({
       setError(null);
     }
   }, [open]);
+
+  function requestClose() {
+    if (ref.current?.open) ref.current.close();
+  }
 
   function handleDismiss() {
     if (!warning || pending) return;
@@ -66,14 +86,15 @@ export function DismissValidationWarningModal({
         return;
       }
       router.refresh();
-      onClose();
+      requestClose();
     });
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <dialog
       ref={ref}
-      onClose={onClose}
       className="fixed left-1/2 top-1/2 z-[60] w-[min(100vw-2rem,480px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-0 shadow-xl backdrop:bg-slate-900/40 dark:border-border dark:bg-card"
       aria-labelledby="dismiss-validation-modal-title"
     >
@@ -88,7 +109,7 @@ export function DismissValidationWarningModal({
           <button
             type="button"
             className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-muted"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Close"
           >
             <X className="size-4" />
@@ -130,7 +151,7 @@ export function DismissValidationWarningModal({
           ) : null}
         </div>
         <footer className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 dark:border-border">
-          <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+          <Button type="button" variant="outline" onClick={requestClose}>
             Cancel
           </Button>
           <Button type="button" variant="default" onClick={handleDismiss} disabled={pending}>
@@ -138,6 +159,7 @@ export function DismissValidationWarningModal({
           </Button>
         </footer>
       </div>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }

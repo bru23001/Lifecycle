@@ -49,7 +49,7 @@ export function ReportChrome({
             ]}
           />
           <header className="mt-6 space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
             <p className="text-sm text-slate-600">{description}</p>
           </header>
           <div className="mt-8 space-y-6">{children}</div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 
@@ -39,8 +40,23 @@ export function ValidationRunProgressModal({
   const ref = useRef<HTMLDialogElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    function handleNativeClose() {
+      onClose();
+    }
+    node.addEventListener("close", handleNativeClose);
+    return () => node.removeEventListener("close", handleNativeClose);
+  }, [onClose]);
+
+  useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
     if (open) {
@@ -49,6 +65,10 @@ export function ValidationRunProgressModal({
       node.close();
     }
   }, [open]);
+
+  function requestClose() {
+    if (ref.current?.open) ref.current.close();
+  }
 
   useEffect(() => {
     if (!open) {
@@ -70,10 +90,11 @@ export function ValidationRunProgressModal({
     return () => timers.forEach(clearTimeout);
   }, [open]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <dialog
       ref={ref}
-      onClose={onClose}
       className="fixed left-1/2 top-1/2 z-50 w-[min(100vw-2rem,520px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-0 shadow-xl backdrop:bg-slate-900/40 dark:border-border dark:bg-card"
       aria-labelledby="validation-run-modal-title"
     >
@@ -91,7 +112,7 @@ export function ValidationRunProgressModal({
           <button
             type="button"
             className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-muted"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Close"
           >
             <X className="size-4" />
@@ -128,7 +149,7 @@ export function ValidationRunProgressModal({
           </div>
         </div>
         <footer className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 dark:border-border">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={requestClose}>
             Close
           </Button>
           <Button
@@ -136,13 +157,14 @@ export function ValidationRunProgressModal({
             disabled={!finished}
             onClick={() => {
               router.refresh();
-              onClose();
+              requestClose();
             }}
           >
             View results
           </Button>
         </footer>
       </div>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }

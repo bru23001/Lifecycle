@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, ChevronDown, FileBarChart2 } from "lucide-react";
 
+import { DetailsExpandedAfterMount } from "@/components/dashboard/details-expanded-after-mount";
+
 /**
  * Dashboard entry to the project-scoped reports hub (`/projects/{id}/reports`).
  * Spec: reports shortcut / dashboard report widget → lifecycle, gate, traceability,
@@ -17,8 +19,7 @@ export function ReportsHubWidget({
   const context = projectName?.trim() ? ` for ${projectName.trim()}` : "";
 
   return (
-    <details
-      open
+    <DetailsExpandedAfterMount
       data-testid="dashboard-reports-hub"
       className="cc-card-standard overflow-hidden"
     >
@@ -49,6 +50,6 @@ export function ReportsHubWidget({
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       </div>
-    </details>
+    </DetailsExpandedAfterMount>
   );
 }
