@@ -9,6 +9,7 @@ import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import { getProjectAuditScreenEntries } from "@/lib/server/project-audit-screen";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
 import { buildSelectedProjectRecentActivity } from "@/lib/project-recent-activity";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import { projectAuditTrailListHref } from "@/lib/projects-url";
 import type { ProjectListItem, SelectedProject } from "@/types/projects.types";
 
@@ -18,9 +19,8 @@ function formatProjectCode(slug: string, vaultFolder: string): string {
   return `${prefix}-${tail.padStart(3, "0").slice(-3)}`;
 }
 
-function timeAgoHours(hours: number): string {
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+function timeLabelFromDate(d: Date): string {
+  return formatDateTimeRelative(d);
 }
 
 export type ProjectOverviewScreenData = {
@@ -75,9 +75,7 @@ export async function loadProjectOverviewScreenData(
     currentPhase: phase,
     progressPercent: Math.min(100, Math.max(8, Math.round((phase / 14) * 100))),
     status,
-    updatedLabel: timeAgoHours(
-      Math.max(1, Math.round((Date.now() - row.updatedAt.getTime()) / 3600000)),
-    ),
+    updatedLabel: formatDateTimeRelative(row.updatedAt),
     missingEvidenceCount: 0,
   };
 
@@ -154,7 +152,7 @@ export async function loadProjectOverviewScreenData(
               id: `decision-${index}`,
               title: `${item.gateId} decision recorded — ${item.decision}`,
               meta: `${item.authorityName ?? "Reviewer"} · ${item.authorityRole ?? "Authority"}`,
-              timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
+              timeLabel: timeLabelFromDate(item.createdAt),
               href: `/projects/${row.id}/gates/${item.gateId.toLowerCase()}/review`,
             }))
           : selectedProject.recentActivity,
@@ -169,7 +167,7 @@ export async function loadProjectOverviewScreenData(
                 : item.decision === "Conditional"
                   ? "In Review"
                   : "Changes Requested",
-            timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
+            timeLabel: timeLabelFromDate(item.createdAt),
           }))
         : selectedProject.gateStatuses,
     snapshot: [

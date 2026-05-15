@@ -23,6 +23,7 @@ import type {
 import { computeActionState, applyUnlockRules, computeOverallAssessment, buildSubmitBlockers } from "@/lib/gate-decision";
 import type { GateId } from "@/lib/gateRules";
 import { toUserMessage } from "@/lib/toUserMessage";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 
 import { ApproverReview } from "./ApproverReview";
 import {
@@ -389,10 +390,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
         id: `session-${commentApprover.id}-${Date.now()}`,
         author: initial.user.name,
         role: initial.user.role,
-        timestampLabel: new Date().toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }),
+        timestampLabel: formatDateTimeAbsolute(new Date()),
         visibility,
         body,
       };
@@ -767,7 +765,7 @@ export function GateReviewPage({ data: initial }: { data: GateReviewData }) {
         unresolvedWarnings={readinessItems}
         savedAtLabel={
           lastSavedAt
-            ? lastSavedAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+            ? formatDateTimeAbsolute(lastSavedAt)
             : "—"
         }
       />

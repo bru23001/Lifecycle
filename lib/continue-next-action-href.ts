@@ -3,6 +3,7 @@ import { buildValidationWarnings } from "@/lib/workspacePhaseWorkspaceSlice";
 import { parseApplicability } from "@/lib/applicability";
 import type { GateDecisionRow } from "@/lib/gateStatus";
 import { nextOpenGateForPhase } from "@/lib/gateStatus";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import { workspaceNavigatorIndex } from "@/lib/workspacePhases";
 import { projectTemplateWizardHref } from "@/lib/projects-url";
 import { getTemplatesForPhase } from "@/templates/registry";
@@ -17,7 +18,7 @@ export type ContinueNextArtifactLite = {
 };
 
 function formatArtifactDate(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return formatDateTimeRelative(d);
 }
 
 function latestArtifactByTemplate(

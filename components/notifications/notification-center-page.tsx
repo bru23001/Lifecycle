@@ -42,15 +42,22 @@ export function NotificationCenterPage({ data }: { data: NotificationCenterData 
 
         <div className="mx-auto w-full max-w-[960px] flex-1 px-5 pb-10 min-[901px]:px-8">
           {data.items.length === 0 ? (
-            <div className="cc-card-standard flex flex-col items-center gap-4 p-10 text-center">
+            <div
+              className="cc-card-standard flex flex-col items-center gap-4 border-dashed p-10 text-center"
+              role="status"
+              aria-live="polite"
+            >
               <div className="flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                 <Bell className="size-7" aria-hidden />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold tracking-tight">You&apos;re caught up</h2>
+              <div className="max-w-md space-y-2">
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">No notifications yet</h2>
                 <p className="text-sm text-muted-foreground">
-                  No pending approvals or recent lifecycle notifications. Open a project workspace or the approval center
-                  to generate activity.
+                  Your queue is empty. Open approvals or work in a project workspace to surface pending reviews and gate
+                  events here.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  This hub lists open approvals and recent lifecycle signals — nothing is wrong when the list is empty.
                 </p>
               </div>
               <div className="flex flex-wrap justify-center gap-3">
@@ -60,7 +67,10 @@ export function NotificationCenterPage({ data }: { data: NotificationCenterData 
                 >
                   Approval Center
                 </Link>
-                <Link href="/projects" className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-semibold hover:bg-muted">
+                <Link
+                  href="/projects"
+                  className="inline-flex h-10 items-center rounded-md border border-border bg-background px-4 text-sm font-semibold hover:bg-muted"
+                >
                   Projects
                 </Link>
               </div>

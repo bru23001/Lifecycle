@@ -1,3 +1,4 @@
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import type { ProjectScreenAuditEntry, SelectedProjectActivity } from "@/types/projects.types";
 
 export type RecentActivityGateRow = {
@@ -9,9 +10,7 @@ export type RecentActivityGateRow = {
 };
 
 function timeLabelFromDate(d: Date): string {
-  const hours = Math.max(1, Math.round((Date.now() - d.getTime()) / 3600000));
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  return formatDateTimeRelative(d);
 }
 
 /**

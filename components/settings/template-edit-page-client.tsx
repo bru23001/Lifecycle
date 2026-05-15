@@ -14,6 +14,7 @@ import {
   type TemplateFormDraft,
 } from "@/components/settings/template-registry-shared";
 import { templateRegistryItemId } from "@/lib/template-registry-defaults";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import type { SettingsPageData, TemplateRegistryItem, TemplateVersionEntry } from "@/types/settings.types";
 
 function phaseNameForNumber(data: SettingsPageData, phaseNumber: number): string {
@@ -42,7 +43,7 @@ function applyDraftToItem(
   const entry: TemplateVersionEntry = {
     id: `ver-${Date.now()}`,
     author: data.user.name,
-    timestampLabel: "Just now",
+    timestampLabel: formatDateTimeRelative(new Date()),
     changeSummary: changeSummary.trim() || "Template updated",
     schemaSnapshot: schemaVersion,
   };

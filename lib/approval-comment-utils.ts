@@ -1,13 +1,8 @@
 import type { ApproverComment } from "@/types/approval-center.types";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 
 export function formatApproverCommentTimestamp(d = new Date()) {
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDateTimeAbsolute(d);
 }
 
 export function buildApproverComment(opts: {

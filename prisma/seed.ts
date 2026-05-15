@@ -28,6 +28,7 @@ import {
   defaultExportSettings,
   defaultLocalStorageSettings,
 } from "../lib/server/settings-seed-builders";
+import { fixSeedDataTyposInDatabase } from "../lib/server/fix-seed-data-typos-in-db";
 
 const prisma = new PrismaClient();
 
@@ -317,6 +318,8 @@ async function main() {
       createdByUserId: user.id,
     },
   });
+
+  await fixSeedDataTyposInDatabase(prisma);
 
   const templateCount = templateRows.length;
   const mode = fullGlobal ? "full-global-reset" : "demo-plus-upserts";

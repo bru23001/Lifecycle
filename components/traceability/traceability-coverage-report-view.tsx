@@ -14,6 +14,7 @@ import {
   type CoverageReportMetricId,
 } from "@/lib/traceability-coverage-metrics";
 import { slicesFromFull, type TraceabilityExportViewModel } from "@/lib/traceability-export";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import type { TraceabilityMatrixData } from "@/types/traceability.types";
 
@@ -408,7 +409,7 @@ export function TraceabilityCoverageReportView({
                     <td className="max-w-[220px] truncate py-2 text-xs text-slate-600" title={s.recipients.join(", ")}>
                       {s.recipients.join(", ")}
                     </td>
-                    <td className="py-2 text-xs text-slate-500">{new Date(s.createdAt).toLocaleString()}</td>
+                    <td className="py-2 text-xs text-slate-500">{formatDateTimeAbsolute(new Date(s.createdAt))}</td>
                     <td className="py-2">
                       <Button
                         type="button"
@@ -472,7 +473,7 @@ function CoverageTable({
           {rows.map((row) => (
             <tr key={row.key} className={tableRowClass()}>
               {row.cells.map((cell, i) => (
-                <td key={i} className="py-2 align-middle text-slate-700">
+                <td key={i} className="py-2 align-middle text-slate-950">
                   {cell}
                 </td>
               ))}

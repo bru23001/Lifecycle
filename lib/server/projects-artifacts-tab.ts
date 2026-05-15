@@ -10,6 +10,7 @@ import type {
   ProjectsArtifactsTabTemplateOption,
   ProjectsArtifactsTabVersionRow,
 } from "@/types/projects.types";
+import { formatDateTimeAbsolute, formatDateTimeRelative } from "@/lib/datetime-format";
 
 type ArtifactRow = {
   id: string;
@@ -43,13 +44,8 @@ function mapArtifactWorkflow(dbStatus: string, dataJson: unknown): ArtifactWorkf
   return "draft";
 }
 
-function timeAgoHours(hours: number): string {
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
-}
-
 function timeLabelFromDate(d: Date): string {
-  return timeAgoHours(Math.max(1, Math.round((Date.now() - d.getTime()) / 3600000)));
+  return formatDateTimeRelative(d);
 }
 
 function artifactCode(templateId: string, localId: string, version: number): string {
@@ -174,13 +170,7 @@ export async function loadProjectsArtifactsTabData(projectId: string): Promise<P
       artifactRowId: v.id,
       version: String(v.version),
       author: "Workspace",
-      timestampLabel: v.createdAt.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      timestampLabel: formatDateTimeAbsolute(v.createdAt),
       changeSummary: `${v.templateId} · ${v.localId} · v${v.version} · ${v.status}`,
       isCurrent: v.id === a.id,
       jsonPayload: truncJson(v.dataJson, 8_000),

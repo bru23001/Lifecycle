@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 import { gateTraceStatusBadgeMap } from "@/lib/coverage-status";
+import { cn } from "@/lib/utils";
 import type { GateEvidenceCoverage } from "@/types/traceability.types";
 
-import { CardShell, CoverageProgressBar, EmptyState, StatusBadge, tableRowClass } from "./traceability-shared";
+import { CardShell, CoverageProgressBar, EmptyState, StatusBadge, tableRowClass, traceabilityCountCellClass } from "./traceability-shared";
 
 export function GateEvidenceLinksCard({
   rows,
@@ -52,8 +53,8 @@ export function GateEvidenceLinksCard({
                   <td className="py-2">
                     <StatusBadge {...gateTraceStatusBadgeMap[row.gateStatus]} />
                   </td>
-                  <td className="py-2 text-slate-700">{row.evidenceLinked}</td>
-                  <td className="py-2 text-slate-700">{row.requiredEvidence}</td>
+                  <td className={cn("py-2", traceabilityCountCellClass)}>{row.evidenceLinked}</td>
+                  <td className={cn("py-2", traceabilityCountCellClass)}>{row.requiredEvidence}</td>
                   <td className="py-2">
                     <CoverageProgressBar value={row.coveragePercent} label={`${row.gateCode} evidence coverage`} />
                   </td>

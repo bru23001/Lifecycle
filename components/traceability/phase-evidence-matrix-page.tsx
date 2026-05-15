@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { PhaseEvidenceTraceabilityListData, PhaseEvidenceTraceListRow } from "@/types/phase-evidence-traceability.types";
 
 import { PhaseEvidenceGapDrawer } from "./phase-evidence-gap-drawer";
-import { CoverageProgressBar } from "./traceability-shared";
+import { CoverageProgressBar, traceabilityCountCellClass } from "./traceability-shared";
 
 export function PhaseEvidenceMatrixPage({ data }: { data: PhaseEvidenceTraceabilityListData }) {
   const [gapRow, setGapRow] = useState<PhaseEvidenceTraceListRow | null>(null);
@@ -90,9 +90,9 @@ export function PhaseEvidenceMatrixPage({ data }: { data: PhaseEvidenceTraceabil
                         {row.phaseNumber}. {row.phaseName}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">{row.requiredEvidence}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{row.evidenceLinked}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{row.missingCount}</td>
+                    <td className={cn("px-4 py-3 text-center", traceabilityCountCellClass)}>{row.requiredEvidence}</td>
+                    <td className={cn("px-4 py-3 text-center", traceabilityCountCellClass)}>{row.evidenceLinked}</td>
+                    <td className={cn("px-4 py-3 text-center", traceabilityCountCellClass)}>{row.missingCount}</td>
                     <td className="px-4 py-3">
                       <button
                         type="button"

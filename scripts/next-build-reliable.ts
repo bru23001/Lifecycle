@@ -78,6 +78,11 @@ function printTail(output: string, maxChars = 14_000): void {
 function main(): void {
   const first = captureBuild();
   if (first.ok) {
+    execSync("npx tsx scripts/assert-no-next-dev-ui-in-prod-bundle.ts", {
+      cwd: root,
+      stdio: "inherit",
+      env: process.env,
+    });
     console.log("[next-build-reliable] OK (first attempt)");
     process.exit(0);
   }
@@ -104,6 +109,11 @@ function main(): void {
 
   const second = captureBuild();
   if (second.ok) {
+    execSync("npx tsx scripts/assert-no-next-dev-ui-in-prod-bundle.ts", {
+      cwd: root,
+      stdio: "inherit",
+      env: process.env,
+    });
     console.log("[next-build-reliable] OK (after clean + retry)");
     process.exit(0);
   }

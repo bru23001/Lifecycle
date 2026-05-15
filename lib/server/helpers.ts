@@ -1,8 +1,13 @@
 export { ALL_GATES } from "@/lib/gate-constants";
 
-export function formatDateTimeLabel(d: Date): string {
-  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
+export {
+  formatDateLabel,
+  formatDateTimeAbsolute,
+  formatDateTimeLabel,
+  formatDateTimeRelative,
+  formatTimeAgoFragment,
+  parseFlexibleTimestampLabelMs,
+} from "@/lib/datetime-format";
 
 export function projectDisplayCode(vaultFolder: string, slug: string): string {
   if (vaultFolder?.trim()) return vaultFolder.trim();

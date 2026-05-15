@@ -31,6 +31,7 @@ import { formatProjectCode } from "@/lib/format-project-code";
 import { buildSelectedProjectFromListItem } from "@/lib/server/projects-screen";
 import { loadProjectsArtifactsTabData } from "@/lib/server/projects-artifacts-tab";
 import { buildSelectedProjectProfileFromRow } from "@/lib/server/selected-project-profile";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import type { ProjectDetailTab, ProjectsScreenData, SelectedProject } from "@/types/projects.types";
 
 export const dynamic = "force-dynamic";
@@ -48,9 +49,8 @@ function parseDetailTab(rawTab: string | undefined): ProjectDetailTab {
   return tab?.id ?? "overview";
 }
 
-function timeAgoHours(hours: number): string {
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+function timeLabelFromDate(d: Date): string {
+  return formatDateTimeRelative(d);
 }
 
 type PageProps = {
@@ -151,9 +151,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
       currentPhase: phase,
       progressPercent: Math.min(100, Math.max(8, Math.round((phase / 14) * 100))),
       status,
-      updatedLabel: timeAgoHours(
-        Math.max(1, Math.round((Date.now() - project.updatedAt.getTime()) / 3600000)),
-      ),
+      updatedLabel: timeLabelFromDate(project.updatedAt),
       missingEvidenceCount,
       updatedAtMs: project.updatedAt.getTime(),
       createdAtMs: project.createdAt.getTime(),
@@ -274,7 +272,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
                 id: `decision-${index}`,
                 title: `${item.gateId} decision recorded — ${item.decision}`,
                 meta: `${item.authorityName ?? "Reviewer"} · ${item.authorityRole ?? "Authority"}`,
-                timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
+                timeLabel: timeLabelFromDate(item.createdAt),
                 href: `/projects/${selectedDbProject.id}/gates/${item.gateId.toLowerCase()}/review`,
               }))
             : selectedProject.recentActivity,
@@ -289,7 +287,7 @@ export default async function ProjectsRoutePage({ searchParams }: PageProps) {
                   : item.decision === "Conditional"
                     ? "In Review"
                     : "Changes Requested",
-              timeLabel: timeAgoHours(Math.max(1, Math.round((Date.now() - item.createdAt.getTime()) / 3600000))),
+              timeLabel: timeLabelFromDate(item.createdAt),
             }))
           : selectedProject.gateStatuses,
       blockers,

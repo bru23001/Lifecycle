@@ -1,4 +1,5 @@
 import { parseApplicability, type Applicability } from "@/lib/applicability";
+import { applySeedDataTypoFixes } from "@/lib/seed-data-typo-fixes";
 
 export type ProjectMetaInitial = {
   applicability: Applicability;
@@ -16,7 +17,7 @@ export function buildProjectMetaInitial(project: {
   return {
     applicability: parseApplicability(project.applicabilityJson),
     complexityLevel: project.complexityLevel ?? "",
-    namingConformanceNote: project.namingConformanceNote ?? "",
-    initialTestSetupNote: project.initialTestSetupNote ?? "",
+    namingConformanceNote: applySeedDataTypoFixes(project.namingConformanceNote ?? ""),
+    initialTestSetupNote: applySeedDataTypoFixes(project.initialTestSetupNote ?? ""),
   };
 }

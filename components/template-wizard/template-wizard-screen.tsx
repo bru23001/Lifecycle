@@ -19,6 +19,7 @@ import {
   targetsForEvidence,
   unlinkEvidence as unlinkEvidenceFromStore,
 } from "@/lib/wizard-evidence-store";
+import { formatDateLabel, formatDateTimeAbsolute, formatTimeAgoFragment } from "@/lib/datetime-format";
 import type {
   TemplateSelectionItem,
   TemplateWizardData,
@@ -381,11 +382,7 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
         phaseName: draft.phaseName,
         gateCode: draft.gateCode,
         uploadedBy: initial.user.name,
-        uploadedOnLabel: new Date().toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
+        uploadedOnLabel: formatDateLabel(new Date()),
         href: `/projects/${initial.project.id}/evidence/${encodeURIComponent(newId)}`,
         staged: true,
       };
@@ -425,13 +422,7 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
   );
 
   const generatedAtLabel = useMemo(() => {
-    return new Date().toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    return formatDateTimeAbsolute(new Date());
   }, []);
 
   const markdownPreview = useMemo(
@@ -547,10 +538,7 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
     if (!compareArtifactId) return "";
     const row = initial.artifactVersionHistory.find((r) => r.id === compareArtifactId);
     return row
-      ? `v${row.version} · ${row.status} · ${new Date(row.createdAt).toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })}`
+      ? `v${row.version} · ${row.status} · ${formatDateTimeAbsolute(new Date(row.createdAt))}`
       : "Saved version";
   }, [compareArtifactId, initial.artifactVersionHistory]);
 
@@ -618,7 +606,7 @@ export function TemplateWizardScreen({ initial }: { initial: TemplateWizardData 
   useEffect(() => {
     if (autosaveLabel !== "Saving…") return;
     const t = window.setTimeout(() => {
-      setAutosaveLabel("Autosaved just now");
+      setAutosaveLabel(`Autosaved ${formatTimeAgoFragment(new Date())}`);
     }, 650);
     return () => window.clearTimeout(t);
   }, [autosaveLabel]);

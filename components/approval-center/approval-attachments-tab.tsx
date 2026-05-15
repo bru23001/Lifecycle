@@ -7,16 +7,11 @@ import { ApprovalAttachmentPreviewDrawer } from "@/components/approval-center/ap
 import { UploadApprovalAttachmentModal } from "@/components/approval-center/upload-approval-attachment-modal";
 import { Button } from "@/components/ui/button";
 import { downloadJson } from "@/lib/download-json";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import type { ApprovalAttachment, ApprovalHistoryEvent, ApprovalPackage } from "@/types/approval-center.types";
 
 function nowLabel() {
-  return new Date().toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDateTimeAbsolute(new Date());
 }
 
 export function ApprovalAttachmentsTab({

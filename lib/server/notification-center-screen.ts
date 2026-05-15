@@ -2,13 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { displayFromCurrentUser, getCurrentUser } from "@/lib/server/current-user";
 import { OPEN_APPROVAL_STATUSES } from "@/lib/server/approval-writes";
 import { resolveRecentDecisionHref } from "@/lib/recent-decision-href";
+import { applySeedDataTypoFixes } from "@/lib/seed-data-typo-fixes";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import type { NotificationCenterData, NotificationCenterItem } from "@/types/notification-center.types";
-
-function timeAgoLabel(d: Date): string {
-  const hours = Math.max(1, Math.round((Date.now() - d.getTime()) / 3600000));
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
-}
 
 export async function loadNotificationCenterData(): Promise<NotificationCenterData> {
   const userDisplay = displayFromCurrentUser(await getCurrentUser());
@@ -44,7 +40,7 @@ export async function loadNotificationCenterData(): Promise<NotificationCenterDa
     openApprovalsCount = openApprovals.length;
 
     for (const row of openApprovals) {
-      const projectName = row.project?.name ?? "Project";
+      const projectName = applySeedDataTypoFixes(row.project?.name ?? "Project");
       const title =
         row.approvalType === "gate_review" && row.gateId
           ? `${row.gateId} gate review awaiting decision`
@@ -56,7 +52,7 @@ export async function loadNotificationCenterData(): Promise<NotificationCenterDa
         kind: "approval_pending",
         title,
         subtitle: projectName,
-        timeLabel: timeAgoLabel(row.updatedAt),
+        timeLabel: formatDateTimeRelative(row.updatedAt),
         href: `/approvals/${row.id}`,
       });
     }
@@ -65,21 +61,21 @@ export async function loadNotificationCenterData(): Promise<NotificationCenterDa
       items.push({
         id: `gate-decision-${row.id}`,
         kind: "gate_event",
-        title: `${row.gateId} recorded — ${row.decision}`,
-        subtitle: row.project.name,
-        timeLabel: timeAgoLabel(row.createdAt),
+        title: `${row.gateId} recorded — ${applySeedDataTypoFixes(row.decision)}`,
+        subtitle: applySeedDataTypoFixes(row.project.name),
+        timeLabel: formatDateTimeRelative(row.createdAt),
         href: `/projects/${row.projectId}/gates/${row.gateId.toLowerCase()}/review`,
       });
     }
 
     for (const row of recentAudit) {
-      const projectName = row.project?.name ?? "Project";
+      const projectName = applySeedDataTypoFixes(row.project?.name ?? "Project");
       items.push({
         id: `audit-${row.id}`,
         kind: "audit_event",
-        title: row.action.replace(/_/g, " "),
+        title: applySeedDataTypoFixes(row.action.replace(/_/g, " ")),
         subtitle: projectName,
-        timeLabel: timeAgoLabel(row.createdAt),
+        timeLabel: formatDateTimeRelative(row.createdAt),
         href: resolveRecentDecisionHref({
           targetType: "audit_detail",
           projectId: row.projectId,

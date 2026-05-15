@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import type { ArtifactPackageOptions } from "@/lib/template-wizard-export-package";
 import type { ValidationIssue, ValidationSummary } from "@/types/template-wizard.types";
 
@@ -112,7 +113,7 @@ export function AutosaveFailureModal({
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
           Last successful save:{" "}
-          {lastSavedAt ? lastSavedAt.toLocaleString() : "— (none this session)"}
+          {lastSavedAt ? formatDateTimeAbsolute(lastSavedAt) : "— (none this session)"}
         </p>
       </DialogFrame>
     </dialog>

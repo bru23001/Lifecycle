@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, LockKeyhole, XCircle } from "lucide-react";
+import { Check, LockKeyhole, Package, XCircle } from "lucide-react";
 
 import type { NextPhaseUnlockState } from "@/types/gate-review.types";
 import { cn } from "@/lib/utils";
@@ -83,11 +83,11 @@ export function NextPhaseUnlock({
           </ul>
         </div>
 
-        {state.carriedForwardArtifactLinks?.length || state.carriedForwardArtifacts.length > 0 ? (
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
-              Carried forward
-            </p>
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
+            Carried forward
+          </p>
+          {state.carriedForwardArtifactLinks?.length || state.carriedForwardArtifacts.length > 0 ? (
             <ul className="mt-2 space-y-1 text-sm">
               {state.carriedForwardArtifactLinks?.length
                 ? state.carriedForwardArtifactLinks.map((a) => (
@@ -106,8 +106,18 @@ export function NextPhaseUnlock({
                     </li>
                   ))}
             </ul>
-          </div>
-        ) : null}
+          ) : (
+            <div className="mt-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-3 py-4 text-center dark:border-border dark:bg-muted/30">
+              <div className="mx-auto flex size-9 items-center justify-center rounded-md bg-white text-slate-400 shadow-sm dark:bg-card dark:text-slate-500">
+                <Package className="size-4" aria-hidden />
+              </div>
+              <p className="mt-2 text-xs font-medium text-slate-800 dark:text-foreground/90">No artifacts listed for carryover</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-500 dark:text-muted-foreground">
+                The gate package has no prior-phase artifacts to surface. This is normal for early phases.
+              </p>
+            </div>
+          )}
+        </div>
 
         <Link
           href={state.nextPhaseHref}

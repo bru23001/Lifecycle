@@ -12,6 +12,7 @@ import {
   FolderKanban,
   FileText,
   GitBranch,
+  History,
   Network,
   Plus,
   SearchCheck,
@@ -287,27 +288,18 @@ export function ProjectListPanel({
 
 export function ProjectDetailHeader({ selectedProject }: { selectedProject: SelectedProject }) {
   return (
-    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">{selectedProject.header.name}</h1>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusBadgeClass(selectedProject.header.status)}`}>
-            {selectedProject.header.status}
-          </span>
-        </div>
-        <p className="cc-card-meta mt-1">
-          {selectedProject.header.code} · Phase {selectedProject.header.currentPhase} of {selectedProject.header.totalPhases}
-          {" · "}
-          Owner: {selectedProject.header.owner}
-        </p>
+    <div className="mb-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-950">{selectedProject.header.name}</h1>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusBadgeClass(selectedProject.header.status)}`}>
+          {selectedProject.header.status}
+        </span>
       </div>
-      <Link
-        href="/projects/new"
-        className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2563eb] px-4 text-[12px] font-semibold text-white"
-      >
-        <Plus className="size-4" />
-        New Project
-      </Link>
+      <p className="cc-card-meta mt-1">
+        {selectedProject.header.code} · Phase {selectedProject.header.currentPhase} of {selectedProject.header.totalPhases}
+        {" · "}
+        Owner: {selectedProject.header.owner}
+      </p>
     </div>
   );
 }
@@ -324,28 +316,36 @@ export function ProjectTabs({
   listFilters: ParsedProjectsListQuery;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap gap-5 border-b border-slate-200">
-      {PROJECT_DETAIL_TABS.map((tab) => {
-        const active = tab.id === selectedTab;
-        return (
-          <Link
-            key={tab.id}
-            href={projectsListHref({
-              selectedProjectId,
-              selectedTab: tab.id,
-              currentPage,
-              listFilters,
-            })}
-            className={`relative pb-3 text-[12px] font-semibold ${
-              active ? "text-[#1d4ed8]" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {tab.label}
-            {active ? <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#2563eb]" /> : null}
-          </Link>
-        );
-      })}
-    </div>
+    <nav
+      className="mb-4 min-w-0 border-b border-slate-200"
+      aria-label="Project detail sections"
+    >
+      <div className="-mx-1 flex max-w-full flex-nowrap gap-5 overflow-x-auto overscroll-x-contain px-1 pb-px [scrollbar-width:thin]">
+        {PROJECT_DETAIL_TABS.map((tab) => {
+          const active = tab.id === selectedTab;
+          return (
+            <Link
+              key={tab.id}
+              href={projectsListHref({
+                selectedProjectId,
+                selectedTab: tab.id,
+                currentPage,
+                listFilters,
+              })}
+              className={cn(
+                "relative shrink-0 whitespace-nowrap pb-3 text-[12px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
+                active ? "text-[#1d4ed8]" : "text-slate-500 hover:text-slate-700",
+              )}
+            >
+              {tab.label}
+              {active ? (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#2563eb]" />
+              ) : null}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -428,10 +428,8 @@ function ProjectOverviewTab({
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <section className="cc-card-standard shrink-0 p-6">
-        <div className="mb-6 flex items-center justify-between gap-2">
-          <h3 className="cc-card-title">
-            Lifecycle Progress
-          </h3>
+        <div className="relative z-20 mb-6 flex flex-col gap-3 bg-[var(--surface)] sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+          <h3 className="cc-card-title min-w-0">Lifecycle Progress</h3>
           <Link
             href={projectsListHref({
               selectedProjectId: selectedProject.header.id,
@@ -439,13 +437,15 @@ function ProjectOverviewTab({
               currentPage,
               listFilters,
             })}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+            className="relative z-20 inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
           >
             View Full Timeline
           </Link>
         </div>
         {lifecycleStrip ? (
-          <ProjectLifecyclePhaseStrip {...lifecycleStrip} showToolbar={false} />
+          <div className="relative z-0 isolate min-w-0">
+            <ProjectLifecyclePhaseStrip {...lifecycleStrip} showToolbar={false} />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">Select a project with workspace data to use the lifecycle strip.</p>
         )}
@@ -509,7 +509,38 @@ function ProjectOverviewTab({
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {recentActivity.map((item) => {
+            {recentActivity.length === 0 ? (
+              <div className="mx-6 my-8 flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-10 text-center dark:border-border dark:bg-muted/20">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm dark:bg-card dark:text-slate-400">
+                  <History className="size-6" aria-hidden />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-slate-900 dark:text-slate-100">No activity yet</p>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                  Phase changes, evidence uploads, and gate events show up here once the team starts working in the
+                  workspace.
+                </p>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href={`/projects/${selectedProject.header.id}/workspace?phase=${selectedProject.header.currentPhase}`}
+                    className="text-sm font-semibold text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+                  >
+                    Open workspace
+                  </Link>
+                  <Link
+                    href={projectsListHref({
+                      selectedProjectId: selectedProject.header.id,
+                      selectedTab: "audit-trail",
+                      currentPage,
+                      listFilters,
+                    })}
+                    className="text-sm font-semibold text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+                  >
+                    View audit trail
+                  </Link>
+                </div>
+              </div>
+            ) : (
+            recentActivity.map((item) => {
               const rowClass = cn(
                 "grid grid-cols-[44px_1fr_auto] gap-5 border-t border-slate-100 px-7 py-5",
                 item.href &&
@@ -540,7 +571,8 @@ function ProjectOverviewTab({
                   {inner}
                 </div>
               );
-            })}
+            })
+            )}
           </div>
         </article>
 
@@ -908,7 +940,7 @@ export function ProjectsContent({
           artifactsTab={data.artifactsTab}
           initialOpenAuditEventId={initialOpenAuditEventId}
         />
-        <div className="h-full min-h-0">
+        <div className="context-panel h-full min-h-0 min-w-0 max-[1280px]:border-t max-[1280px]:border-border max-[1280px]:pt-4">
           <ProjectContextPanel
             selectedProject={data.selectedProject}
             selectedTab={selectedTab}

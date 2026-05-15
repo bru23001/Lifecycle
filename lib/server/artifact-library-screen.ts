@@ -23,6 +23,7 @@ import type {
   LinkedPhase,
   MarkdownArtifactView,
 } from "@/types/artifact-library.types";
+import { formatDateLabel, formatDateTimeRelative } from "@/lib/datetime-format";
 
 function formatProjectCode(slug: string, vaultFolder: string): string {
   const tail = vaultFolder.split("-")[1] ?? slug.slice(0, 3);
@@ -30,13 +31,8 @@ function formatProjectCode(slug: string, vaultFolder: string): string {
   return `${prefix}-${tail.padStart(3, "0").slice(-3)}`;
 }
 
-function timeAgoHours(hours: number): string {
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
-}
-
 function timeLabelFromDate(d: Date): string {
-  return timeAgoHours(Math.max(1, Math.round((Date.now() - d.getTime()) / 3600000)));
+  return formatDateTimeRelative(d);
 }
 
 function isArtifactBodyApprovedJson(data: unknown): boolean {
@@ -253,7 +249,7 @@ function buildVersionHistory(rows: ArtifactRow[], currentId: string, projectId: 
         version: String(r.version),
         status: st,
         createdBy: "Workspace",
-        createdOnLabel: r.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        createdOnLabel: formatDateLabel(r.createdAt),
         changeSummary: `${r.templateId} v${r.version}`,
         markdownSnapshotHref: `/projects/${projectId}/artifacts/${r.id}`,
         jsonSnapshotHref: `/projects/${projectId}/artifacts/${r.id}`,
@@ -305,7 +301,7 @@ function buildSelected(
     version: String(artifact.version),
     artifactVersionLabel: `Version ${artifact.version}`,
     lastUpdatedLabel: timeLabelFromDate(artifact.updatedAt),
-    createdOnLabel: artifact.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    createdOnLabel: formatDateLabel(artifact.createdAt),
   };
 
   const linkedPhase: LinkedPhase = {

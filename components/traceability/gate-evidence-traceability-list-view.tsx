@@ -11,7 +11,7 @@ import { projectOverviewHref } from "@/lib/projects-url";
 import { cn } from "@/lib/utils";
 import type { GateEvidenceTraceabilityListData } from "@/types/gate-evidence-traceability.types";
 
-import { CoverageProgressBar, StatusBadge, tableRowClass } from "./traceability-shared";
+import { CoverageProgressBar, StatusBadge, tableRowClass, traceabilityCountCellClass } from "./traceability-shared";
 
 export function GateEvidenceTraceabilityListView({ data }: { data: GateEvidenceTraceabilityListData }) {
   const phaseScope = data.project.currentPhase;
@@ -81,9 +81,9 @@ export function GateEvidenceTraceabilityListView({ data }: { data: GateEvidenceT
                     <td className="px-4 py-3">
                       <StatusBadge {...gateTraceStatusBadgeMap[row.gateStatus]} />
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{row.evidenceLinked}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.requiredEvidence}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.missingCount}</td>
+                    <td className={cn("px-4 py-3", traceabilityCountCellClass)}>{row.evidenceLinked}</td>
+                    <td className={cn("px-4 py-3", traceabilityCountCellClass)}>{row.requiredEvidence}</td>
+                    <td className={cn("px-4 py-3", traceabilityCountCellClass)}>{row.missingCount}</td>
                     <td className="px-4 py-3">
                       <CoverageProgressBar value={row.coveragePercent} label={`${row.gateCode} completeness`} />
                     </td>

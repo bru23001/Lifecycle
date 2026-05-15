@@ -56,6 +56,7 @@ import type {
   PendingApproval,
 } from "@/types/approval-center.types";
 import type { QueueFilters } from "@/components/approval-center/approval-center-ui.types";
+import { formatDateTimeAbsolute, parseFlexibleTimestampLabelMs } from "@/lib/datetime-format";
 
 function bulkQueueHistoryEvent(input: {
   approvalId: string;
@@ -71,13 +72,7 @@ function bulkQueueHistoryEvent(input: {
     title: input.title,
     actorName: input.actorName,
     actorRole: input.actorRole,
-    timestampLabel: new Date().toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }),
+    timestampLabel: formatDateTimeAbsolute(new Date()),
     description: input.description,
     statusTone: "blue",
   };
@@ -111,8 +106,7 @@ function parseYmdEndMs(ymd: string): number | null {
 }
 
 function parseHistoryTimestampLabelMs(label: string): number {
-  const ms = Date.parse(label);
-  return Number.isNaN(ms) ? 0 : ms;
+  return parseFlexibleTimestampLabelMs(label, Date.now());
 }
 
 function byStatusRank(status: PendingApproval["status"]) {

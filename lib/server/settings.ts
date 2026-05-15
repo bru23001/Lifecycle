@@ -28,6 +28,7 @@ import {
   templateRegistryItemId,
 } from "@/lib/template-registry-defaults";
 import { prisma } from "@/lib/prisma";
+import { applySeedDataTypoFixes } from "@/lib/seed-data-typo-fixes";
 import { formatDateTimeLabel } from "@/lib/server/helpers";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import {
@@ -307,8 +308,8 @@ function parseRecentActivity(json: unknown): SettingsActivity[] {
     out.push({
       id: r.id,
       eventType: r.eventType as SettingsActivity["eventType"],
-      title: typeof r.title === "string" ? r.title : "Activity",
-      actorName: typeof r.actorName === "string" ? r.actorName : "—",
+      title: typeof r.title === "string" ? applySeedDataTypoFixes(r.title) : "Activity",
+      actorName: typeof r.actorName === "string" ? applySeedDataTypoFixes(r.actorName) : "—",
       timestampLabel: typeof r.timestampLabel === "string" ? r.timestampLabel : "—",
       href: typeof r.href === "string" ? r.href : undefined,
     });

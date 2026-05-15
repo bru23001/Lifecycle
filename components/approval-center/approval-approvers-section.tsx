@@ -8,6 +8,7 @@ import { ApproverReviewDetailDrawer } from "@/components/approval-center/approve
 import { Button } from "@/components/ui/button";
 import { withApproverCountSynced } from "@/lib/approval-decision";
 import { searchApproverDirectory, type ApproverDirectoryEntry } from "@/lib/approval-approver-directory";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import type { ApprovalApprover, ApprovalHistoryEvent, ApprovalPackage } from "@/types/approval-center.types";
 
@@ -41,13 +42,7 @@ function useModalOpen(open: boolean, onReset?: () => void) {
 }
 
 function nowLabel() {
-  return new Date().toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDateTimeAbsolute(new Date());
 }
 
 function initialsFromName(name: string) {

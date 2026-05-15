@@ -5,15 +5,10 @@ import type {
   ApprovalPackage,
   ApproverComment,
 } from "@/types/approval-center.types";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 
 function formatNowLabel() {
-  return new Date().toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDateTimeAbsolute(new Date());
 }
 
 /** Keeps `detail.approversCount` aligned with `approvers.length` after client-side roster edits. */
@@ -39,7 +34,7 @@ export function evaluateDecisionState(
   );
 
   if (!draft.decision) {
-    blockers.push("Select a decision before submitting.");
+    blockers.push("Pick a decision to enable submit.");
   }
 
   if (draft.decision === "approve" && incompleteInputs.length > 0) {
@@ -207,7 +202,7 @@ export function buildDecisionBlockerItems(draft: ApprovalDecisionDraft, approval
   );
 
   if (!draft.decision) {
-    items.push({ id: "no_decision", message: "Select a decision before submitting." });
+    items.push({ id: "no_decision", message: "Pick a decision to enable submit." });
   }
 
   if (draft.decision === "approve" && incompleteInputs.length > 0) {

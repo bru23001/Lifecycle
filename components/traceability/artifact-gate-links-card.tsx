@@ -55,10 +55,10 @@ export function ArtifactGateLinksCard({
                       {row.artifactTitle}
                     </Link>
                   </td>
-                  <td className="py-2 text-slate-700">
+                  <td className="py-2 font-medium text-slate-900">
                     <Link
                       href={row.reviewHref}
-                      className="hover:text-[#2563eb] hover:underline focus-visible:outline-2 focus-visible:outline-blue-600"
+                      className="text-slate-900 hover:text-[#2563eb] hover:underline focus-visible:outline-2 focus-visible:outline-blue-600"
                     >
                       {row.gateCode} — {row.gateName}
                     </Link>

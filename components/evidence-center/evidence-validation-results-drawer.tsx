@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import { issuesForCategory } from "@/lib/evidence-validation";
 import type { EvidenceValidationResult, ValidationIssue, ValidationIssueCategory } from "@/types/evidence-validation.types";
@@ -76,7 +77,7 @@ export function EvidenceValidationResultsDrawer({
               Validation results
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              Snapshot {new Date(result.generatedAtIso).toLocaleString()} · {summary.evidenceRowsScanned} evidence row
+              Snapshot {formatDateTimeAbsolute(new Date(result.generatedAtIso))} · {summary.evidenceRowsScanned} evidence row
               {summary.evidenceRowsScanned === 1 ? "" : "s"} scanned
             </p>
           </div>

@@ -6,6 +6,7 @@ import JSZip from "jszip";
 import { Copy, Download, FileJson, FileText, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 
 export type ArtifactHistoryRow = {
   id: string;
@@ -149,11 +150,11 @@ export function ArtifactDetailView({
           </div>
           <div>
             <dt className="text-muted-foreground">Created</dt>
-            <dd>{new Date(artifact.createdAt).toLocaleString()}</dd>
+            <dd>{formatDateTimeAbsolute(new Date(artifact.createdAt))}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Updated</dt>
-            <dd>{new Date(artifact.updatedAt).toLocaleString()}</dd>
+            <dd>{formatDateTimeAbsolute(new Date(artifact.updatedAt))}</dd>
           </div>
         </dl>
       </header>
@@ -214,7 +215,7 @@ export function ArtifactDetailView({
                     <span>{row.status}</span>
                     <span className="mx-2 text-muted-foreground">·</span>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(row.createdAt).toLocaleString()}
+                      {formatDateTimeAbsolute(new Date(row.createdAt))}
                     </span>
                   </div>
                   {row.id === artifact.id ? (

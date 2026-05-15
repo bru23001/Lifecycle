@@ -37,7 +37,7 @@ export const EXAMPLE_REQUIRED_TEMPLATES: RequiredTemplate[] = [
     description: "Identify and analyze potential solution options against key criteria.",
     status: "completed",
     progressPercent: 100,
-    lastUpdatedLabel: "May 12, 2024 · 2h ago",
+    lastUpdatedLabel: "2h ago",
     href: "/projects/sip-001/artifacts/a-3-1",
   },
   {
@@ -47,7 +47,7 @@ export const EXAMPLE_REQUIRED_TEMPLATES: RequiredTemplate[] = [
     description: "Score and compare options using weighted evaluation criteria.",
     status: "in_progress",
     progressPercent: 60,
-    lastUpdatedLabel: "May 12, 2024 · 1h ago",
+    lastUpdatedLabel: "1h ago",
     href: "/projects/sip-001/artifacts/a-3-2",
   },
   {

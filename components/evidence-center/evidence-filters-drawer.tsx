@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function EvidenceFiltersDrawer({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState<EvidenceFilters>(appliedFilters);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = dialogRef.current;
     if (!node) return;
     if (open) {
@@ -90,6 +90,7 @@ export function EvidenceFiltersDrawer({
 
   return (
     <dialog
+      id="evidence-filters-drawer"
       ref={dialogRef}
       onClose={onClose}
       className={cn(

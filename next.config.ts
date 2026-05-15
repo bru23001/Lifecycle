@@ -7,6 +7,8 @@ const extraAllowedDevOrigins =
     .filter(Boolean) ?? [];
 
 const nextConfig: NextConfig = {
+  /** Hides the Next.js dev toolbar badge / build-activity floater in `next dev` (cleaner local UI). */
+  devIndicators: false,
   async redirects() {
     return [
       {

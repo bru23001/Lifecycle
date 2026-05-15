@@ -21,6 +21,7 @@ import { WizardActionBar } from "@/components/template-wizard/wizard-action-bar"
 import { WizardCollaborationSection } from "@/components/template-wizard/template-wizard-collaboration";
 import { WizardGrid } from "@/components/template-wizard/wizard-grid";
 import { WizardHeader } from "@/components/template-wizard/wizard-header";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { estimateSectionProgress } from "@/lib/template-wizard-computed";
 import { cn } from "@/lib/utils";
 import type {
@@ -570,10 +571,7 @@ export function TemplateWizardContent({
           <ul className="space-y-2">
             {artifactVersionHistory.map((row) => {
               const isCurrent = row.id === currentArtifactId;
-              const created = new Date(row.createdAt).toLocaleString(undefined, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              });
+              const created = formatDateTimeAbsolute(new Date(row.createdAt));
               return (
                 <li
                   key={row.id}

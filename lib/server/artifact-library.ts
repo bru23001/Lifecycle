@@ -27,6 +27,7 @@ import type {
 } from "@/types/artifact-library.types";
 import {
   formatDateTimeLabel,
+  formatTimeAgoFragment,
   isArtifactBodyApproved,
   projectDisplayCode,
 } from "@/lib/server/helpers";
@@ -86,15 +87,7 @@ function resolveTemplate(templateId: string): AnyLifecycleTemplate | null {
 }
 
 function relativeTimeLabel(d: Date): string {
-  const now = Date.now();
-  const diffMs = Math.max(0, now - d.getTime());
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "Updated just now";
-  if (mins < 60) return `Updated ${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 48) return `Updated ${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `Updated ${days}d ago`;
+  return `Updated ${formatTimeAgoFragment(d)}`;
 }
 
 function mapApprovalToWorkflow(

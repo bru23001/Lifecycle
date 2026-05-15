@@ -221,6 +221,8 @@ export type TopHeaderProps = {
   onActionButtonClick?: () => void;
   /** @deprecated use `actionButton*` props. */
   onDownloadReviewPackage?: () => void;
+  /** Optional content between autosave (if any) and global actions (e.g. primary page CTA). */
+  toolbarExtras?: ReactNode;
 };
 
 export function TopHeader({
@@ -236,6 +238,7 @@ export function TopHeader({
   actionButtonAriaLabel,
   onActionButtonClick,
   onDownloadReviewPackage,
+  toolbarExtras,
 }: TopHeaderProps) {
   const resolvedActionHandler = onActionButtonClick ?? onDownloadReviewPackage;
   const resolvedActionLabel = actionButtonLabel ?? (onDownloadReviewPackage ? "Download Review Package" : undefined);
@@ -247,12 +250,13 @@ export function TopHeader({
         <SidebarToggle className="shrink-0" />
         <PageTitle className="ml-[var(--header-title-margin-after-toggle)]">{title}</PageTitle>
       </div>
-      <div className="flex min-w-0 shrink-0 items-start gap-4">
+      <div className="flex min-w-0 shrink-0 items-center gap-4">
         {autosaveLabel ? (
           <p className="hidden text-sm text-muted-foreground lg:block" role="status" aria-live="polite">
             {autosaveLabel}
           </p>
         ) : null}
+        {toolbarExtras}
         <GlobalActions
           userInitials={userInitials}
           userName={userName}

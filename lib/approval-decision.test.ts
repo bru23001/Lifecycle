@@ -161,7 +161,7 @@ describe("evaluateDecisionState", () => {
     });
     const state = evaluateDecisionState(pkg.decisionDraft, pkg);
     expect(state.canSubmitDecision).toBe(false);
-    expect(state.submitBlockers.some((b) => b.includes("Select a decision"))).toBe(true);
+    expect(state.submitBlockers.some((b) => b.includes("Pick a decision to enable submit"))).toBe(true);
   });
 });
 

@@ -54,7 +54,7 @@ export function ProjectLifecyclePhaseStrip({
       ) : null}
 
       <div className="lifecycle-scroll overflow-x-auto pb-2">
-        <div className="relative min-w-[1900px] px-4">
+        <div className="relative z-0 min-w-[1900px] px-4">
           <div className="absolute left-4 right-4 top-6 h-[3px] bg-slate-200 dark:bg-border" />
           <div
             className="absolute left-4 top-6 h-[3px] bg-emerald-500"
@@ -78,7 +78,7 @@ export function ProjectLifecyclePhaseStrip({
                       data-testid={`lifecycle-phase-node-${n}`}
                       aria-label={`Open workspace for phase ${n}`}
                       className={[
-                        "z-10 flex h-12 w-12 items-center justify-center rounded-full text-base font-bold no-underline outline-none transition focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
+                        "z-[1] flex h-12 w-12 items-center justify-center rounded-full text-base font-bold no-underline outline-none transition focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
                         isComplete && "bg-emerald-500 text-white hover:bg-emerald-600",
                         isCurrent && "bg-blue-600 text-white hover:bg-blue-700",
                         !isComplete && !isCurrent && "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-border dark:bg-muted dark:text-muted-foreground",

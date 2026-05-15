@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 
 type AuditEntryPayload = {
   id: string;
@@ -115,7 +116,7 @@ export function EvidenceAuditDetailDrawer({
               </div>
               <div className="grid gap-1 border-b border-slate-100 py-2">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Timestamp</dt>
-                <dd className="text-slate-900">{new Date(entry.createdAtIso).toLocaleString()}</dd>
+                <dd className="text-slate-900">{formatDateTimeAbsolute(new Date(entry.createdAtIso))}</dd>
               </div>
               <div className="grid gap-1 border-b border-slate-100 py-2">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Subject</dt>

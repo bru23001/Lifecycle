@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, Package } from "lucide-react";
 
 import type { NextPhaseUnlockState } from "@/types/gate-review.types";
 import { Button } from "@/components/ui/button";
@@ -184,7 +184,16 @@ export function NextPhaseUnlockRequirementsDrawer({
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground">None listed for this gate package.</p>
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-center dark:border-border dark:bg-muted/30">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm dark:bg-card dark:text-slate-500">
+                <Package className="size-5" aria-hidden />
+              </div>
+              <p className="mt-3 text-sm font-medium text-foreground">Nothing carried forward yet</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Prior-phase artifacts appear here when the gate package lists them. Add or complete artifacts in the
+                workspace if your process expects carryover.
+              </p>
+            </div>
           )}
         </Field>
 

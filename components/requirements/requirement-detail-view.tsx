@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { buttonVariants } from "@/components/ui/button";
 import { coverageStatusBadgeMap } from "@/lib/coverage-status";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { projectOverviewHref } from "@/lib/projects-url";
 import { cn } from "@/lib/utils";
 import type { RequirementDetailScreenData } from "@/lib/server/requirement-detail-screen";
@@ -99,7 +100,7 @@ export function RequirementDetailView({ data }: { data: RequirementDetailScreenD
               </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Updated</dt>
-                <dd className="mt-0.5 text-slate-700">{new Date(r.updatedAt).toLocaleString()}</dd>
+                <dd className="mt-0.5 text-slate-700">{formatDateTimeAbsolute(new Date(r.updatedAt))}</dd>
               </div>
             </dl>
           </section>

@@ -7,6 +7,7 @@ import { ensureTemplateRegistryList } from "@/lib/template-registry-defaults";
 import { ensureExportSettingsShape, ensureLocalStorageSettingsShape } from "@/lib/server/settings-seed-builders";
 import { recordAudit } from "@/lib/server/audit";
 import { loadSettingsPageData, saveSettingsPageData } from "@/lib/server/settings";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import { computeActionState } from "@/lib/settings-validation";
 import type {
   ExportSettings,
@@ -81,7 +82,7 @@ export async function PUT(request: Request) {
     eventType: eventTypeForSection(incoming.activeSection),
     title: `Settings saved (${incoming.activeSection.replaceAll("_", " ")})`,
     actorName: incoming.user.name,
-    timestampLabel: "Just now",
+    timestampLabel: formatDateTimeRelative(new Date()),
     href: incoming.navigationItems.find((item) => item.section === incoming.activeSection)?.href,
   };
   const nextData: SettingsPageData = {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import type {
   ApprovalAttachment,
   ApprovalAttachmentClassification,
@@ -39,13 +40,7 @@ function formatSize(bytes: number) {
 }
 
 function nowLabel() {
-  return new Date().toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDateTimeAbsolute(new Date());
 }
 
 const dialogFrame =

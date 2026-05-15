@@ -13,7 +13,7 @@ import type { GateEvidenceTraceabilityListData, GateEvidenceTraceListRow } from 
 import type { GateTraceStatus } from "@/types/traceability.types";
 
 import { GateEvidenceGapDrawer } from "./gate-evidence-gap-drawer";
-import { CoverageProgressBar, StatusBadge } from "./traceability-shared";
+import { CoverageProgressBar, StatusBadge, traceabilityCountCellClass } from "./traceability-shared";
 
 function gateReadinessLabel(s: GateTraceStatus): string {
   switch (s) {
@@ -118,9 +118,9 @@ export function GateEvidenceMatrixPage({ data }: { data: GateEvidenceTraceabilit
                         {row.gateCode} · {row.gateName}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums">{row.requiredEvidence}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{row.evidenceLinked}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{row.missingCount}</td>
+                    <td className={cn("px-4 py-3 text-center", traceabilityCountCellClass)}>{row.requiredEvidence}</td>
+                    <td className={cn("px-4 py-3 text-center", traceabilityCountCellClass)}>{row.evidenceLinked}</td>
+                    <td className={cn("px-4 py-3 text-center", traceabilityCountCellClass)}>{row.missingCount}</td>
                     <td className="px-4 py-3">
                       <button
                         type="button"

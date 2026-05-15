@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/wizardCollaboration";
 import { Button } from "@/components/ui/button";
 import { useWizardDialog } from "@/components/template-wizard/template-wizard-flow-modals";
+import { formatDateLabel, formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import type {
   WizardCollaborationCommentDto,
@@ -308,7 +309,7 @@ function CommentsDrawer({
               {reviewRequests.slice(0, 5).map((r) => (
                 <li key={r.id} className="rounded-lg border bg-muted/20 px-2 py-1.5">
                   <span className="font-medium">{r.assigneeName}</span> · {r.reviewScope}
-                  {r.dueAt ? ` · due ${new Date(r.dueAt).toLocaleDateString()}` : null}
+                  {r.dueAt ? ` · due ${formatDateLabel(new Date(r.dueAt))}` : null}
                 </li>
               ))}
             </ul>
@@ -334,7 +335,7 @@ function CommentsDrawer({
                       {c.authorInitials} · {c.authorName}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
-                      {new Date(c.createdAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
+                      {formatDateTimeAbsolute(new Date(c.createdAt))}
                     </span>
                   </div>
                   {c.sectionId || c.fieldName ? (

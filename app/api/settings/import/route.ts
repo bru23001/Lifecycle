@@ -6,6 +6,7 @@ import { ensureRolesList } from "@/lib/role-settings-defaults";
 import { ensureTemplateRegistryList } from "@/lib/template-registry-defaults";
 import { ensureExportSettingsShape, ensureLocalStorageSettingsShape } from "@/lib/server/settings-seed-builders";
 import { loadSettingsPageData, saveSettingsPageData } from "@/lib/server/settings";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import { validateSettingsPageData } from "@/lib/settings-validation";
 import type {
   ExportSettings,
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     eventType: "lifecycle_updated",
     title: "Lifecycle configuration imported",
     actorName: current.user.name,
-    timestampLabel: "Just now",
+    timestampLabel: formatDateTimeRelative(new Date()),
   };
   const merged: SettingsPageData = {
     ...current,

@@ -13,6 +13,7 @@ import {
   ensureTemplateRegistryItem,
   templateRegistryItemId,
 } from "@/lib/template-registry-defaults";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import type { TemplateRegistryItem, TemplateVersionEntry } from "@/types/settings.types";
 
@@ -171,7 +172,7 @@ export function TemplateRegistryPanel({
         {
           id: `ver-${Date.now()}`,
           author: "You",
-          timestampLabel: "Just now",
+          timestampLabel: formatDateTimeRelative(new Date()),
           changeSummary: `Cloned from ${cloneSource.templateCode}`,
           schemaSnapshot: cloneSource.schemaVersion,
         },
@@ -213,7 +214,7 @@ export function TemplateRegistryPanel({
           {
             id: `ver-${Date.now()}`,
             author: "You",
-            timestampLabel: "Just now",
+            timestampLabel: formatDateTimeRelative(new Date()),
             changeSummary: `Archived${archiveReason.trim() ? `: ${archiveReason.trim()}` : ""}`,
             schemaSnapshot: current.schemaVersion,
           },
@@ -290,7 +291,7 @@ export function TemplateRegistryPanel({
           {
             id: `ver-${Date.now()}`,
             author: "You",
-            timestampLabel: "Just now",
+            timestampLabel: formatDateTimeRelative(new Date()),
             changeSummary: "Imported version merge",
             schemaSnapshot: incoming.schemaVersion,
           },

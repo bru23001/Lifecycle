@@ -3,10 +3,12 @@ import type { ValidationWarning } from "@/components/lifecycle-workspace/validat
 import { parseApplicability } from "@/lib/applicability";
 import { domainPhaseForWorkspaceIndex } from "@/lib/workspacePhases";
 import { projectTemplateWizardHref } from "@/lib/projects-url";
+import { formatDateTimeRelative } from "@/lib/datetime-format";
 import { getTemplatesForPhase } from "@/templates/registry";
 
+/** Relative recency in workspace lists (aligned with notifications / project activity). */
 export function formatWorkspaceDate(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return formatDateTimeRelative(d);
 }
 
 function latestArtifactByTemplate(

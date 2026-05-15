@@ -8,8 +8,9 @@ import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { coverageStatusBadgeMap } from "@/lib/coverage-status";
 import { projectOverviewHref } from "@/lib/projects-url";
 import type { PhaseArtifactTraceabilityListData } from "@/types/phase-artifact-traceability.types";
+import { cn } from "@/lib/utils";
 
-import { CoverageProgressBar, StatusBadge, tableRowClass } from "./traceability-shared";
+import { CoverageProgressBar, StatusBadge, tableRowClass, traceabilityCountCellClass } from "./traceability-shared";
 
 const linkHealthTone = {
   healthy: "green",
@@ -79,9 +80,9 @@ export function PhaseArtifactTraceabilityListView({ data }: { data: PhaseArtifac
                         {row.phaseNumber}. {row.phaseName}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{row.requiredCount}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.linkedCount}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.missingCount}</td>
+                    <td className={cn("px-4 py-3", traceabilityCountCellClass)}>{row.requiredCount}</td>
+                    <td className={cn("px-4 py-3", traceabilityCountCellClass)}>{row.linkedCount}</td>
+                    <td className={cn("px-4 py-3", traceabilityCountCellClass)}>{row.missingCount}</td>
                     <td className="px-4 py-3">
                       <CoverageProgressBar value={row.coveragePercent} label={`Phase ${row.phaseNumber} coverage`} />
                     </td>

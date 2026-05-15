@@ -1,6 +1,6 @@
 import type { EvidenceAttachment } from "@/components/lifecycle-workspace/evidence-attachments-types";
 import type { EvidenceRow } from "@/components/lifecycle-workspace/current-phase-main-panel";
-import { formatWorkspaceDate } from "@/lib/workspacePhaseWorkspaceSlice";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 
 function kindToAttachmentType(
   kind: EvidenceRow["kind"],
@@ -95,7 +95,7 @@ export function buildWorkspaceEvidenceAttachments(input: {
       type: evidenceDbTypeToAttachmentType(e.evidenceType),
       linkedTo: linkedCodes,
       addedBy: e.uploadedByName,
-      addedOnLabel: formatWorkspaceDate(e.updatedAt),
+      addedOnLabel: formatDateTimeAbsolute(e.updatedAt),
       href: `/projects/${projectId}/evidence/${encodeURIComponent(e.id)}`,
       rowKind: "evidence_item",
       description: e.description || undefined,

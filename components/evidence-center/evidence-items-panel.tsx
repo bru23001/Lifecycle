@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   Plus,
   Search,
+  SearchCheck,
   Star,
 } from "lucide-react";
 
@@ -34,7 +35,7 @@ import {
 import { ArchiveEvidenceModal } from "./archive-evidence-modal";
 import { DeleteEvidenceModal } from "./delete-evidence-modal";
 import { EditEvidenceMetadataDrawer } from "./edit-evidence-metadata-drawer";
-import type { EvidenceFilters, EvidenceTab } from "./evidence-center-shared";
+import { defaultEvidenceFilters, type EvidenceFilters, type EvidenceTab } from "./evidence-center-shared";
 import { EvidenceFiltersDrawer } from "./evidence-filters-drawer";
 import { EvidencePreviewModal } from "./evidence-preview-modal";
 import {
@@ -57,22 +58,6 @@ const SORT_LABELS: Record<EvidenceFilters["sort"], string> = {
   gate: "Gate",
   phase: "Phase",
 };
-
-const PHASE_QUICK_OPTIONS = [
-  { value: "all", label: "All Phase" },
-  ...Array.from({ length: 14 }, (_, i) => {
-    const n = i + 1;
-    return { value: String(n), label: `Phase ${n}` };
-  }),
-];
-
-const GATE_QUICK_OPTIONS = [
-  { value: "all", label: "All Gates" },
-  ...["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"].map((g) => ({
-    value: g,
-    label: g,
-  })),
-];
 
 type RowModalKind =
   | "preview"
@@ -106,42 +91,6 @@ function CountBadge({
     >
       {display}
     </span>
-  );
-}
-
-function FilterSelect({
-  "aria-label": ariaLabel,
-  value,
-  onChange,
-  options,
-}: {
-  "aria-label": string;
-  value: string;
-  onChange: (next: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <div className="relative min-w-0">
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          "h-12 w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white pl-4 pr-10 text-base font-semibold text-slate-700 shadow-sm outline-none",
-          "hover:bg-slate-50 focus:border-blue-500 focus:ring-4 focus:ring-blue-50",
-        )}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-700"
-        aria-hidden
-      />
-    </div>
   );
 }
 
@@ -611,6 +560,7 @@ export function EvidenceItemsPanel({
   phaseLinkOptions: EvidencePhaseLinkOption[];
   artifacts: ArtifactPick[];
 }) {
+  /** Filter drawer is closed by default; opened only from the Filters control. */
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [rowModal, setRowModal] = useState<RowModalState>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -692,87 +642,50 @@ export function EvidenceItemsPanel({
           />
         </label>
 
-        <div className="grid grid-cols-2 gap-3">
-          <FilterSelect
-            aria-label="Filter evidence type"
-            value={filters.type}
-            onChange={(type) =>
-              onFiltersChange({
-                ...filters,
-                type: type as EvidenceFilters["type"],
-              })
-            }
-            options={[
-              { value: "all", label: "All Types" },
-              { value: "pdf", label: "PDF" },
-              { value: "spreadsheet", label: "Spreadsheet" },
-              { value: "document", label: "Document" },
-              { value: "image", label: "Image" },
-              { value: "link", label: "Link" },
-              { value: "json", label: "JSON" },
-              { value: "markdown", label: "Markdown" },
-              { value: "report", label: "Report" },
-            ]}
-          />
-          <FilterSelect
-            aria-label="Filter evidence by phase"
-            value={filters.phase}
-            onChange={(phase) => onFiltersChange({ ...filters, phase })}
-            options={PHASE_QUICK_OPTIONS}
-          />
-          <FilterSelect
-            aria-label="Filter evidence by gate"
-            value={filters.gate}
-            onChange={(gate) =>
-              onFiltersChange({
-                ...filters,
-                gate: gate === "all" ? "all" : gate.toUpperCase(),
-              })
-            }
-            options={GATE_QUICK_OPTIONS}
-          />
-
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <button
             type="button"
-            className="flex h-12 items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-base font-semibold text-blue-600 shadow-sm hover:bg-slate-50"
+            className="inline-flex h-12 min-w-0 shrink-0 items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 text-base font-semibold text-blue-600 shadow-sm hover:bg-slate-50 sm:max-w-[min(100%,20rem)]"
             aria-expanded={filtersOpen}
+            aria-haspopup="dialog"
+            aria-controls="evidence-filters-drawer"
             onClick={() => setFiltersOpen(true)}
           >
-            <Filter className="h-5 w-5" aria-hidden />
-            More Filters
+            <Filter className="h-5 w-5 shrink-0" aria-hidden />
+            Filters
           </button>
-        </div>
 
-        <div className="relative inline-flex min-h-10 min-w-[11rem] items-center">
-          <div className="pointer-events-none flex items-center gap-1.5 text-base">
-            <span className="font-medium text-slate-600">Sort:</span>
-            <span className="font-semibold text-slate-700">
-              {SORT_LABELS[filters.sort]}
-            </span>
-            <ChevronDown
-              className="h-4 w-4 shrink-0 text-slate-600"
-              aria-hidden
-            />
+          <div className="relative inline-flex min-h-10 min-w-[11rem] items-center self-start sm:self-center">
+            <div className="pointer-events-none flex items-center gap-1.5 text-base">
+              <span className="font-medium text-slate-600">Sort:</span>
+              <span className="font-semibold text-slate-700">
+                {SORT_LABELS[filters.sort]}
+              </span>
+              <ChevronDown
+                className="h-4 w-4 shrink-0 text-slate-600"
+                aria-hidden
+              />
+            </div>
+            <select
+              aria-label="Sort evidence list"
+              value={filters.sort}
+              onChange={(event) =>
+                onFiltersChange({
+                  ...filters,
+                  sort: event.target.value as EvidenceFilters["sort"],
+                })
+              }
+              className="absolute inset-0 h-full w-full min-w-[11rem] cursor-pointer opacity-0"
+            >
+              {(Object.keys(SORT_LABELS) as EvidenceFilters["sort"][]).map(
+                (key) => (
+                  <option key={key} value={key}>
+                    {SORT_LABELS[key]}
+                  </option>
+                ),
+              )}
+            </select>
           </div>
-          <select
-            aria-label="Sort evidence list"
-            value={filters.sort}
-            onChange={(event) =>
-              onFiltersChange({
-                ...filters,
-                sort: event.target.value as EvidenceFilters["sort"],
-              })
-            }
-            className="absolute inset-0 h-full w-full min-w-[11rem] cursor-pointer opacity-0"
-          >
-            {(Object.keys(SORT_LABELS) as EvidenceFilters["sort"][]).map(
-              (key) => (
-                <option key={key} value={key}>
-                  {SORT_LABELS[key]}
-                </option>
-              ),
-            )}
-          </select>
         </div>
       </div>
 
@@ -799,16 +712,54 @@ export function EvidenceItemsPanel({
             <div className="mt-1 h-20 animate-pulse rounded-lg bg-slate-100" />
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="mx-6 my-6 rounded-xl border border-slate-200 bg-slate-50 p-6 text-base text-slate-600">
-            <p>No evidence has been added for this project.</p>
-            <button
-              type="button"
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-              onClick={onOpenAddEvidence}
-            >
-              Add First Evidence Item
-            </button>
-          </div>
+          evidenceItems.length === 0 ? (
+            <div className="mx-6 my-6 flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/90 px-6 py-8 text-center dark:border-border dark:bg-muted/20">
+              <div className="flex size-12 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm dark:bg-card dark:text-slate-400">
+                <SearchCheck className="size-6" aria-hidden />
+              </div>
+              <p className="mt-4 text-base font-semibold text-slate-900 dark:text-slate-100">No evidence yet</p>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                Upload files or links so this project can satisfy gate and traceability requirements. Evidence you add
+                appears in this list.
+              </p>
+              <button
+                type="button"
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+                onClick={onOpenAddEvidence}
+              >
+                Add first evidence item
+              </button>
+            </div>
+          ) : (
+            <div className="mx-6 my-6 flex flex-col items-center rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-6 py-8 text-center dark:border-amber-900/40 dark:bg-amber-950/20">
+              <Filter className="size-8 text-amber-700 dark:text-amber-400" aria-hidden />
+              <p className="mt-3 text-base font-semibold text-slate-900 dark:text-slate-100">No matches for current filters</p>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                This project has evidence, but nothing matches your filters or search. Clear filters or widen your
+                criteria to see items again.
+              </p>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="font-semibold"
+                  onClick={() => onFiltersChange(defaultEvidenceFilters())}
+                >
+                  Clear all filters
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="bg-blue-600 font-semibold hover:bg-blue-700"
+                  onClick={() => setFiltersOpen(true)}
+                >
+                  Adjust filters
+                </Button>
+              </div>
+            </div>
+          )
         ) : (
           <div role="listbox" aria-label="Evidence items">
             {filteredItems.map((row) => {

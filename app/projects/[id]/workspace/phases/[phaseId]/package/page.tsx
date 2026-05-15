@@ -10,8 +10,8 @@ import { prisma } from "@/lib/prisma";
 import {
   buildGateMissingRequirements,
   buildWorkspacePhaseSlice,
-  formatWorkspaceDate,
 } from "@/lib/workspacePhaseWorkspaceSlice";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { gateHeaderDisplayName, workspacePhaseMeta, workspacePhasePurpose } from "@/lib/workspacePhases";
 import { mapEvidenceRowsToAttachments } from "@/lib/mapEvidenceAttachments";
 import { projectTemplateWizardHref } from "@/lib/projects-url";
@@ -132,7 +132,7 @@ export default async function PhasePackagePage({
             <h2 className="text-sm font-semibold text-foreground">Phase overview</h2>
             <p className="mt-2 text-muted-foreground">
               Compiled read-only snapshot for milestone {n}. Workspace last aligned to project artifacts as of{" "}
-              {formatWorkspaceDate(new Date())}.
+              {formatDateTimeAbsolute(new Date())}.
             </p>
           </section>
 

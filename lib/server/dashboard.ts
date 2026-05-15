@@ -17,6 +17,7 @@ import { resolveContinueNextActionHref } from "@/lib/continue-next-action-href";
 import { OPEN_APPROVAL_STATUSES } from "@/lib/server/approval-writes";
 import { buildDashboardSettingsAlerts } from "@/lib/dashboard-settings-alerts";
 import { decisionLabelFromStatus, resolveRecentDecisionHref } from "@/lib/recent-decision-href";
+import { applySeedDataTypoFixes } from "@/lib/seed-data-typo-fixes";
 
 const DEFAULT_DASHBOARD_TIP: DashboardData["tip"] = {
   message: "Keep your evidence and artifacts up to date to ensure smooth gate reviews.",
@@ -148,7 +149,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     );
     return {
       projectId: project.id,
-      name: project.name,
+      name: applySeedDataTypoFixes(project.name),
       phase: project.currentPhase,
       gate: nextOpenGateForPhase(project.currentPhase, latestByGate),
       status: "In Progress" as const,
@@ -209,8 +210,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     ...recentGateDecisions.map((decision) => ({
       id: `gate-${decision.id}`,
       gate: decision.gateId,
-      label: decisionLabel(decision.decision),
-      projectName: decision.project.name,
+      label: decisionLabel(applySeedDataTypoFixes(decision.decision)),
+      projectName: applySeedDataTypoFixes(decision.project.name),
       createdAtMs: decision.createdAt.getTime(),
       targetType: "gate_review" as const,
       targetHref: resolveRecentDecisionHref({
@@ -223,7 +224,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       id: `approval-${approval.id}`,
       gate: approval.gateId ?? "APPROVAL",
       label: decisionLabelFromStatus(approval.status),
-      projectName: approval.project?.name ?? "Unknown project",
+      projectName: applySeedDataTypoFixes(approval.project?.name ?? "Unknown project"),
       createdAtMs: approval.updatedAt.getTime(),
       targetType: "approval_detail" as const,
       targetHref: resolveRecentDecisionHref({
@@ -234,8 +235,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     ...recentAudit.map((audit) => ({
       id: `audit-${audit.id}`,
       gate: "AUDIT",
-      label: decisionLabelFromStatus(audit.action),
-      projectName: audit.project?.name ?? "Unknown project",
+      label: decisionLabelFromStatus(applySeedDataTypoFixes(audit.action)),
+      projectName: applySeedDataTypoFixes(audit.project?.name ?? "Unknown project"),
       createdAtMs: audit.createdAt.getTime(),
       targetType: "audit_detail" as const,
       targetHref: resolveRecentDecisionHref({

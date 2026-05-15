@@ -37,7 +37,7 @@ export function ApprovalActionBar({
         {!selectedActionState.canSubmitDecision && selectedActionState.submitBlockers.length > 0 ? (
           <>
             <p id={submitHelperId} className="sr-only">
-              Submit blocked: {selectedActionState.submitBlockers.join(" ")}
+              {selectedActionState.submitBlockers.join(" · ")}
             </p>
             <p className="hidden max-w-md text-right text-xs text-slate-500 min-[901px]:block">
               {selectedActionState.submitBlockers.join(" · ")}
@@ -47,7 +47,7 @@ export function ApprovalActionBar({
         <div className="flex flex-wrap items-center gap-2">
           {saveNotice ? <span className="text-xs font-medium text-emerald-700">{saveNotice}</span> : null}
           <Button type="button" variant="outline" size="lg" disabled={!selectedActionState.canSaveReview} onClick={onSaveReview}>
-            Save Review
+            Save draft decision
           </Button>
         </div>
         <Button

@@ -7,19 +7,14 @@ import { ChevronRight, ClipboardList, Download, History } from "lucide-react";
 import { AuditEventDetailDrawer } from "@/components/projects/audit-event-detail-drawer";
 import { ExportAuditTrailModal } from "@/components/projects/export-audit-trail-modal";
 import { Button } from "@/components/ui/button";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import type { ProjectScreenAuditEntry, SelectedProject } from "@/types/projects.types";
 
 function formatWhen(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeAbsolute(d);
 }
 
 export function ProjectAuditTrailTab({

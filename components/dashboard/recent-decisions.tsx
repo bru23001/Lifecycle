@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, Gavel } from "lucide-react";
 
 import type { DashboardRecentDecision } from "@/types/dashboard.types";
 
@@ -55,30 +55,61 @@ export function RecentDecisions({
       </header>
 
       <div className="lifecycle-scroll-on-demand min-h-0 flex-1 space-y-3 overflow-auto pr-1">
-        {recentDecisions.map((decision) => (
-          <Link
-            key={decision.id}
-            href={decision.targetHref}
-            className="grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-lg px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/30"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
-              <FileText className="h-4 w-4 stroke-[2.3]" />
+        {recentDecisions.length === 0 ? (
+          <div className="flex min-h-[8rem] flex-col items-center justify-center gap-3 px-4 py-8 text-center">
+            <div className="flex size-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+              <Gavel className="size-6" aria-hidden />
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">
-                {decision.gate} {decision.label}
-              </p>
-              <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-300">
-                {decision.projectName}
+            <div className="max-w-xs space-y-1.5">
+              <p className="text-sm font-semibold text-slate-950 dark:text-slate-100">No recent decisions</p>
+              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                Gate outcomes and approvals you touch will appear here. Start from a project gate review or the
+                approval center.
               </p>
             </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${decisionTone(decision.label)}`}
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link
+                href="/approvals"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              >
+                Open approvals
+              </Link>
+              <span className="text-xs text-slate-300 dark:text-slate-600" aria-hidden>
+                ·
+              </span>
+              <Link href="/projects" className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                Browse projects
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentDecisions.map((decision) => (
+            <Link
+              key={decision.id}
+              href={decision.targetHref}
+              className="grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-lg px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/30"
             >
-              {decision.label}
-            </span>
-          </Link>
-        ))}
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                <FileText className="h-4 w-4 stroke-[2.3]" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">
+                  {decision.gate} {decision.label}
+                </p>
+                <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-300">
+                  {decision.projectName}
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${decisionTone(decision.label)}`}
+              >
+                {decision.label}
+              </span>
+            </Link>
+            ))}
+          </div>
+        )}
       </div>
     </article>
   );

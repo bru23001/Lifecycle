@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Circle, Clock3, FileText } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, Clock3, FileText, Package } from "lucide-react";
 
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { Breadcrumbs } from "@/components/lifecycle-workspace/breadcrumbs";
@@ -275,7 +275,23 @@ export function NextPhaseWorkspaceRoute({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-sm text-muted-foreground">No artifacts on this project yet.</p>
+                <div className="mt-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center dark:border-border dark:bg-muted/30">
+                  <div className="mx-auto flex size-10 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm dark:bg-card dark:text-slate-500">
+                    <Package className="size-5" aria-hidden />
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-slate-900 dark:text-foreground">No carried-forward artifacts</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-muted-foreground">
+                    When earlier phases produce artifacts your gate package references, they will list here. Open the
+                    project artifact register to add work products.
+                  </p>
+                  <Link
+                    href={`/projects/${data.projectId}/artifacts`}
+                    className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                  >
+                    Go to artifacts
+                    <ArrowRight className="size-3" aria-hidden />
+                  </Link>
+                </div>
               )}
             </section>
 

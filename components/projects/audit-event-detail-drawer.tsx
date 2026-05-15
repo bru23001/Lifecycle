@@ -17,6 +17,7 @@ import {
   humanizeAction,
   humanizeMetadataKey,
 } from "@/lib/audit-event-details";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { cn } from "@/lib/utils";
 import type { ProjectScreenAuditEntry } from "@/types/projects.types";
 
@@ -245,13 +246,5 @@ function renderValue(value: unknown): string {
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  return formatDateTimeAbsolute(d);
 }

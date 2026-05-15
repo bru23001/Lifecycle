@@ -9,6 +9,7 @@ import { AssignApproversModal } from "@/components/gate-review/assign-approvers-
 import { GateSubmissionBlockersDrawer } from "@/components/lifecycle-workspace/gate-submission-blockers-drawer";
 import { SubmitGateReviewModal } from "@/components/lifecycle-workspace/submit-gate-review-modal";
 import type { GateSubmissionState } from "@/components/lifecycle-workspace/submit-gate-review-types";
+import { formatDateTimeAbsolute } from "@/lib/datetime-format";
 import { projectGatePackagePreviewHref } from "@/lib/projects-url";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,7 @@ export function SubmitGateReviewCard({ state }: SubmitGateReviewCardProps) {
   }
 
   function handleSaveDraft() {
-    setDraftSavedAt(new Date().toLocaleString());
+    setDraftSavedAt(formatDateTimeAbsolute(new Date()));
   }
 
   return (

@@ -42,12 +42,21 @@ export type AppSidebarActive =
   /** `/settings/templates` and related template admin routes. */
   | "template_registry";
 
-type AppSidebarItem = {
-  label: string;
-  href: string;
-  icon: ComponentType<{ className?: string }>;
-  active: boolean;
-};
+type AppSidebarItem =
+  | {
+      kind: "link";
+      label: string;
+      href: string;
+      icon: ComponentType<{ className?: string }>;
+      active: boolean;
+    }
+  | {
+      kind: "disabled";
+      label: string;
+      icon: ComponentType<{ className?: string }>;
+      active: boolean;
+      tooltip: string;
+    };
 
 export function AppSidebar({
   active,
@@ -92,8 +101,9 @@ export function AppSidebar({
       ? projectCurrentPhase != null
         ? `/projects/${projectId}/workspace?phase=${projectCurrentPhase}`
         : `/projects/${projectId}/workspace`
-      : "/projects");
-  const continueCardHref = continueWorkingHref ?? resolvedWorkspaceHref;
+      : null);
+  const continueCardHref =
+    continueWorkingHref ?? resolvedWorkspaceHref ?? "/projects";
   const resolvedGatesHref =
     gatesHref ??
     (hasProject ? `/projects/${projectId}/gates` : "/projects");
@@ -115,47 +125,62 @@ export function AppSidebar({
   };
 
   const navItems: AppSidebarItem[] = [
-    { label: "Dashboard", href: "/dashboard", icon: Home, active: active === "dashboard" },
-    { label: "Projects", href: "/projects", icon: FolderOpen, active: active === "projects" },
+    { kind: "link", label: "Dashboard", href: "/dashboard", icon: Home, active: active === "dashboard" },
+    { kind: "link", label: "Projects", href: "/projects", icon: FolderOpen, active: active === "projects" },
+    hasProject && resolvedWorkspaceHref
+      ? {
+          kind: "link" as const,
+          label: "Lifecycle Workspace",
+          href: resolvedWorkspaceHref,
+          icon: Layers3,
+          active: active === "lifecycle",
+        }
+      : {
+          kind: "disabled" as const,
+          label: "Lifecycle Workspace",
+          icon: Layers3,
+          active: active === "lifecycle",
+          tooltip: "Select a project on the Projects screen to open the lifecycle workspace.",
+        },
     {
-      label: "Lifecycle Workspace",
-      href: resolvedWorkspaceHref,
-      icon: Layers3,
-      active: active === "lifecycle",
-    },
-    {
+      kind: "link",
       label: "Gates",
       href: resolvedGatesHref,
       icon: ShieldCheck,
       active: active === "gates",
     },
     {
+      kind: "link",
       label: "Artifacts",
       href: hasProject ? `/projects/${projectId}/artifacts${phaseQuerySuffix}` : "/projects",
       icon: FileText,
       active: active === "artifacts",
     },
     {
+      kind: "link",
       label: "Evidence",
       href: hasProject ? `/projects/${projectId}/evidence${phaseQuerySuffix}` : "/projects",
       icon: SearchCheck,
       active: active === "evidence",
     },
     {
+      kind: "link",
       label: "Traceability",
       href: hasProject ? `/projects/${projectId}/traceability${phaseQuerySuffix}` : "/projects",
       icon: GitBranch,
       active: active === "traceability",
     },
-    { label: "Approvals", href: "/approvals", icon: CheckCircle2, active: active === "approvals" },
-    { label: "Notifications", href: "/notifications", icon: Bell, active: active === "notifications" },
+    { kind: "link", label: "Approvals", href: "/approvals", icon: CheckCircle2, active: active === "approvals" },
+    { kind: "link", label: "Notifications", href: "/notifications", icon: Bell, active: active === "notifications" },
     {
+      kind: "link",
       label: "Reports",
       href: hasProject ? `/projects/${projectId}/reports` : "/projects",
       icon: BarChart3,
       active: active === "reports",
     },
     {
+      kind: "link",
       label: "Template Registry",
       href: hasProject
         ? `/settings/templates?projectId=${encodeURIComponent(String(projectId))}`
@@ -163,7 +188,7 @@ export function AppSidebar({
       icon: FileText,
       active: active === "template_registry",
     },
-    { label: "Settings", href: "/settings/lifecycle", icon: Settings, active: active === "settings" },
+    { kind: "link", label: "Settings", href: "/settings/lifecycle", icon: Settings, active: active === "settings" },
   ];
 
   return (
@@ -193,28 +218,55 @@ export function AppSidebar({
           className="min-h-0 flex-1 space-y-[3px] overflow-y-auto px-3 py-[18px]"
           aria-label="Primary navigation"
         >
-          {navItems.map(({ label, href, icon: Icon, active: itemActive }) => (
-            <Link
-              key={label}
-              href={href}
-              aria-current={itemActive ? "page" : undefined}
-              title={collapsed ? label : undefined}
-              className={cn(
-                "flex h-[37px] items-center gap-3 rounded-[7px] px-3 text-[12px] font-medium transition",
-                itemActive
-                  ? "bg-[#2563eb] text-white shadow-[0_10px_22px_rgba(37,99,235,0.22)]"
-                  : "text-slate-300 hover:bg-white/10 hover:text-white",
-                collapsed && "justify-center px-2",
-              )}
-            >
-              <Icon className="size-[14px] shrink-0" aria-hidden />
-              {!collapsed ? <span className="truncate">{label}</span> : null}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const { label, icon: Icon, active: itemActive } = item;
+            const rowClass = cn(
+              "flex h-[37px] items-center gap-3 rounded-[7px] px-3 text-[12px] font-medium transition",
+              itemActive
+                ? "bg-[#2563eb] text-white shadow-[0_10px_22px_rgba(37,99,235,0.22)]"
+                : "text-slate-300 hover:bg-white/10 hover:text-white",
+              collapsed && "justify-center px-2",
+            );
+
+            if (item.kind === "disabled") {
+              return (
+                <span
+                  key={label}
+                  className="block w-full min-w-0"
+                  title={item.tooltip}
+                >
+                  <span
+                    className={cn(
+                      rowClass,
+                      "cursor-not-allowed opacity-50 hover:bg-transparent hover:text-slate-300",
+                    )}
+                    aria-disabled="true"
+                    aria-label={`${label} (unavailable: ${item.tooltip})`}
+                  >
+                    <Icon className="size-[14px] shrink-0" aria-hidden />
+                    {!collapsed ? <span className="truncate">{label}</span> : null}
+                  </span>
+                </span>
+              );
+            }
+
+            return (
+              <Link
+                key={label}
+                href={item.href}
+                aria-current={itemActive ? "page" : undefined}
+                title={collapsed ? label : undefined}
+                className={rowClass}
+              >
+                <Icon className="size-[14px] shrink-0" aria-hidden />
+                {!collapsed ? <span className="truncate">{label}</span> : null}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="shrink-0 px-4 pb-[18px]">
-        {!collapsed && hasProject && projectName ? (
+        {!collapsed && hasProject && projectName && resolvedWorkspaceHref ? (
           <div className="mb-3 rounded-[9px] border border-white/10 bg-[#0d1b2f] p-[11px]">
             <p className="text-[11px] font-medium text-slate-300">Continue Working</p>
             <p className="mt-[16px] truncate text-[12px] font-semibold">{projectName}</p>

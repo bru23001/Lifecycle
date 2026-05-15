@@ -17,11 +17,20 @@ function visualBadge(state: GatesListScreenData["rows"][number]["visualState"]):
 } {
   switch (state) {
     case "done":
-      return { label: "Complete", className: "bg-emerald-50 text-emerald-800" };
+      return {
+        label: "Complete",
+        className: "border border-emerald-300 bg-emerald-100 text-emerald-950",
+      };
     case "ready":
-      return { label: "Ready", className: "bg-blue-50 text-blue-800" };
+      return {
+        label: "Ready",
+        className: "border border-blue-300 bg-blue-100 text-blue-950",
+      };
     default:
-      return { label: "Upcoming", className: "bg-slate-100 text-slate-600" };
+      return {
+        label: "Upcoming",
+        className: "border border-slate-400 bg-slate-200 text-slate-950",
+      };
   }
 }
 
@@ -82,7 +91,7 @@ export function GatesListPage({ data }: { data: GatesListScreenData }) {
                   className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-100 text-blue-900">
                       <ShieldCheck className="size-5" aria-hidden />
                     </div>
                     <div className="min-w-0">
@@ -106,7 +115,7 @@ export function GatesListPage({ data }: { data: GatesListScreenData }) {
                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                     <span
                       className={cn(
-                        "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                        "rounded-full px-2.5 py-0.5 text-[11px] font-bold shadow-sm",
                         badge.className,
                       )}
                     >
