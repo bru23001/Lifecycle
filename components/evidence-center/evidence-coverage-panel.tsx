@@ -441,7 +441,6 @@ export function EvidenceCompletenessCard({
 
 function evidenceByGateToGapRow(
   row: EvidenceByGate,
-  projectId: string,
 ): GateEvidenceTraceListRow {
   return {
     gateCode: row.gateCode as GateEvidenceTraceListRow["gateCode"],
@@ -493,7 +492,7 @@ export function EvidenceByGateCard({
         collapsible
         onCoverageGap={(rowId) => {
           const hit = rows.find((r) => r.gateId === rowId);
-          if (hit) setGapRow(evidenceByGateToGapRow(hit, projectId));
+          if (hit) setGapRow(evidenceByGateToGapRow(hit));
         }}
       />
       <GateEvidenceGapDrawer
