@@ -213,7 +213,12 @@ export function ProjectListPanel({
           return (
             <Link
               key={project.id}
-              href={`/projects/${project.id}`}
+              href={projectsListHref({
+                selectedProjectId: project.id,
+                selectedTab,
+                currentPage,
+                listFilters,
+              })}
               className={`block rounded-lg border p-3 ${
                 active
                   ? "border-[#2563eb] border-l-[3px] bg-blue-50/30 shadow-[0_0_0_1px_rgba(37,99,235,0.08)]"
@@ -491,7 +496,12 @@ function ProjectOverviewTab({
           <header className="flex items-center justify-between px-7 py-6">
             <h2 className="cc-card-title">Recent Activity</h2>
             <Link
-              href={`/projects/${selectedProject.header.id}?tab=audit_trail`}
+              href={projectsListHref({
+                selectedProjectId: selectedProject.header.id,
+                selectedTab: "audit-trail",
+                currentPage,
+                listFilters,
+              })}
               className="cc-card-link"
             >
               View all activity
@@ -537,7 +547,15 @@ function ProjectOverviewTab({
         <article className="cc-card-standard flex min-h-0 flex-col overflow-hidden p-0">
           <header className="flex items-center justify-between px-7 py-6">
             <h2 className="cc-card-title">Gate Status Summary</h2>
-            <Link href={`/projects/${selectedProject.header.id}?tab=gates`} className="cc-card-link">
+            <Link
+              href={projectsListHref({
+                selectedProjectId: selectedProject.header.id,
+                selectedTab: "gates",
+                currentPage,
+                listFilters,
+              })}
+              className="cc-card-link"
+            >
               View all gates
             </Link>
           </header>
