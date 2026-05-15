@@ -11,7 +11,10 @@ import {
   WorkspaceCardHeader,
 } from "@/components/lifecycle-workspace/workspace-card";
 import { Button } from "@/components/ui/button";
-import { evidenceClassificationBadgeMap, evidenceStatusBadgeMap } from "@/lib/evidence-status";
+import {
+  evidenceClassificationBadgeMap,
+  evidenceStatusBadgeMap,
+} from "@/lib/evidence-status";
 import { cn } from "@/lib/utils";
 import type {
   EvidenceCenterSelectedEvidence,
@@ -25,13 +28,22 @@ import { ArchiveEvidenceModal } from "./archive-evidence-modal";
 import type { EvidenceTab } from "./evidence-center-shared";
 import { EvidenceBadge, MetaItem } from "./evidence-center-shared";
 import { DeleteEvidenceModal } from "./delete-evidence-modal";
-import { DownloadEvidenceConfirmModal, evidenceDownloadNeedsConfirmation } from "./download-evidence-confirm-modal";
+import {
+  DownloadEvidenceConfirmModal,
+  evidenceDownloadNeedsConfirmation,
+} from "./download-evidence-confirm-modal";
 import { EditEvidenceMetadataDrawer } from "./edit-evidence-metadata-drawer";
 import { EvidenceCommentsBlock } from "./evidence-comments-block";
-import { EvidenceFilePreview, EvidencePreviewToolbarActions } from "./evidence-file-preview";
+import {
+  EvidenceFilePreview,
+  EvidencePreviewToolbarActions,
+} from "./evidence-file-preview";
 import { EvidenceHistoryEventDrawer } from "./evidence-history-event-drawer";
 import { EvidencePreviewModal } from "./evidence-preview-modal";
-import { LinkEvidenceArtifactModal, type ArtifactPick } from "./link-evidence-artifact-modal";
+import {
+  LinkEvidenceArtifactModal,
+  type ArtifactPick,
+} from "./link-evidence-artifact-modal";
 import { LinkEvidenceGateModal } from "./link-evidence-gate-modal";
 import { LinkEvidencePhaseModal } from "./link-evidence-phase-modal";
 import { ReplaceEvidenceFileModal } from "./replace-evidence-file-modal";
@@ -53,9 +65,12 @@ function truncateMiddle(value: string, max = 44) {
   return `${head}…${tail}`;
 }
 
-function buildMetadataColumns(selectedEvidence: EvidenceCenterSelectedEvidence): MetadataItem[][] {
+function buildMetadataColumns(
+  selectedEvidence: EvidenceCenterSelectedEvidence,
+): MetadataItem[][] {
   const d = selectedEvidence.detail;
-  const classificationLabel = evidenceClassificationBadgeMap[d.classification].label;
+  const classificationLabel =
+    evidenceClassificationBadgeMap[d.classification].label;
   const phaseGate =
     d.phaseNumber && d.phaseName && d.gateCode && d.gateName
       ? `Phase ${d.phaseNumber}, ${d.gateCode} ${d.gateName}`
@@ -67,7 +82,10 @@ function buildMetadataColumns(selectedEvidence: EvidenceCenterSelectedEvidence):
     d.tags.length > 0 ? (
       <div className="flex flex-wrap gap-2">
         {d.tags.map((tag) => (
-          <span key={tag} className="rounded-md bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+          <span
+            key={tag}
+            className="rounded-md bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700"
+          >
             {tag}
           </span>
         ))}
@@ -80,11 +98,23 @@ function buildMetadataColumns(selectedEvidence: EvidenceCenterSelectedEvidence):
     [
       { id: "evidence-type", label: "Evidence Type", value: d.fileTypeLabel },
       { id: "source", label: "Source", value: d.source ?? "—" },
-      { id: "confidentiality", label: "Confidentiality", value: classificationLabel },
-      { id: "retention-policy", label: "Retention Policy", value: d.retentionPolicyLabel ?? "—" },
+      {
+        id: "confidentiality",
+        label: "Confidentiality",
+        value: classificationLabel,
+      },
+      {
+        id: "retention-policy",
+        label: "Retention Policy",
+        value: d.retentionPolicyLabel ?? "—",
+      },
     ],
     [
-      { id: "classification", label: "Classification", value: classificationLabel },
+      {
+        id: "classification",
+        label: "Classification",
+        value: classificationLabel,
+      },
       { id: "version", label: "Version", value: "—" },
       { id: "tags", label: "Tags", value: tagsValue },
     ],
@@ -111,9 +141,15 @@ function EvidenceTabs({
 }) {
   const tabs: { id: EvidenceTab; label: string }[] = [
     ["overview", "Overview"],
-    ["linked_artifacts", `Linked Artifacts (${selectedEvidence.linkedArtifacts.length})`],
+    [
+      "linked_artifacts",
+      `Linked Artifacts (${selectedEvidence.linkedArtifacts.length})`,
+    ],
     ["linked_gates", `Linked Gates (${selectedEvidence.linkedGates.length})`],
-    ["linked_phases", `Linked Phases (${selectedEvidence.linkedPhases.length})`],
+    [
+      "linked_phases",
+      `Linked Phases (${selectedEvidence.linkedPhases.length})`,
+    ],
     ["history", `History (${selectedEvidence.history.length})`],
     ["comments", `Comments (${selectedEvidence.comments.length})`],
   ].map(([id, label]) => ({ id: id as EvidenceTab, label }));
@@ -141,7 +177,9 @@ function EvidenceTabs({
             )}
           >
             {tab.label}
-            {active ? <span className="absolute inset-x-5 bottom-0 h-[3px] rounded-full bg-blue-600" /> : null}
+            {active ? (
+              <span className="absolute inset-x-5 bottom-0 h-[3px] rounded-full bg-blue-600" />
+            ) : null}
           </button>
         );
       })}
@@ -149,23 +187,39 @@ function EvidenceTabs({
   );
 }
 
-function MetadataSection({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
+function MetadataSection({
+  selectedEvidence,
+}: {
+  selectedEvidence: EvidenceCenterSelectedEvidence;
+}) {
   const columns = buildMetadataColumns(selectedEvidence);
 
   return (
     <section className="mt-8">
-      <h3 className="text-lg font-semibold text-slate-950">Evidence Metadata</h3>
+      <h3 className="text-lg font-semibold text-slate-950">
+        Evidence Metadata
+      </h3>
 
       <div className="mt-7 grid grid-cols-1 gap-8 border-b border-slate-200 pb-8 lg:grid-cols-3">
         {columns.map((column, index) => (
           <dl
             key={index}
-            className={cn("space-y-6", index !== 0 && "lg:border-l lg:border-slate-200 lg:pl-8")}
+            className={cn(
+              "space-y-6",
+              index !== 0 && "lg:border-l lg:border-slate-200 lg:pl-8",
+            )}
           >
             {column.map((item) => (
-              <div key={item.id} className="grid grid-cols-1 gap-2 sm:grid-cols-[150px_1fr] sm:gap-5">
-                <dt className="text-sm font-semibold text-slate-600">{item.label}</dt>
-                <dd className="text-sm font-medium text-slate-800">{item.value}</dd>
+              <div
+                key={item.id}
+                className="grid grid-cols-1 gap-2 sm:grid-cols-[150px_1fr] sm:gap-5"
+              >
+                <dt className="text-sm font-semibold text-slate-600">
+                  {item.label}
+                </dt>
+                <dd className="text-sm font-medium text-slate-800">
+                  {item.value}
+                </dd>
               </div>
             ))}
           </dl>
@@ -175,12 +229,28 @@ function MetadataSection({ selectedEvidence }: { selectedEvidence: EvidenceCente
   );
 }
 
-export function LinkedSummary({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
+export function LinkedSummary({
+  selectedEvidence,
+}: {
+  selectedEvidence: EvidenceCenterSelectedEvidence;
+}) {
   const pct = selectedEvidence.completeness.overallPercent;
   const cards: { id: string; label: string; value: ReactNode }[] = [
-    { id: "linked-artifacts", label: "Linked Artifacts", value: String(selectedEvidence.linkedArtifacts.length) },
-    { id: "linked-gates", label: "Linked Gates", value: String(selectedEvidence.linkedGates.length) },
-    { id: "linked-phases", label: "Linked Phases", value: String(selectedEvidence.linkedPhases.length) },
+    {
+      id: "linked-artifacts",
+      label: "Linked Artifacts",
+      value: String(selectedEvidence.linkedArtifacts.length),
+    },
+    {
+      id: "linked-gates",
+      label: "Linked Gates",
+      value: String(selectedEvidence.linkedGates.length),
+    },
+    {
+      id: "linked-phases",
+      label: "Linked Phases",
+      value: String(selectedEvidence.linkedPhases.length),
+    },
     {
       id: "sections-covered",
       label: "Sections Covered",
@@ -194,7 +264,10 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
           <div className="flex flex-wrap items-center gap-3">
             <span>{pct}%</span>
             <div className="h-2 w-full min-w-[6rem] max-w-[8rem] overflow-hidden rounded-full bg-slate-200 sm:w-32">
-              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, pct)}%` }} />
+              <div
+                className="h-full rounded-full bg-emerald-500"
+                style={{ width: `${Math.min(100, pct)}%` }}
+              />
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-2">
@@ -205,16 +278,28 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
               View completeness details
             </Link>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-slate-600">
-              <Link href={`${selectedEvidence.completeness.detailsHref}?status=complete`} className="text-blue-600 underline-offset-2 hover:underline">
+              <Link
+                href={`${selectedEvidence.completeness.detailsHref}?status=complete`}
+                className="text-blue-600 underline-offset-2 hover:underline"
+              >
                 Fully linked
               </Link>
-              <Link href={`${selectedEvidence.completeness.detailsHref}?status=partial`} className="text-blue-600 underline-offset-2 hover:underline">
+              <Link
+                href={`${selectedEvidence.completeness.detailsHref}?status=partial`}
+                className="text-blue-600 underline-offset-2 hover:underline"
+              >
                 Partial
               </Link>
-              <Link href={`${selectedEvidence.completeness.detailsHref}?status=missing`} className="text-blue-600 underline-offset-2 hover:underline">
+              <Link
+                href={`${selectedEvidence.completeness.detailsHref}?status=missing`}
+                className="text-blue-600 underline-offset-2 hover:underline"
+              >
                 Gate gaps
               </Link>
-              <Link href={`${selectedEvidence.completeness.detailsHref}?status=unlinked`} className="text-blue-600 underline-offset-2 hover:underline">
+              <Link
+                href={`${selectedEvidence.completeness.detailsHref}?status=unlinked`}
+                className="text-blue-600 underline-offset-2 hover:underline"
+              >
                 Unlinked
               </Link>
             </div>
@@ -230,9 +315,14 @@ export function LinkedSummary({ selectedEvidence }: { selectedEvidence: Evidence
 
       <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
-          <article key={card.id} className="rounded-lg border border-slate-200 bg-white p-5">
+          <article
+            key={card.id}
+            className="rounded-lg border border-slate-200 bg-white p-5"
+          >
             <p className="text-sm font-semibold text-slate-600">{card.label}</p>
-            <div className="mt-4 text-2xl font-semibold text-slate-950">{card.value}</div>
+            <div className="mt-4 text-2xl font-semibold text-slate-950">
+              {card.value}
+            </div>
           </article>
         ))}
       </div>
@@ -441,14 +531,25 @@ export function EvidenceDetailHeader({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl font-semibold text-[#111827]">{selectedEvidence.detail.name}</h2>
-              <EvidenceBadge {...evidenceStatusBadgeMap[selectedEvidence.detail.status]} />
+              <h2 className="text-2xl font-semibold text-[#111827]">
+                {selectedEvidence.detail.name}
+              </h2>
+              <EvidenceBadge
+                {...evidenceStatusBadgeMap[selectedEvidence.detail.status]}
+              />
             </div>
-            <p className="mt-1 text-sm text-slate-600">{selectedEvidence.detail.description}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {selectedEvidence.detail.description}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button type="button" variant="outline" size="icon-sm" aria-label="Star evidence">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Star evidence"
+          >
             <Star className="size-4" aria-hidden />
           </Button>
           <Button
@@ -481,14 +582,19 @@ export function EvidenceDetailHeader({
   );
 }
 
-export function EvidenceMetadata({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
+export function EvidenceMetadata({
+  selectedEvidence,
+}: {
+  selectedEvidence: EvidenceCenterSelectedEvidence;
+}) {
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm min-[1024px]:grid-cols-5">
       <MetaItem label="Project" value={selectedEvidence.detail.projectName} />
       <MetaItem
         label="Phase"
         value={
-          selectedEvidence.detail.phaseNumber && selectedEvidence.detail.phaseName
+          selectedEvidence.detail.phaseNumber &&
+          selectedEvidence.detail.phaseName
             ? `${selectedEvidence.detail.phaseNumber}. ${selectedEvidence.detail.phaseName}`
             : "—"
         }
@@ -501,12 +607,30 @@ export function EvidenceMetadata({ selectedEvidence }: { selectedEvidence: Evide
             : "—"
         }
       />
-      <MetaItem label="Uploaded By" value={selectedEvidence.detail.uploadedBy} />
-      <MetaItem label="Uploaded On" value={selectedEvidence.detail.uploadedOnLabel} />
-      <MetaItem label="File Type" value={selectedEvidence.detail.fileTypeLabel} />
-      <MetaItem label="File Size" value={selectedEvidence.detail.fileSizeLabel ?? "—"} />
-      <MetaItem label="Evidence ID" value={selectedEvidence.detail.evidenceCode} />
-      <MetaItem label="Status" value={evidenceStatusBadgeMap[selectedEvidence.detail.status].label} />
+      <MetaItem
+        label="Uploaded By"
+        value={selectedEvidence.detail.uploadedBy}
+      />
+      <MetaItem
+        label="Uploaded On"
+        value={selectedEvidence.detail.uploadedOnLabel}
+      />
+      <MetaItem
+        label="File Type"
+        value={selectedEvidence.detail.fileTypeLabel}
+      />
+      <MetaItem
+        label="File Size"
+        value={selectedEvidence.detail.fileSizeLabel ?? "—"}
+      />
+      <MetaItem
+        label="Evidence ID"
+        value={selectedEvidence.detail.evidenceCode}
+      />
+      <MetaItem
+        label="Status"
+        value={evidenceStatusBadgeMap[selectedEvidence.detail.status].label}
+      />
     </dl>
   );
 }
@@ -543,10 +667,20 @@ export function EvidenceDetailPanel({
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [downloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
-  const [historyDrawerEvent, setHistoryDrawerEvent] = useState<EvidenceHistoryEvent | null>(null);
-  const [unlinkTarget, setUnlinkTarget] = useState<{ id: string; label: string } | null>(null);
-  const [unlinkGateTarget, setUnlinkGateTarget] = useState<{ id: string; label: string } | null>(null);
-  const [unlinkPhaseTarget, setUnlinkPhaseTarget] = useState<{ phaseNumber: number; label: string } | null>(null);
+  const [historyDrawerEvent, setHistoryDrawerEvent] =
+    useState<EvidenceHistoryEvent | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
+  const [unlinkGateTarget, setUnlinkGateTarget] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
+  const [unlinkPhaseTarget, setUnlinkPhaseTarget] = useState<{
+    phaseNumber: number;
+    label: string;
+  } | null>(null);
 
   if (!selectedEvidence) {
     return (
@@ -564,7 +698,9 @@ export function EvidenceDetailPanel({
   const requestDownload = () => {
     const href = selectedEvidence.detail.downloadHref;
     if (!href) return;
-    if (evidenceDownloadNeedsConfirmation(selectedEvidence.detail.classification)) {
+    if (
+      evidenceDownloadNeedsConfirmation(selectedEvidence.detail.classification)
+    ) {
       setDownloadConfirmOpen(true);
     } else {
       window.open(href, "_blank", "noopener,noreferrer");
@@ -583,7 +719,11 @@ export function EvidenceDetailPanel({
         <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
           <div className="flex items-center justify-between gap-2">
             <p>{mutationError}</p>
-            <button type="button" className="shrink-0 font-medium underline" onClick={() => setMutationError(null)}>
+            <button
+              type="button"
+              className="shrink-0 font-medium underline"
+              onClick={() => setMutationError(null)}
+            >
               Dismiss
             </button>
           </div>
@@ -611,17 +751,28 @@ export function EvidenceDetailPanel({
       </WorkspaceCard>
 
       <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <EvidenceTabs selectedEvidence={selectedEvidence} selectedTab={selectedTab} onTabChange={onTabChange} />
+        <EvidenceTabs
+          selectedEvidence={selectedEvidence}
+          selectedTab={selectedTab}
+          onTabChange={onTabChange}
+        />
 
         <article className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-7">
-          <div role="tabpanel" id={`evidence-tabpanel-${selectedTab}`} aria-labelledby={`evidence-tab-${selectedTab}`}>
+          <div
+            role="tabpanel"
+            id={`evidence-tabpanel-${selectedTab}`}
+            aria-labelledby={`evidence-tab-${selectedTab}`}
+          >
             {selectedTab === "overview" && (
               <>
-                <h2 className="mb-6 text-lg font-semibold text-slate-950">File Preview</h2>
+                <h2 className="mb-6 text-lg font-semibold text-slate-950">
+                  File Preview
+                </h2>
                 {!isPlaceholder ? (
                   <EvidencePreviewToolbarActions
                     onOpenModal={() => setPreviewOpen(true)}
                     downloadHref={selectedEvidence.detail.downloadHref}
+                    previewPageHref={`/projects/${projectId}/evidence/${selectedEvidence.detail.id}/preview`}
                   />
                 ) : null}
                 <EvidenceFilePreview selectedEvidence={selectedEvidence} />
@@ -642,7 +793,10 @@ export function EvidenceDetailPanel({
                       key={item.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm"
                     >
-                      <Link href={item.href} className="min-w-0 font-medium text-blue-600 hover:underline">
+                      <Link
+                        href={item.href}
+                        className="min-w-0 font-medium text-blue-600 hover:underline"
+                      >
                         {item.label}
                       </Link>
                       <Button
@@ -651,7 +805,9 @@ export function EvidenceDetailPanel({
                         variant="outline"
                         className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
                         disabled={isPlaceholder}
-                        onClick={() => setUnlinkTarget({ id: item.id, label: item.label })}
+                        onClick={() =>
+                          setUnlinkTarget({ id: item.id, label: item.label })
+                        }
                       >
                         Unlink
                       </Button>
@@ -673,7 +829,10 @@ export function EvidenceDetailPanel({
                       key={item.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm"
                     >
-                      <Link href={item.href} className="min-w-0 font-medium text-blue-600 hover:underline">
+                      <Link
+                        href={item.href}
+                        className="min-w-0 font-medium text-blue-600 hover:underline"
+                      >
                         {item.label}
                       </Link>
                       <Button
@@ -682,7 +841,12 @@ export function EvidenceDetailPanel({
                         variant="outline"
                         className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
                         disabled={isPlaceholder}
-                        onClick={() => setUnlinkGateTarget({ id: item.id, label: item.label })}
+                        onClick={() =>
+                          setUnlinkGateTarget({
+                            id: item.id,
+                            label: item.label,
+                          })
+                        }
                       >
                         Unlink
                       </Button>
@@ -707,7 +871,10 @@ export function EvidenceDetailPanel({
                         key={item.id}
                         className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm"
                       >
-                        <Link href={item.href} className="min-w-0 font-medium text-blue-600 hover:underline">
+                        <Link
+                          href={item.href}
+                          className="min-w-0 font-medium text-blue-600 hover:underline"
+                        >
                           {item.label}
                         </Link>
                         <Button
@@ -717,7 +884,11 @@ export function EvidenceDetailPanel({
                           className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
                           disabled={isPlaceholder || phaseNumber == null}
                           onClick={() => {
-                            if (phaseNumber != null) setUnlinkPhaseTarget({ phaseNumber, label: item.label });
+                            if (phaseNumber != null)
+                              setUnlinkPhaseTarget({
+                                phaseNumber,
+                                label: item.label,
+                              });
                           }}
                         >
                           Unlink
@@ -737,14 +908,21 @@ export function EvidenceDetailPanel({
                   </li>
                 ) : (
                   selectedEvidence.history.map((item) => (
-                    <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-0 text-sm text-slate-700">
+                    <li
+                      key={item.id}
+                      className="rounded-lg border border-slate-200 bg-white p-0 text-sm text-slate-700"
+                    >
                       <button
                         type="button"
                         className="flex w-full flex-col items-start gap-1 rounded-lg px-3 py-3 text-left transition hover:bg-slate-50"
                         onClick={() => setHistoryDrawerEvent(item)}
                       >
-                        <span className="font-medium text-slate-900">{item.summaryLabel}</span>
-                        <span className="text-xs text-slate-500">{item.timestampLabel}</span>
+                        <span className="font-medium text-slate-900">
+                          {item.summaryLabel}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {item.timestampLabel}
+                        </span>
                       </button>
                     </li>
                   ))
@@ -789,7 +967,9 @@ export function EvidenceDetailPanel({
             evidenceId={evidenceId}
             selectedEvidence={selectedEvidence}
             linkableArtifacts={linkableArtifacts}
-            linkedArtifactIds={selectedEvidence.linkedArtifacts.map((x) => x.id)}
+            linkedArtifactIds={selectedEvidence.linkedArtifacts.map(
+              (x) => x.id,
+            )}
             onClose={() => setLinkArtifactOpen(false)}
           />
           <LinkEvidenceGateModal
@@ -819,7 +999,11 @@ export function EvidenceDetailPanel({
             evidenceName={selectedEvidence.detail.name}
             onClose={() => setShareOpen(false)}
           />
-          <ReplaceEvidenceFileModal open={replaceOpen} selectedEvidence={selectedEvidence} onClose={() => setReplaceOpen(false)} />
+          <ReplaceEvidenceFileModal
+            open={replaceOpen}
+            selectedEvidence={selectedEvidence}
+            onClose={() => setReplaceOpen(false)}
+          />
           <DownloadEvidenceConfirmModal
             open={downloadConfirmOpen}
             fileName={selectedEvidence.detail.name}

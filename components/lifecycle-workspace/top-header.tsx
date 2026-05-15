@@ -2,10 +2,9 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Bell, CircleHelp, Download, Settings } from "lucide-react";
+import { Bell, CircleHelp, Download, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
 
 import { NOTIFICATIONS_HUB_HREF } from "@/lib/notifications-hub";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { GlobalSearchField } from "@/components/lifecycle-workspace/global-search-field";
@@ -36,8 +35,17 @@ function SidebarToggle({ className }: { className?: string }) {
   );
 }
 
-function PageTitle({ children }: { children: ReactNode }) {
-  return <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">{children}</h1>;
+function PageTitle({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <h1
+      className={cn(
+        "truncate text-2xl font-semibold tracking-tight text-foreground",
+        className,
+      )}
+    >
+      {children}
+    </h1>
+  );
 }
 
 function Notifications({ count = 0, href }: { count?: number; href?: string | null }) {
@@ -234,12 +242,12 @@ export function TopHeader({
   const resolvedActionAriaLabel = actionButtonAriaLabel ?? resolvedActionLabel;
 
   return (
-    <header className="flex h-[var(--header-height)] min-h-[var(--header-height)] shrink-0 items-center justify-between gap-4 border-b bg-card px-6">
-      <div className="flex min-w-0 items-center gap-3">
-        <SidebarToggle />
-        <PageTitle>{title}</PageTitle>
+    <header className="flex h-[var(--header-height)] min-h-[var(--header-height)] shrink-0 items-start justify-between gap-4 border-b bg-card pt-[var(--header-content-top)] pl-0 pr-6">
+      <div className="flex min-w-0 items-start pl-[var(--header-toggle-from-sidebar)]">
+        <SidebarToggle className="shrink-0" />
+        <PageTitle className="ml-[var(--header-title-margin-after-toggle)]">{title}</PageTitle>
       </div>
-      <div className="flex min-w-0 shrink-0 items-center gap-4">
+      <div className="flex min-w-0 shrink-0 items-start gap-4">
         {autosaveLabel ? (
           <p className="hidden text-sm text-muted-foreground lg:block" role="status" aria-live="polite">
             {autosaveLabel}

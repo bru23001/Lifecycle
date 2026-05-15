@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 
+/** Extra dev hostnames (comma-separated), e.g. `192.168.1.10,myhost` when you open the app by IP or custom DNS. */
+const extraAllowedDevOrigins =
+  process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
+    .map((s) => s.trim())
+    .filter(Boolean) ?? [];
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -21,8 +27,16 @@ const nextConfig: NextConfig = {
     ];
   },
   transpilePackages: ["mermaid"],
-  // Permit local-origin dev hosts (IDE webviews/proxies) to load `/_next/*` assets.
-  allowedDevOrigins: ["localhost", "127.0.0.1", "*.localhost"],
+  // Next.js 15+ returns 400 for `/_next/static/*` when Origin/Referer host is not allowlisted (dev only).
+  // Covers loopback, *.localhost, Bonjour *.local, and optional NEXT_ALLOWED_DEV_ORIGINS for LAN IPs / proxies.
+  allowedDevOrigins: [
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
+    "*.localhost",
+    "*.local",
+    ...extraAllowedDevOrigins,
+  ],
 };
 
 export default nextConfig;

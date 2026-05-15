@@ -7,12 +7,13 @@ import { ErrorBanner } from "@/components/settings/shared";
 import type {
   ExportSettings,
   GateRuleSetting,
+  LifecycleConfigurationBlock,
   LocalStorageSettings,
   RolePermissionEntry,
-  TemplateRegistryItem,
+  RolePermissionSetting,
   SettingsPageData,
   SettingsQuickAction,
-  SettingsSectionId,
+  TemplateRegistryItem,
 } from "@/types/settings.types";
 
 export function SettingsContent({
@@ -28,22 +29,22 @@ export function SettingsContent({
   isSaving,
   blockers,
   onRetryError,
-  onSectionChange,
-  onAddPhase,
-  onEditPhase,
+  onPatchLifecycle,
   onCreateTemplate,
   onCreateRule,
   onCreateRole,
-  onTestExport,
   onUpdateExportSettings,
   onUpdateLocalStorageSettings,
-  onChangeLocalStoragePath,
   onEditTemplate,
+  onPatchTemplateRegistry,
   onEditGateRule,
   onEditRolePermission,
+  onUpdateRole,
+  onPatchRoles,
   onQuickAction,
   onReset,
   onSave,
+  navigationGuard,
 }: {
   data: SettingsPageData;
   activeSectionLabel: string;
@@ -57,17 +58,14 @@ export function SettingsContent({
   isSaving: boolean;
   blockers: string[];
   onRetryError: () => void;
-  onSectionChange: (section: SettingsSectionId, href: string) => void;
-  onAddPhase: () => void;
-  onEditPhase: (phaseId: string) => void;
+  onPatchLifecycle: (recipe: (c: LifecycleConfigurationBlock) => LifecycleConfigurationBlock) => void;
   onCreateTemplate: () => void;
   onCreateRule: () => void;
   onCreateRole: () => void;
-  onTestExport: () => void;
   onUpdateExportSettings: (nextValue: ExportSettings) => void;
   onUpdateLocalStorageSettings: (nextValue: LocalStorageSettings) => void;
-  onChangeLocalStoragePath: (key: keyof LocalStorageSettings["paths"]) => void;
   onEditTemplate: (templateId: string, updater: (item: TemplateRegistryItem) => TemplateRegistryItem) => void;
+  onPatchTemplateRegistry: (recipe: (items: TemplateRegistryItem[]) => TemplateRegistryItem[]) => void;
   onEditGateRule: (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => void;
   onEditRolePermission: (
     roleId: string,
@@ -75,9 +73,15 @@ export function SettingsContent({
     action: keyof Omit<RolePermissionEntry, "module">,
     checked: boolean,
   ) => void;
+  onUpdateRole: (roleId: string, updater: (role: RolePermissionSetting) => RolePermissionSetting) => void;
+  onPatchRoles: (recipe: (roles: RolePermissionSetting[]) => RolePermissionSetting[]) => void;
   onQuickAction: (action: SettingsQuickAction) => void;
   onReset: () => void;
   onSave: () => void;
+  navigationGuard?: {
+    shouldBlock: () => boolean;
+    onBlockedNavigate: (href: string) => void;
+  };
 }) {
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--app-bg)]">
@@ -85,9 +89,10 @@ export function SettingsContent({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
-            { label: "Settings", href: "/settings" },
+            { label: "Settings", href: "/settings/lifecycle" },
             { label: activeSectionLabel },
           ]}
+          navGuard={navigationGuard}
         />
         {errorMessage ? <ErrorBanner message={errorMessage} onRetry={onRetryError} /> : null}
       </div>
@@ -100,19 +105,18 @@ export function SettingsContent({
           exportSettings={exportSettings}
           localStorageSettings={localStorageSettings}
           localStoragePathError={localStoragePathError}
-          onSectionChange={onSectionChange}
-          onAddPhase={onAddPhase}
-          onEditPhase={onEditPhase}
+          onPatchLifecycle={onPatchLifecycle}
           onCreateTemplate={onCreateTemplate}
           onCreateRule={onCreateRule}
           onCreateRole={onCreateRole}
-          onTestExport={onTestExport}
           onUpdateExportSettings={onUpdateExportSettings}
           onUpdateLocalStorageSettings={onUpdateLocalStorageSettings}
-          onChangeLocalStoragePath={onChangeLocalStoragePath}
           onEditTemplate={onEditTemplate}
+          onPatchTemplateRegistry={onPatchTemplateRegistry}
           onEditGateRule={onEditGateRule}
           onEditRolePermission={onEditRolePermission}
+          onUpdateRole={onUpdateRole}
+          onPatchRoles={onPatchRoles}
           onQuickAction={onQuickAction}
         />
       </div>
@@ -126,6 +130,7 @@ export function SettingsContent({
         isSaving={isSaving}
         onSave={onSave}
         onReset={onReset}
+        navGuard={navigationGuard}
       />
     </main>
   );

@@ -501,7 +501,7 @@ export async function getDashboardData(): Promise<DashboardData> {
             message:
               "Platform configuration needs attention — review lifecycle phases, template registry, or gate rules before teams rely on them.",
             ctaLabel: "Open settings",
-            ctaHref: "/settings",
+            ctaHref: "/settings/lifecycle",
           }
         : hasProjects
           ? DEFAULT_DASHBOARD_TIP

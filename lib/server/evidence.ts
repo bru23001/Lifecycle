@@ -4,6 +4,11 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { clampWorkspacePhase, gateHeaderDisplayName } from "@/lib/workspacePhases";
+import {
+  getGateVisualState,
+  indexLatestGateDecisions,
+  type GateDecisionRow,
+} from "@/lib/gateStatus";
 import { getAllTemplates, getTemplate, getTemplatesForGate } from "@/templates/registry";
 import type {
   EvidenceCenterData,
@@ -21,7 +26,7 @@ import { evidenceLinkedToPhase } from "@/lib/evidence-phase-links";
 import { ALL_GATES, formatDateTimeLabel, projectDisplayCode } from "@/lib/server/helpers";
 import { phaseCompletionImpact } from "@/lib/server/phase-evidence-traceability";
 import { resolveProjectIdFromRouteParam } from "@/lib/server/project-resolve";
-import type { CoverageStatus } from "@/types/traceability.types";
+import type { CoverageStatus, GateTraceStatus } from "@/types/traceability.types";
 
 function phaseLinkStatus(linked: number, total: number): CoverageStatus {
   if (total <= 0) return "complete";
@@ -29,6 +34,34 @@ function phaseLinkStatus(linked: number, total: number): CoverageStatus {
   if (capped >= total) return "complete";
   if (capped <= 0) return "missing";
   return "partial";
+}
+
+function mapLatestDecisionToGateStatus(
+  latest: GateDecisionRow | undefined,
+  visual: ReturnType<typeof getGateVisualState>,
+): GateTraceStatus {
+  if (latest) {
+    if (latest.decision === "Accepted" || latest.decision === "Conditional") {
+      return latest.evidencePassSnapshot ? "approved" : "pending_decision";
+    }
+    if (latest.decision === "Rejected") return "rejected";
+    if (latest.decision === "Returned" || latest.decision === "Deferred") {
+      return "changes_requested";
+    }
+  }
+  if (visual === "upcoming") return "not_reached";
+  if (visual === "ready") return "not_submitted";
+  return "approved";
+}
+
+function buildDecisionSummary(latest: GateDecisionRow | undefined): string {
+  if (!latest) {
+    return "No decision recorded for this gate.";
+  }
+  const snapshot = latest.evidencePassSnapshot
+    ? "evidence checks passed"
+    : "evidence checks not fully passed";
+  return `${latest.decision} · ${snapshot} (${formatDateTimeLabel(latest.createdAt)})`;
 }
 
 const PHASE_NAMES: Record<number, string> = {
@@ -304,6 +337,15 @@ export async function loadEvidenceCenterData(
         },
       },
       artifacts: true,
+      gateDecisions: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          gateId: true,
+          decision: true,
+          evidencePassSnapshot: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -329,6 +371,14 @@ export async function loadEvidenceCenterData(
   const projectId = project.id;
   const proj = project;
   const code = projectDisplayCode(proj.vaultFolder, proj.slug);
+  const currentPhase = clampWorkspacePhase(proj.currentPhase);
+  const gateDecisionRows: GateDecisionRow[] = proj.gateDecisions.map((d) => ({
+    gateId: d.gateId,
+    decision: d.decision,
+    evidencePassSnapshot: d.evidencePassSnapshot,
+    createdAt: d.createdAt,
+  }));
+  const latestByGate = indexLatestGateDecisions(gateDecisionRows);
 
   const evidenceItems: EvidenceItem[] = proj.evidenceItems.map((e) => ({
     id: e.id,
@@ -536,9 +586,15 @@ export async function loadEvidenceCenterData(
     const requiredEvidence = Math.max(templates.length, 1);
     const linked = proj.evidenceItems.filter((e) => evidenceLinkedToGate(e, g)).length;
     const coveragePercent = Math.min(100, Math.round((linked / requiredEvidence) * 100));
+    const missingCount = Math.max(0, requiredEvidence - linked);
+    const linkStatus = phaseLinkStatus(linked, requiredEvidence);
+    const visual = getGateVisualState(currentPhase, g, latestByGate);
+    const latest = latestByGate.get(g);
+    const gateStatus = mapLatestDecisionToGateStatus(latest, visual);
+    const decisionSummary = buildDecisionSummary(latest);
     let status: EvidenceCenterData["evidenceByGate"][0]["status"] = "not_started";
-    if (coveragePercent >= 100) status = "complete";
-    else if (coveragePercent > 0) status = "partial";
+    if (linkStatus === "complete") status = "complete";
+    else if (linkStatus === "partial") status = "partial";
     else status = "missing";
 
     return {
@@ -547,14 +603,20 @@ export async function loadEvidenceCenterData(
       gateName: gateHeaderDisplayName(g),
       evidenceLinked: linked,
       requiredEvidence,
+      missingCount,
       coveragePercent,
+      linkStatus,
+      gateStatus,
+      decisionSummary,
       status,
+      detailHref: `/projects/${projectId}/traceability/gate-evidence/${g.toLowerCase()}`,
+      addEvidenceHref: `/projects/${projectId}/evidence?gate=${encodeURIComponent(g)}`,
       href: `/projects/${projectId}/gates/${g.toLowerCase()}/review`,
     };
   });
 
   const allT = getAllTemplates();
-  const phaseCursor = clampWorkspacePhase(proj.currentPhase);
+  const phaseCursor = currentPhase;
   const evidenceByPhaseFixed = Array.from({ length: 14 }, (_, i) => {
     const phaseNumber = i + 1;
     const templatesForPhase = allT.filter((t) => t.phase === phaseNumber);

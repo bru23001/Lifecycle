@@ -12,7 +12,7 @@ function ProjectStatusBadge({ status }: { status: DashboardProjectSnapshot["stat
   };
 
   return (
-    <span className={["inline-flex rounded-full px-5 py-2 text-sm font-semibold", statusClasses[status]].join(" ")}>
+    <span className={["inline-flex rounded-full px-3 py-1 text-xs font-semibold", statusClasses[status]].join(" ")}>
       {status}
     </span>
   );
@@ -24,37 +24,42 @@ export function ProjectsSnapshot({
   projectSnapshots: DashboardProjectSnapshot[];
 }) {
   return (
-    <article className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
-      <header className="mb-9 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Projects Snapshot</h2>
-        <Link href="/projects" className="text-base font-semibold text-blue-600 hover:text-blue-700">
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
+      <header className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">Projects Snapshot</h2>
+        <Link href="/projects" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
           View all projects
         </Link>
       </header>
 
-      <div className="overflow-x-auto pb-1">
-        <table className="w-full min-w-[820px] border-collapse text-left">
+      <div className="lifecycle-scroll-on-demand min-h-0 flex-1 overflow-auto pb-1">
+        <table className="w-full min-w-[620px] border-collapse text-left">
           <thead>
-            <tr className="text-base font-semibold text-slate-500 dark:text-slate-300">
-              <th className="pb-5">Project</th>
-              <th className="pb-5">Phase</th>
-              <th className="pb-5">Gate</th>
-              <th className="pb-5">Audit</th>
-              <th className="pb-5">Status</th>
+            <tr className="text-sm font-semibold text-slate-500 dark:text-slate-300">
+              <th className="pb-3">Project</th>
+              <th className="pb-3">Phase</th>
+              <th className="pb-3">Gate</th>
+              <th className="pb-3">Audit</th>
+              <th className="pb-3">Status</th>
             </tr>
           </thead>
 
           <tbody>
-            {projectSnapshots.map((project) => (
-              <tr key={project.projectId ?? project.name} className="border-t border-slate-100 text-base">
-                <td className="py-6 font-semibold text-slate-950 dark:text-slate-100">
+            {projectSnapshots.map((project, index) => (
+              <tr
+                key={project.projectId ?? project.name}
+                className={["text-sm", index !== 0 ? "border-t border-slate-100" : ""].join(" ")}
+              >
+                <td className="py-3 font-semibold text-slate-950 dark:text-slate-100">
                   {project.projectId ? (
-                    <Link href={`/projects/${project.projectId}`}>{project.name}</Link>
+                    <Link href={`/projects/${project.projectId}`} className="line-clamp-1">
+                      {project.name}
+                    </Link>
                   ) : (
                     project.name
                   )}
                 </td>
-                <td className="py-6 text-slate-700 dark:text-slate-300">
+                <td className="py-3 text-slate-700 dark:text-slate-300">
                   {project.projectId ? (
                     <Link
                       href={`/projects/${project.projectId}/workspace?phase=${project.phase}`}
@@ -66,8 +71,8 @@ export function ProjectsSnapshot({
                     `${project.phase}/${WORKSPACE_PHASE_MAX}`
                   )}
                 </td>
-                <td className="py-6 text-slate-700 dark:text-slate-300">{project.gate}</td>
-                <td className="py-6 text-slate-700 dark:text-slate-300">
+                <td className="py-3 text-slate-700 dark:text-slate-300">{project.gate}</td>
+                <td className="py-3 text-slate-700 dark:text-slate-300">
                   {project.projectId ? (
                     <Link
                       href={projectAuditTrailListHref(project.projectId)}
@@ -80,7 +85,7 @@ export function ProjectsSnapshot({
                     `${project.auditEventCount} events`
                   )}
                 </td>
-                <td className="py-6">
+                <td className="py-3">
                   <ProjectStatusBadge status={project.status} />
                 </td>
               </tr>

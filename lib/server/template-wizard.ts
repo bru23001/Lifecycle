@@ -9,6 +9,7 @@ import { getAllTemplates, getTemplate, templateRegistry } from "@/templates/regi
 import type { AnyLifecycleTemplate, TemplateField } from "@/templates/types";
 import { toJsonEvidence } from "@/templates/renderJsonEvidence";
 import { toMarkdown } from "@/templates/renderMarkdown";
+import { getFieldGuide } from "@/lib/server/template-wizard-field-guides";
 import type {
   ArtifactSaveState,
   DynamicField,
@@ -62,12 +63,25 @@ export function resolveRegistryTemplateId(routeSegment: string): string | null {
   return null;
 }
 
+function mergeGuide(
+  base: DynamicField["helpPopover"],
+  guide: ReturnType<typeof getFieldGuide>,
+): DynamicField["helpPopover"] {
+  if (!guide) return base;
+  return {
+    ...(base ?? {}),
+    ...guide,
+  };
+}
+
 function mapRegistryFieldToDynamic(
+  templateId: string,
   sectionId: string,
   field: TemplateField,
   nav: TemplateWizardNavContext,
 ): DynamicField {
   const workspaceHref = `/projects/${nav.projectId}/workspace?phase=${nav.workspacePhase}`;
+  const guide = getFieldGuide(templateId, field.name);
 
   if (field.type === "repeater") {
     const hint = `Structured repeater rows are captured in the workspace (${workspaceHref}).`;
@@ -81,11 +95,15 @@ function mapRegistryFieldToDynamic(
       placeholder: field.description,
       helpText: [field.description, hint].filter(Boolean).join(" "),
       expandable: true,
-      helpPopover: {
-        purpose: field.description,
-        expectedInput: "Structured rows are managed in the workspace; this draft accepts free-form notes.",
-        evidenceExpectation: hint,
-      },
+      helpPopover: mergeGuide(
+        {
+          purpose: field.description,
+          expectedInput:
+            "Structured rows are managed in the workspace; this draft accepts free-form notes.",
+          evidenceExpectation: hint,
+        },
+        guide,
+      ),
     };
   }
   if (field.type === "refPicker") {
@@ -100,11 +118,14 @@ function mapRegistryFieldToDynamic(
       placeholder: field.placeholder,
       helpText: [field.description, hint].filter(Boolean).join(" "),
       expandable: true,
-      helpPopover: {
-        purpose: field.description,
-        expectedInput: "Paste one reference id per line.",
-        evidenceExpectation: hint,
-      },
+      helpPopover: mergeGuide(
+        {
+          purpose: field.description,
+          expectedInput: "Paste one reference id per line.",
+          evidenceExpectation: hint,
+        },
+        guide,
+      ),
     };
   }
   if (field.type === "tags") {
@@ -117,15 +138,18 @@ function mapRegistryFieldToDynamic(
       placeholder: field.placeholder,
       helpText: "Comma-separated tags.",
       expandable: true,
-      helpPopover: {
-        purpose: field.description,
-        expectedInput: "Comma-separated tags. Lowercase, hyphenated.",
-        exampleValue: "security, performance, ux",
-      },
+      helpPopover: mergeGuide(
+        {
+          purpose: field.description,
+          expectedInput: "Comma-separated tags. Lowercase, hyphenated.",
+          exampleValue: "security, performance, ux",
+        },
+        guide,
+      ),
     };
   }
 
-  const helpPopover = buildHelpPopover(field);
+  const helpPopover = mergeGuide(buildHelpPopover(field), guide);
   const base = {
     id: `${sectionId}-${field.name}`,
     name: field.name,
@@ -217,7 +241,9 @@ export function buildWizardSectionsFromTemplate(
     required: true,
     optional: false,
     status: "not_started" as const,
-    fields: section.fields.map((f) => mapRegistryFieldToDynamic(section.id, f, nav)),
+    fields: section.fields.map((f) =>
+      mapRegistryFieldToDynamic(template.templateId, section.id, f, nav),
+    ),
   }));
 }
 

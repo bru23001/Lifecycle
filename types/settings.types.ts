@@ -22,6 +22,15 @@ export type SettingsSystemNavItem = {
   href: string;
 };
 
+export type LifecyclePhaseExtended = {
+  entryCriteria: string;
+  exitCriteria: string;
+  requiredEvidenceCount: number;
+  relatedGateCode: string;
+  requiredTemplateIds: string[];
+  transitionRulesSummary: string;
+};
+
 export type LifecyclePhaseSetting = {
   id: string;
   phaseNumber: number;
@@ -32,6 +41,59 @@ export type LifecyclePhaseSetting = {
   status: "active" | "inactive" | "draft";
   canEdit: boolean;
   canReorder: boolean;
+  extended: LifecyclePhaseExtended;
+};
+
+export type LifecycleMilestone = {
+  id: string;
+  name: string;
+  phaseNumber: number;
+  description: string;
+  completionCriteria: string;
+  requiredArtifactIds: string[];
+  requiredEvidenceCount: number;
+};
+
+export type LifecycleTransitionRule = {
+  id: string;
+  fromPhaseNumber: number;
+  toPhaseNumber: number;
+  triggerCondition: string;
+  requiredGateCode: string;
+  requiredArtifactIds: string[];
+  requiredEvidenceCount: number;
+  blockingConditions: string;
+};
+
+export type LifecycleConfigurationBlock = {
+  phases: LifecyclePhaseSetting[];
+  totalPhases: number;
+  totalGates: number;
+  totalArtifacts: number;
+  activeTemplates: number;
+  lastUpdatedLabel: string;
+  /** When false, structural edits require unlock flow first. */
+  configurationEditUnlocked: boolean;
+  milestones: LifecycleMilestone[];
+  transitionRules: LifecycleTransitionRule[];
+};
+
+export type TemplateVersionEntry = {
+  id: string;
+  author: string;
+  timestampLabel: string;
+  changeSummary: string;
+  schemaSnapshot: string;
+};
+
+export type TemplateRegistryDetail = {
+  sectionDefinitions: string;
+  fieldDefinitions: string;
+  validationRules: string;
+  markdownRendererSettings: string;
+  jsonEvidenceSettings: string;
+  usageSummaryLabel: string;
+  versionHistory: TemplateVersionEntry[];
 };
 
 export type TemplateRegistryItem = {
@@ -47,6 +109,16 @@ export type TemplateRegistryItem = {
   canEdit: boolean;
   canClone: boolean;
   canArchive: boolean;
+  detail: TemplateRegistryDetail;
+};
+
+export type GateRuleExtendedDetail = {
+  readinessRuleSummary: string;
+  decisionCriteriaNotes: string;
+  approverPolicyNotes: string;
+  escalationNotes: string;
+  dueDatePolicyNotes: string;
+  usageSummaryLabel: string;
 };
 
 export type GateRuleSetting = {
@@ -60,6 +132,7 @@ export type GateRuleSetting = {
   decisionRule: "single_approver" | "majority" | "unanimous" | "role_based";
   unlocksPhaseNumber?: number;
   status: "active" | "draft" | "inactive";
+  detail: GateRuleExtendedDetail;
 };
 
 export type PermissionModule =
@@ -85,6 +158,15 @@ export type RolePermissionEntry = {
   admin: boolean;
 };
 
+/** Persisted under `settings_roles_ext` (by `roleId`). */
+export type RoleExtendedDetail = {
+  assignedUsersRaw: string;
+  assignmentNotes: string;
+  auditHistoryNotes: string;
+  relatedApprovalsNotes: string;
+  exportPermissionsNotes: string;
+};
+
 export type RolePermissionSetting = {
   roleId: string;
   roleName: string;
@@ -92,6 +174,22 @@ export type RolePermissionSetting = {
   permissions: RolePermissionEntry[];
   assignedUsersCount: number;
   systemRole: boolean;
+  detail: RoleExtendedDetail;
+};
+
+/** Granular export redaction toggles (edited via Redaction Rules drawer). */
+export type ExportRedactionRules = {
+  restrictApiKeys: boolean;
+  restrictInternalUrls: boolean;
+  restrictFinancialCodes: boolean;
+  piiEmails: boolean;
+  piiPhones: boolean;
+  piiNames: boolean;
+  evidenceUploaderIdentity: boolean;
+  evidenceLocationHints: boolean;
+  evidenceDeviceFingerprints: boolean;
+  exportStripWikiMarkup: boolean;
+  exportCollapseTimestamps: boolean;
 };
 
 export type ExportSettings = {
@@ -118,6 +216,7 @@ export type ExportSettings = {
     projectCodePrefix: boolean;
     versionSuffix: boolean;
   };
+  redactionRules: ExportRedactionRules;
 };
 
 export type LocalStorageSettings = {
@@ -145,6 +244,9 @@ export type LocalStorageSettings = {
     backupLocation?: string;
     syncEnabled: boolean;
     lastBackupLabel?: string;
+    backupFrequency: "daily" | "weekly" | "monthly";
+    includeEvidenceFiles: boolean;
+    includeAuditSnapshots: boolean;
   };
 };
 
@@ -209,14 +311,7 @@ export type SettingsPageData = {
   activeSection: SettingsSectionId;
   navigationItems: SettingsNavItem[];
   systemNavigationItems: SettingsSystemNavItem[];
-  lifecycleConfiguration: {
-    phases: LifecyclePhaseSetting[];
-    totalPhases: number;
-    totalGates: number;
-    totalArtifacts: number;
-    activeTemplates: number;
-    lastUpdatedLabel: string;
-  };
+  lifecycleConfiguration: LifecycleConfigurationBlock;
   templateRegistry: TemplateRegistryItem[];
   gateRules: GateRuleSetting[];
   rolesPermissions: RolePermissionSetting[];

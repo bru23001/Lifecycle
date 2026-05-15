@@ -27,6 +27,7 @@ export function FieldHelpPopover({
     content?.purpose ||
       content?.expectedInput ||
       content?.exampleValue ||
+      content?.avoidExample ||
       content?.validationRule ||
       content?.evidenceExpectation ||
       helpText,
@@ -103,10 +104,17 @@ export function FieldHelpPopover({
               <HelpRow label="Expected input">{content.expectedInput}</HelpRow>
             ) : null}
             {content?.exampleValue ? (
-              <HelpRow label="Example value">
-                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              <HelpRow label="Good example">
+                <span className="block rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
                   {content.exampleValue}
-                </code>
+                </span>
+              </HelpRow>
+            ) : null}
+            {content?.avoidExample ? (
+              <HelpRow label="Avoid">
+                <span className="block rounded bg-rose-50 px-2 py-1 text-xs text-rose-900 dark:bg-rose-950/40 dark:text-rose-100">
+                  {content.avoidExample}
+                </span>
               </HelpRow>
             ) : null}
             {content?.validationRule ? (

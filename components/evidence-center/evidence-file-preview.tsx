@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -31,7 +32,10 @@ function PdfPreviewFrame({
   const [zoomPct, setZoomPct] = useState(100);
   const [rotationDeg, setRotationDeg] = useState(0);
 
-  const clampZoom = useCallback((n: number) => Math.min(175, Math.max(50, n)), []);
+  const clampZoom = useCallback(
+    (n: number) => Math.min(175, Math.max(50, n)),
+    [],
+  );
 
   const zoomOut = () => setZoomPct((z) => clampZoom(z - 15));
   const zoomIn = () => setZoomPct((z) => clampZoom(z + 15));
@@ -44,14 +48,21 @@ function PdfPreviewFrame({
   const rotate = () => setRotationDeg((r) => (r + 90) % 360);
 
   const pageTitle =
-    page === 1 ? "1. Executive Summary" : page === 2 ? "2. Market landscape" : "3. Recommendations";
+    page === 1
+      ? "1. Executive Summary"
+      : page === 2
+        ? "2. Market landscape"
+        : "3. Recommendations";
 
   const pageBody =
     page === 1 ? (
       <>
-        <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">{pageTitle}</h3>
+        <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">
+          {pageTitle}
+        </h3>
         <p className="mt-3 text-sm text-slate-700 min-[640px]:mt-5 min-[640px]:text-base">
-          This report provides an overview of the current market landscape for identity management solutions.
+          This report provides an overview of the current market landscape for
+          identity management solutions.
         </p>
         <table className="mt-6 w-full max-w-[760px] text-left text-xs min-[640px]:mt-8 min-[640px]:text-sm">
           <thead>
@@ -80,18 +91,22 @@ function PdfPreviewFrame({
       </>
     ) : page === 2 ? (
       <>
-        <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">{pageTitle}</h3>
+        <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">
+          {pageTitle}
+        </h3>
         <p className="mt-3 text-sm text-slate-700 min-[640px]:mt-5 min-[640px]:text-base">
-          Vendors continue to converge on standards-based authentication while differentiating on deployment models and
-          vertical integrations.
+          Vendors continue to converge on standards-based authentication while
+          differentiating on deployment models and vertical integrations.
         </p>
       </>
     ) : (
       <>
-        <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">{pageTitle}</h3>
+        <h3 className="mt-6 text-base font-bold text-slate-950 min-[640px]:mt-10 min-[640px]:text-lg">
+          {pageTitle}
+        </h3>
         <p className="mt-3 text-sm text-slate-700 min-[640px]:mt-5 min-[640px]:text-base">
-          Shortlist two vendors for pilot, validate SOC 2 controls, and align procurement with gate evidence
-          requirements before the next review.
+          Shortlist two vendors for pilot, validate SOC 2 controls, and align
+          procurement with gate evidence requirements before the next review.
         </p>
       </>
     );
@@ -120,7 +135,9 @@ function PdfPreviewFrame({
               className="rounded p-1 hover:bg-slate-700 disabled:opacity-40"
               aria-label="Next page"
               disabled={!interactive || page >= PDF_PAGE_COUNT}
-              onClick={() => interactive && setPage((p) => Math.min(PDF_PAGE_COUNT, p + 1))}
+              onClick={() =>
+                interactive && setPage((p) => Math.min(PDF_PAGE_COUNT, p + 1))
+              }
             >
               <ChevronRight className="h-5 w-5" aria-hidden />
             </button>
@@ -155,7 +172,9 @@ function PdfPreviewFrame({
               disabled={!interactive}
               onClick={() => interactive && resetView()}
             >
-              <span className="px-1 text-[10px] font-semibold uppercase">Reset</span>
+              <span className="px-1 text-[10px] font-semibold uppercase">
+                Reset
+              </span>
             </button>
             <button
               type="button"
@@ -170,13 +189,28 @@ function PdfPreviewFrame({
         </div>
 
         <div className="flex shrink-0 items-center gap-3 min-[480px]:gap-5">
-          <button type="button" className="rounded p-1 opacity-50" aria-label="Download" disabled>
+          <button
+            type="button"
+            className="rounded p-1 opacity-50"
+            aria-label="Download"
+            disabled
+          >
             <Download className="h-5 w-5" aria-hidden />
           </button>
-          <button type="button" className="hidden rounded p-1 opacity-50 sm:block" aria-label="Print" disabled>
+          <button
+            type="button"
+            className="hidden rounded p-1 opacity-50 sm:block"
+            aria-label="Print"
+            disabled
+          >
             <Printer className="h-5 w-5" aria-hidden />
           </button>
-          <button type="button" className="rounded p-1 opacity-50" aria-label="More preview actions" disabled>
+          <button
+            type="button"
+            className="rounded p-1 opacity-50"
+            aria-label="More preview actions"
+            disabled
+          >
             <MoreVertical className="h-6 w-6" aria-hidden />
           </button>
         </div>
@@ -190,7 +224,9 @@ function PdfPreviewFrame({
               transform: `scale(${zoomPct / 100}) rotate(${rotationDeg}deg)`,
             }}
           >
-            <h2 className="text-xl font-bold text-slate-950 min-[640px]:text-3xl">{title}</h2>
+            <h2 className="text-xl font-bold text-slate-950 min-[640px]:text-3xl">
+              {title}
+            </h2>
             <p className="mt-4 text-lg font-semibold text-slate-800 min-[640px]:mt-5 min-[640px]:text-2xl">
               Identity Management Solutions
             </p>
@@ -215,7 +251,12 @@ export function EvidenceFilePreview({
   interactivePdf?: boolean;
 }) {
   if (selectedEvidence.detail.evidenceType === "pdf") {
-    return <PdfPreviewFrame title={selectedEvidence.detail.name} interactive={interactivePdf} />;
+    return (
+      <PdfPreviewFrame
+        title={selectedEvidence.detail.name}
+        interactive={interactivePdf}
+      />
+    );
   }
 
   return (
@@ -224,7 +265,10 @@ export function EvidenceFilePreview({
       {selectedEvidence.detail.downloadHref ? (
         <a
           href={selectedEvidence.detail.downloadHref}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 inline-flex")}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "mt-3 inline-flex",
+          )}
         >
           Download File
         </a>
@@ -236,9 +280,12 @@ export function EvidenceFilePreview({
 export function EvidencePreviewToolbarActions({
   onOpenModal,
   downloadHref,
+  previewPageHref,
 }: {
   onOpenModal?: () => void;
   downloadHref?: string;
+  /** Shareable full-page preview route. */
+  previewPageHref?: string;
 }): ReactNode {
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -247,8 +294,27 @@ export function EvidencePreviewToolbarActions({
           Expand preview
         </Button>
       ) : null}
+      {previewPageHref ? (
+        <Link
+          href={previewPageHref}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex",
+          )}
+        >
+          Open preview page
+        </Link>
+      ) : null}
       {downloadHref ? (
-        <a href={downloadHref} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex")}>
+        <a
+          href={downloadHref}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex",
+          )}
+        >
           Open in new tab
         </a>
       ) : null}

@@ -37,7 +37,10 @@ export type AppSidebarActive =
   | "approvals"
   | "notifications"
   | "reports"
-  | "settings";
+  /** `/settings/lifecycle` and other settings areas except the template registry. */
+  | "settings"
+  /** `/settings/templates` and related template admin routes. */
+  | "template_registry";
 
 type AppSidebarItem = {
   label: string;
@@ -152,7 +155,15 @@ export function AppSidebar({
       icon: BarChart3,
       active: active === "reports",
     },
-    { label: "Settings", href: "/settings", icon: Settings, active: active === "settings" },
+    {
+      label: "Template Registry",
+      href: hasProject
+        ? `/settings/templates?projectId=${encodeURIComponent(String(projectId))}`
+        : "/settings/templates",
+      icon: FileText,
+      active: active === "template_registry",
+    },
+    { label: "Settings", href: "/settings/lifecycle", icon: Settings, active: active === "settings" },
   ];
 
   return (
@@ -164,41 +175,45 @@ export function AppSidebar({
         className,
       )}
     >
-      <div className="flex h-[152px] items-center gap-2.5 border-b border-white/10 px-[18px]">
-        <div className={cn("relative overflow-hidden", collapsed ? "h-16 w-16" : "h-[72px] w-full")}>
+      <div className="flex h-[var(--sidebar-logo-height)] shrink-0 items-center border-b border-white/10 px-0">
+        <div className="relative h-full w-full overflow-hidden">
           <Image
             src={collapsed ? lifecycleLogoCollapsed : lifecycleLogo}
             alt="Lifecycle Platform"
             fill
-            sizes={collapsed ? "64px" : "360px"}
+            sizes={collapsed ? "69px" : "213px"}
             className="object-contain object-left"
             priority
           />
         </div>
       </div>
 
-      <nav className="flex-1 space-y-[3px] overflow-y-auto px-3 py-[18px]" aria-label="Primary navigation">
-        {navItems.map(({ label, href, icon: Icon, active: itemActive }) => (
-          <Link
-            key={label}
-            href={href}
-            aria-current={itemActive ? "page" : undefined}
-            title={collapsed ? label : undefined}
-            className={cn(
-              "flex h-[37px] items-center gap-3 rounded-[7px] px-3 text-[12px] font-medium transition",
-              itemActive
-                ? "bg-[#2563eb] text-white shadow-[0_10px_22px_rgba(37,99,235,0.22)]"
-                : "text-slate-300 hover:bg-white/10 hover:text-white",
-              collapsed && "justify-center px-2",
-            )}
-          >
-            <Icon className="size-[14px] shrink-0" aria-hidden />
-            {!collapsed ? <span className="truncate">{label}</span> : null}
-          </Link>
-        ))}
-      </nav>
+      <div className="flex h-[var(--sidebar-menu-height)] min-h-0 flex-col overflow-hidden">
+        <nav
+          className="min-h-0 flex-1 space-y-[3px] overflow-y-auto px-3 py-[18px]"
+          aria-label="Primary navigation"
+        >
+          {navItems.map(({ label, href, icon: Icon, active: itemActive }) => (
+            <Link
+              key={label}
+              href={href}
+              aria-current={itemActive ? "page" : undefined}
+              title={collapsed ? label : undefined}
+              className={cn(
+                "flex h-[37px] items-center gap-3 rounded-[7px] px-3 text-[12px] font-medium transition",
+                itemActive
+                  ? "bg-[#2563eb] text-white shadow-[0_10px_22px_rgba(37,99,235,0.22)]"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white",
+                collapsed && "justify-center px-2",
+              )}
+            >
+              <Icon className="size-[14px] shrink-0" aria-hidden />
+              {!collapsed ? <span className="truncate">{label}</span> : null}
+            </Link>
+          ))}
+        </nav>
 
-      <div className="px-4 pb-[18px]">
+        <div className="shrink-0 px-4 pb-[18px]">
         {!collapsed && hasProject && projectName ? (
           <div className="mb-3 rounded-[9px] border border-white/10 bg-[#0d1b2f] p-[11px]">
             <p className="text-[11px] font-medium text-slate-300">Continue Working</p>
@@ -248,6 +263,12 @@ export function AppSidebar({
                 Open current phase
               </Link>
             ) : null}
+            <Link
+              href={`/settings/templates?projectId=${encodeURIComponent(String(projectId))}`}
+              className="mt-2 block text-center text-[10px] font-semibold text-slate-300 underline-offset-2 hover:text-white hover:underline"
+            >
+              Open template registry
+            </Link>
           </div>
         ) : null}
 
@@ -267,6 +288,7 @@ export function AppSidebar({
           {collapsed ? <PanelLeftOpen className="size-[12px]" /> : <PanelLeftClose className="size-[12px]" />}
           {!collapsed ? <span>Collapse</span> : null}
         </Button>
+        </div>
       </div>
     </aside>
   );

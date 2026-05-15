@@ -2,14 +2,19 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { resolveProjectIdFromRouteParam } from "@/lib/server/project-resolve";
-import { projectDisplayCode } from "@/lib/server/helpers";
+import { isArtifactBodyApproved, projectDisplayCode } from "@/lib/server/helpers";
 import {
   clampWorkspacePhase,
   workspacePhaseMeta,
   workspacePhaseObjectives,
   workspacePhasePurpose,
 } from "@/lib/workspacePhases";
-import type { NextPhaseWorkspaceViewData } from "@/types/next-phase-workspace.types";
+import { getTemplatesForPhase } from "@/templates/registry";
+import type {
+  NextPhaseWorkspaceViewData,
+  RequiredTemplateStatus,
+  RequiredTemplateSummary,
+} from "@/types/next-phase-workspace.types";
 
 /**
  * Loads the “next phase workspace” surface for `/projects/[id]/workspace?phase=`.
@@ -41,7 +46,48 @@ export async function loadNextPhaseWorkspaceView(
   const purpose = workspacePhasePurpose(phaseNumber);
   const objectives = workspacePhaseObjectives(phaseNumber);
 
-  const templateIds = [...new Set(project.artifacts.map((a) => a.templateId))].slice(0, 24);
+  const phaseTemplates = getTemplatesForPhase(phaseNumber);
+
+  /**
+   * For each template registered to this phase, find the most recently
+   * updated artifact for THIS project (if any) and derive its display status.
+   * If none exists, the template is presented as "not started" so the user
+   * can click to start the wizard. This is what was broken before — the page
+   * used to show a help string instead of actionable templates.
+   */
+  const requiredTemplates: RequiredTemplateSummary[] = phaseTemplates.map((t) => {
+    const latest = project.artifacts.find((a) => a.templateId === t.templateId);
+    let status: RequiredTemplateStatus = "not_started";
+    let statusHint: string | undefined;
+    if (latest) {
+      if (isArtifactBodyApproved(latest.dataJson)) {
+        status = "approved";
+      } else if (
+        latest.status !== "Draft" &&
+        latest.status.toLowerCase().includes("review")
+      ) {
+        status = "in_review";
+      } else {
+        status = "in_progress";
+      }
+      statusHint = `v${latest.version} · saved ${latest.updatedAt
+        .toISOString()
+        .slice(0, 10)}`;
+    }
+    return {
+      templateId: t.templateId,
+      title: t.title,
+      gate: t.gate,
+      href: `/projects/${projectId}/templates/${encodeURIComponent(t.templateId)}`,
+      status,
+      statusHint,
+    };
+  });
+
+  const requiredTemplatesEmptyMessage =
+    requiredTemplates.length === 0
+      ? "No templates are registered for this phase yet. Open the Template Registry to add one."
+      : undefined;
 
   const carriedForwardArtifacts = project.artifacts.slice(0, 24).map((a) => ({
     id: a.id,
@@ -60,7 +106,8 @@ export async function loadNextPhaseWorkspaceView(
     phaseNumber,
     phaseTitle: meta.title,
     phasePurpose: purpose,
-    requiredTemplates: templateIds.length ? templateIds : ["No artifacts yet — register templates from the Template Registry."],
+    requiredTemplates,
+    requiredTemplatesEmptyMessage,
     evidenceExpectations: [
       "Link completion evidence to templates before requesting the next gate.",
       "Use the Evidence Center classification fields for every upload.",

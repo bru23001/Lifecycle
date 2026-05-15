@@ -99,7 +99,7 @@ export const SETTINGS_QUICK_ACTIONS: SettingsQuickAction[] = [
     label: "Documentation & Help",
     icon: "book-open",
     actionType: "open_docs",
-    href: "/docs/settings",
+    href: "/help/settings",
   },
 ];
 

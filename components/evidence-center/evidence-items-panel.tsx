@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ChevronDown,
   ChevronLeft,
@@ -26,14 +27,20 @@ import type {
   EvidencePhaseLinkOption,
 } from "@/types/evidence-center.types";
 
-import { AddEvidenceModal, type AddEvidenceLinkedArtifactOption } from "./add-evidence-modal";
+import {
+  AddEvidenceModal,
+  type AddEvidenceLinkedArtifactOption,
+} from "./add-evidence-modal";
 import { ArchiveEvidenceModal } from "./archive-evidence-modal";
 import { DeleteEvidenceModal } from "./delete-evidence-modal";
 import { EditEvidenceMetadataDrawer } from "./edit-evidence-metadata-drawer";
 import type { EvidenceFilters, EvidenceTab } from "./evidence-center-shared";
 import { EvidenceFiltersDrawer } from "./evidence-filters-drawer";
 import { EvidencePreviewModal } from "./evidence-preview-modal";
-import { LinkEvidenceArtifactModal, type ArtifactPick } from "./link-evidence-artifact-modal";
+import {
+  LinkEvidenceArtifactModal,
+  type ArtifactPick,
+} from "./link-evidence-artifact-modal";
 import { LinkEvidenceGateModal } from "./link-evidence-gate-modal";
 import { LinkEvidencePhaseModal } from "./link-evidence-phase-modal";
 
@@ -61,14 +68,33 @@ const PHASE_QUICK_OPTIONS = [
 
 const GATE_QUICK_OPTIONS = [
   { value: "all", label: "All Gates" },
-  ...["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"].map((g) => ({ value: g, label: g })),
+  ...["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"].map((g) => ({
+    value: g,
+    label: g,
+  })),
 ];
 
-type RowModalKind = "preview" | "edit" | "linkArt" | "linkGate" | "linkPhase" | "archive" | "delete";
+type RowModalKind =
+  | "preview"
+  | "edit"
+  | "linkArt"
+  | "linkGate"
+  | "linkPhase"
+  | "archive"
+  | "delete";
 type RowModalState = { kind: RowModalKind; evidenceId: string } | null;
 
-function CountBadge({ filteredCount, totalCount }: { filteredCount: number; totalCount: number }) {
-  const display = filteredCount === totalCount ? String(totalCount) : `${filteredCount} / ${totalCount}`;
+function CountBadge({
+  filteredCount,
+  totalCount,
+}: {
+  filteredCount: number;
+  totalCount: number;
+}) {
+  const display =
+    filteredCount === totalCount
+      ? String(totalCount)
+      : `${filteredCount} / ${totalCount}`;
   return (
     <span
       className="inline-flex h-8 min-w-12 items-center justify-center rounded-full bg-blue-50 px-3 text-sm font-semibold text-blue-700"
@@ -111,12 +137,17 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-700" aria-hidden />
+      <ChevronDown
+        className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-700"
+        aria-hidden
+      />
     </div>
   );
 }
 
-function fileToneForType(type: EvidenceItem["evidenceType"]): "red" | "green" | "blue" {
+function fileToneForType(
+  type: EvidenceItem["evidenceType"],
+): "red" | "green" | "blue" {
   if (type === "spreadsheet") return "green";
   if (type === "pdf" || type === "report") return "red";
   return "blue";
@@ -402,11 +433,11 @@ function EvidenceRow({
   const phaseLabel =
     item.phaseNumber != null && item.phaseName
       ? `Phase ${item.phaseNumber}: ${item.phaseName}`
-      : item.phaseName ?? "Phase —";
+      : (item.phaseName ?? "Phase —");
   const gateLabel =
     item.gateCode && item.gateName
       ? `Gate ${item.gateCode} - ${item.gateName}`
-      : item.gateCode ?? item.gateName ?? "Gate —";
+      : (item.gateCode ?? item.gateName ?? "Gate —");
   const tone = fileToneForType(item.evidenceType);
 
   return (
@@ -434,17 +465,25 @@ function EvidenceRow({
       </div>
 
       <div className="min-w-0">
-        <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-slate-950">{item.name}</h3>
+        <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-slate-950">
+          {item.name}
+        </h3>
 
-        <p className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-snug text-slate-600">{phaseLabel}</p>
+        <p className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-snug text-slate-600">
+          {phaseLabel}
+        </p>
 
-        <p className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-snug text-slate-600">{gateLabel}</p>
+        <p className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-snug text-slate-600">
+          {gateLabel}
+        </p>
 
         <p className="mt-1 line-clamp-1 text-[11px] font-medium text-slate-500">
           Uploaded by {item.uploadedBy}
         </p>
 
-        <p className="mt-0 line-clamp-1 text-[11px] font-semibold text-slate-600">{item.uploadedOnLabel}</p>
+        <p className="mt-0 line-clamp-1 text-[11px] font-semibold text-slate-600">
+          {item.uploadedOnLabel}
+        </p>
       </div>
 
       <div className="flex flex-col items-end justify-between gap-1">
@@ -455,7 +494,9 @@ function EvidenceRow({
             aria-label={`${exportSelected ? "Remove" : "Add"} ${item.name} from export selection`}
             className={cn(
               "rounded p-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-              exportSelected ? "text-amber-400" : "text-slate-400 hover:text-amber-400",
+              exportSelected
+                ? "text-amber-400"
+                : "text-slate-400 hover:text-amber-400",
             )}
             onClick={(event) => {
               event.stopPropagation();
@@ -465,7 +506,9 @@ function EvidenceRow({
             <Star
               className={cn(
                 "h-4 w-4 stroke-[1.75]",
-                exportSelected ? "fill-yellow-400 text-yellow-500" : "fill-none text-slate-400",
+                exportSelected
+                  ? "fill-yellow-400 text-yellow-500"
+                  : "fill-none text-slate-400",
               )}
               aria-hidden
             />
@@ -555,7 +598,10 @@ export function EvidenceItemsPanel({
   addEvidenceOpen: boolean;
   onOpenAddEvidence: () => void;
   onCloseAddEvidence: () => void;
-  onSelectEvidence: (evidenceId: string, opts?: { detailTab?: EvidenceTab }) => void;
+  onSelectEvidence: (
+    evidenceId: string,
+    opts?: { detailTab?: EvidenceTab },
+  ) => void;
   onToggleExportSelection: (evidenceId: string) => void;
   onFiltersChange: (filters: EvidenceFilters) => void;
   projectId: string;
@@ -571,28 +617,45 @@ export function EvidenceItemsPanel({
 
   const rowPack = rowModal ? evidencePackages[rowModal.evidenceId] : undefined;
 
-  const artifactFilterOptions = artifacts.map((a) => ({ id: a.id, label: a.label }));
+  const artifactFilterOptions = artifacts.map((a) => ({
+    id: a.id,
+    label: a.label,
+  }));
 
   return (
     <section className="flex h-full min-h-0 w-full max-w-[372px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <header className="shrink-0 px-6 py-7">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-wrap items-center gap-4">
-            <h2 className="text-2xl font-semibold text-slate-950">Evidence Items</h2>
+            <h2 className="text-2xl font-semibold text-slate-950">
+              Evidence Items
+            </h2>
 
-            <CountBadge filteredCount={filteredItems.length} totalCount={evidenceItems.length} />
+            <CountBadge
+              filteredCount={filteredItems.length}
+              totalCount={evidenceItems.length}
+            />
           </div>
 
-          <button
-            type="button"
-            className="inline-flex h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-blue-600 px-6 text-base font-bold text-white shadow-sm hover:bg-blue-700"
-            onClick={onOpenAddEvidence}
-            aria-expanded={addEvidenceOpen}
-            aria-haspopup="dialog"
-          >
-            <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden />
-            Add Evidence
-          </button>
+          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-blue-600 px-6 text-base font-bold text-white shadow-sm hover:bg-blue-700"
+              onClick={onOpenAddEvidence}
+              aria-expanded={addEvidenceOpen}
+              aria-haspopup="dialog"
+            >
+              <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden />
+              Add Evidence
+            </button>
+            <Link
+              href={`/projects/${projectId}/evidence/new`}
+              className="inline-flex h-10 items-center justify-center text-sm font-semibold text-blue-600 underline-offset-2 hover:underline sm:h-12 sm:px-2"
+              data-testid="evidence-add-full-page"
+            >
+              Full-page form
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -613,11 +676,16 @@ export function EvidenceItemsPanel({
 
       <div className="shrink-0 space-y-6 px-6 pb-6">
         <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" aria-hidden />
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+            aria-hidden
+          />
           <input
             type="search"
             value={filters.search}
-            onChange={(event) => onFiltersChange({ ...filters, search: event.target.value })}
+            onChange={(event) =>
+              onFiltersChange({ ...filters, search: event.target.value })
+            }
             placeholder="Search evidence..."
             aria-label="Search evidence"
             className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-700 outline-none placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
@@ -628,7 +696,12 @@ export function EvidenceItemsPanel({
           <FilterSelect
             aria-label="Filter evidence type"
             value={filters.type}
-            onChange={(type) => onFiltersChange({ ...filters, type: type as EvidenceFilters["type"] })}
+            onChange={(type) =>
+              onFiltersChange({
+                ...filters,
+                type: type as EvidenceFilters["type"],
+              })
+            }
             options={[
               { value: "all", label: "All Types" },
               { value: "pdf", label: "PDF" },
@@ -673,22 +746,32 @@ export function EvidenceItemsPanel({
         <div className="relative inline-flex min-h-10 min-w-[11rem] items-center">
           <div className="pointer-events-none flex items-center gap-1.5 text-base">
             <span className="font-medium text-slate-600">Sort:</span>
-            <span className="font-semibold text-slate-700">{SORT_LABELS[filters.sort]}</span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+            <span className="font-semibold text-slate-700">
+              {SORT_LABELS[filters.sort]}
+            </span>
+            <ChevronDown
+              className="h-4 w-4 shrink-0 text-slate-600"
+              aria-hidden
+            />
           </div>
           <select
             aria-label="Sort evidence list"
             value={filters.sort}
             onChange={(event) =>
-              onFiltersChange({ ...filters, sort: event.target.value as EvidenceFilters["sort"] })
+              onFiltersChange({
+                ...filters,
+                sort: event.target.value as EvidenceFilters["sort"],
+              })
             }
             className="absolute inset-0 h-full w-full min-w-[11rem] cursor-pointer opacity-0"
           >
-            {(Object.keys(SORT_LABELS) as EvidenceFilters["sort"][]).map((key) => (
-              <option key={key} value={key}>
-                {SORT_LABELS[key]}
-              </option>
-            ))}
+            {(Object.keys(SORT_LABELS) as EvidenceFilters["sort"][]).map(
+              (key) => (
+                <option key={key} value={key}>
+                  {SORT_LABELS[key]}
+                </option>
+              ),
+            )}
           </select>
         </div>
       </div>
@@ -697,7 +780,11 @@ export function EvidenceItemsPanel({
         <div className="mx-6 mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
           <div className="flex items-center justify-between gap-2">
             <p>{mutationError}</p>
-            <button type="button" className="shrink-0 font-medium underline" onClick={() => setMutationError(null)}>
+            <button
+              type="button"
+              className="shrink-0 font-medium underline"
+              onClick={() => setMutationError(null)}
+            >
               Dismiss
             </button>
           </div>
@@ -760,7 +847,8 @@ export function EvidenceItemsPanel({
                   onRowDownload={() => {
                     onSelectEvidence(row.id);
                     const href = pack?.detail.downloadHref;
-                    if (href) window.open(href, "_blank", "noopener,noreferrer");
+                    if (href)
+                      window.open(href, "_blank", "noopener,noreferrer");
                   }}
                   onRowViewHistory={() => {
                     onSelectEvidence(row.id, { detailTab: "history" });
@@ -781,7 +869,10 @@ export function EvidenceItemsPanel({
       </div>
 
       <footer className="flex shrink-0 flex-wrap items-center justify-center gap-1.5 px-4 py-5">
-        <PaginationButton disabled={pagination.page <= 1} aria-label="Previous page">
+        <PaginationButton
+          disabled={pagination.page <= 1}
+          aria-label="Previous page"
+        >
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </PaginationButton>
 
@@ -793,7 +884,10 @@ export function EvidenceItemsPanel({
 
         <PaginationButton>{pagination.totalPages}</PaginationButton>
 
-        <PaginationButton disabled={pagination.page >= pagination.totalPages} aria-label="Next page">
+        <PaginationButton
+          disabled={pagination.page >= pagination.totalPages}
+          aria-label="Next page"
+        >
           <ChevronRight className="h-4 w-4" aria-hidden />
         </PaginationButton>
       </footer>

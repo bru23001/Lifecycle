@@ -63,6 +63,11 @@ export function viewerPermissions(): RolePermissionEntry[] {
   }));
 }
 
+/** Default permission matrix for a new custom role (aligned with Viewer). */
+export function newCustomRolePermissions(): RolePermissionEntry[] {
+  return viewerPermissions().map((p) => ({ ...p }));
+}
+
 export type LifecycleSeedRow = {
   phaseNumber: number;
   name: string;
@@ -193,6 +198,31 @@ export function defaultExportSettings(): ExportSettings {
       projectCodePrefix: true,
       versionSuffix: true,
     },
+    redactionRules: {
+      restrictApiKeys: true,
+      restrictInternalUrls: true,
+      restrictFinancialCodes: true,
+      piiEmails: true,
+      piiPhones: true,
+      piiNames: true,
+      evidenceUploaderIdentity: true,
+      evidenceLocationHints: true,
+      evidenceDeviceFingerprints: true,
+      exportStripWikiMarkup: false,
+      exportCollapseTimestamps: false,
+    },
+  };
+}
+
+/** Merges persisted export JSON with current defaults (handles older payloads). */
+export function ensureExportSettingsShape(input: ExportSettings | null | undefined): ExportSettings {
+  const base = defaultExportSettings();
+  if (!input || typeof input !== "object") return base;
+  return {
+    formats: { ...base.formats, ...(input.formats ?? {}) },
+    packageRules: { ...base.packageRules, ...(input.packageRules ?? {}) },
+    namingRules: { ...base.namingRules, ...(input.namingRules ?? {}) },
+    redactionRules: { ...base.redactionRules, ...(input.redactionRules ?? {}) },
   };
 }
 
@@ -223,6 +253,21 @@ export function defaultLocalStorageSettings(): LocalStorageSettings {
       backupLocation: undefined,
       syncEnabled: false,
       lastBackupLabel: undefined,
+      backupFrequency: "weekly",
+      includeEvidenceFiles: true,
+      includeAuditSnapshots: true,
     },
+  };
+}
+
+/** Merges persisted local storage JSON with current defaults (handles older payloads). */
+export function ensureLocalStorageSettingsShape(input: LocalStorageSettings | null | undefined): LocalStorageSettings {
+  const base = defaultLocalStorageSettings();
+  if (!input || typeof input !== "object") return base;
+  return {
+    paths: { ...base.paths, ...(input.paths ?? {}) },
+    usage: { ...base.usage, ...(input.usage ?? {}) },
+    retention: { ...base.retention, ...(input.retention ?? {}) },
+    backupSync: { ...base.backupSync, ...(input.backupSync ?? {}) },
   };
 }

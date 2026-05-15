@@ -82,6 +82,7 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: `/projects/${id}/gates/g4/review`, needle: "Gate Review" },
     { path: `/projects/${id}/artifacts`, needle: "Artifact" },
     { path: `/projects/${id}/evidence`, needle: "Evidence Center" },
+    { path: `/projects/${id}/evidence/new`, needle: "Add Evidence" },
     { path: `/projects/${id}/evidence/export`, needle: "Evidence export hub" },
     { path: `/projects/${id}/reports`, needle: "Reports" },
     { path: `/projects/${id}/reports?phase=1`, needle: "project-reports-hub" },
@@ -103,6 +104,21 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     { path: "/approvals", needle: "Approval Center" },
     { path: "/notifications", needle: "Notifications" },
     { path: "/settings", needle: "Settings" },
+    { path: "/settings/lifecycle", needle: "Lifecycle Configuration" },
+    { path: "/settings/templates", needle: "Template Registry" },
+    { path: "/settings/templates/new", needle: "New template" },
+    { path: "/settings/templates/a-3-2", needle: "Feasibility Assessment" },
+    { path: "/settings/templates/a-3-2/edit", needle: "Edit template" },
+    { path: "/settings/gates", needle: "Gate Rules" },
+    { path: "/settings/gates/new", needle: "New gate rule" },
+    { path: "/settings/gates/gate-rule-g1", needle: "Idea Acceptance" },
+    { path: "/settings/gates/gate-rule-g1/edit", needle: "Edit gate rule" },
+    { path: "/settings/roles", needle: "Roles / Permissions" },
+    { path: "/settings/roles/new", needle: "New role" },
+    { path: "/settings/roles/viewer", needle: "Viewer" },
+    { path: "/settings/roles/viewer/edit", needle: "Edit role" },
+    { path: "/settings/exports", needle: "Export Settings" },
+    { path: "/settings/storage", needle: "Local Storage Settings" },
     { path: "/api/healthz", needle: `"ok":true` },
     { path: `/projects/${id}/traceability/gate-evidence`, needle: "Gate ↔ Evidence traceability" },
     { path: `/projects/${id}/traceability/gate-evidence/g1`, needle: "Gate ↔ Evidence" },
@@ -125,6 +141,10 @@ export async function runRouteSmoke(baseUrl: string): Promise<void> {
     checks.push({
       path: `/projects/${id}/evidence/${firstEvidence.id}`,
       needle: "Evidence Detail",
+    });
+    checks.push({
+      path: `/projects/${id}/evidence/${firstEvidence.id}/preview`,
+      needle: "Evidence preview",
     });
   }
 

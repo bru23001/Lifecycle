@@ -215,7 +215,7 @@ export function ApprovalReviewPanel({
       ) : null}
 
       <article className="approval-history-panel flex min-h-0 flex-1 flex-col rounded-2xl border border-[#e5e7eb] bg-white p-3 shadow-sm">
-        <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-slate-700">8. Approval History</p>
+        <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-slate-700">Approval History</p>
         <header className="mb-3 flex items-center justify-between">
           <h3 className="text-base font-semibold text-[#111827]">Approval History</h3>
           {selectedPackage && selectedPackage.detail.id !== "approval-none" ? (
@@ -249,7 +249,7 @@ export function ApprovalReviewPanel({
         tabIndex={-1}
         className="approval-decision-panel shrink-0 rounded-2xl border border-[#e5e7eb] bg-white p-3 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-red-400"
       >
-        <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-slate-700">9. Approve / Reject / Request Changes</p>
+        <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-slate-700">Approve / Reject / Request Changes</p>
         <header className="mb-2">
           <h3 className="text-base font-semibold text-[#111827]">Record Your Decision</h3>
           <p className="text-xs text-slate-500">Select a decision and provide optional comments.</p>

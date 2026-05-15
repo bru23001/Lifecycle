@@ -14,6 +14,7 @@ export function SettingsActionBar({
   isSaving,
   onSave,
   onReset,
+  navGuard,
 }: {
   title: string;
   description: string;
@@ -23,6 +24,10 @@ export function SettingsActionBar({
   isSaving: boolean;
   onSave: () => void;
   onReset: () => void;
+  navGuard?: {
+    shouldBlock: () => boolean;
+    onBlockedNavigate: (href: string) => void;
+  };
 }) {
   return (
     <footer className="z-20 mt-5 flex shrink-0 flex-col items-stretch justify-between gap-3 border-t border-[#e5e7eb] bg-white px-4 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] min-[901px]:flex-row min-[901px]:items-center min-[901px]:px-8">
@@ -39,7 +44,15 @@ export function SettingsActionBar({
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Link href="/docs/settings">
+        <Link
+          href="/help/settings"
+          onClick={(e) => {
+            if (navGuard?.shouldBlock()) {
+              e.preventDefault();
+              navGuard.onBlockedNavigate("/help/settings");
+            }
+          }}
+        >
           <Button type="button" variant="outline" size="sm">
             <BookOpen className="size-3.5" aria-hidden />
             Documentation & Help

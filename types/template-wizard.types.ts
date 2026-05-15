@@ -67,6 +67,8 @@ export type FieldHelpContent = {
   expectedInput?: string;
   /** A concrete example value. */
   exampleValue?: string;
+  /** A concrete bad example with brief reason why it's not enough. */
+  avoidExample?: string;
   /** Validation rule (human-readable). */
   validationRule?: string;
   /** Related evidence expectations / artifacts the user should attach. */

@@ -24,6 +24,7 @@ import type {
 import { backfillMissingApprovals, OPEN_APPROVAL_STATUSES } from "@/lib/server/approval-writes";
 import { getCurrentUserDisplay } from "@/lib/server/current-user";
 import { formatDateTimeLabel } from "@/lib/server/helpers";
+import { stripSpecSectionHeadingPrefix } from "@/lib/approval-display-strings";
 
 const approvalListInclude = {
   submittedBy: { select: { name: true, role: true, initials: true } },
@@ -180,7 +181,7 @@ function buildHistory(row: LoadedApproval, submittedLabel: string): ApprovalHist
     row.approvalType === "gate_review" && row.gateId && row.project ?
       `${row.gateId} — ${gateHeaderDisplayName(row.gateId as GateId)}`
     : row.artifact ?
-      `${row.artifact.templateId} · ${row.artifact.localId}`
+      `${row.artifact.templateId} · ${stripSpecSectionHeadingPrefix(row.artifact.localId)}`
     : row.project?.name ?? "Approval package";
 
   const events: ApprovalHistoryEvent[] = [
@@ -422,10 +423,11 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
   const phase = clampWorkspacePhase(project.currentPhase);
   const firstEvidence = project.evidenceItems[0];
   const pid = project.id;
+  const displayLocalId = stripSpecSectionHeadingPrefix(art.localId);
   const detail: ApprovalDetail = {
     id,
     approvalCode: art.templateId,
-    title: `${art.templateId} · ${art.localId}`,
+    title: `${art.templateId} · ${displayLocalId}`,
     description: "Artifact draft pending approval.",
     approvalType: "artifact_review",
     projectId: pid,
@@ -451,7 +453,7 @@ function buildPackage(row: LoadedApproval, userDisplay: { name: string; role: st
     {
       id: `inp-${art.id}`,
       inputCode: art.templateId,
-      name: art.localId,
+      name: displayLocalId,
       description: "Latest artifact version",
       status: "incomplete",
       requiredLevel: "required",
@@ -538,7 +540,7 @@ function buildPendingRow(row: LoadedApproval, userDisplay: { name: string }): Pe
   return {
     id,
     approvalCode: art.templateId,
-    title: `${art.templateId} · ${art.localId}`,
+    title: `${art.templateId} · ${stripSpecSectionHeadingPrefix(art.localId)}`,
     approvalType: "artifact_review",
     projectId: project.id,
     projectName: project.name,

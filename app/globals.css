@@ -81,22 +81,44 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --dashboard-proportion-scale: 1;
 
   /* CYBERCUBE Lifecycle Platform — standard screen grid (shell, spacing, panels) */
-  --sidebar-width: 280px;
-  --sidebar-collapsed-width: 88px;
-  --header-height: 76px;
-  --page-padding: 32px;
-  --page-padding-tablet: 24px;
-  --page-padding-mobile: 20px;
-  --grid-gap: 20px;
-  --card-radius: 16px;
-  --card-padding: 20px;
-  --left-panel-width: 360px;
-  --left-panel-narrow: 300px;
-  --right-panel-width: 380px;
-  --right-panel-wide: 420px;
-  --action-bar-height: 80px;
+  --sidebar-width: calc(212.7px * var(--dashboard-proportion-scale));
+  --sidebar-collapsed-width: calc(68.7px * var(--dashboard-proportion-scale));
+  --sidebar-logo-height: calc(68.7px * var(--dashboard-proportion-scale));
+  /* Region below logo: viewport bottom → 68.7px from top (full remaining column height) */
+  --sidebar-menu-height: calc(100dvh - var(--sidebar-logo-height));
+  /** Top bar total height → bottom border 68.7px from viewport top (main column) */
+  --header-height: calc(68.7px * var(--dashboard-proportion-scale));
+  /** Main header: from viewport / shell top */
+  --header-content-top: calc(26.5px * var(--dashboard-proportion-scale));
+  /** From right edge of uncollapsed sidebar (main column left) */
+  --header-toggle-from-sidebar: calc(27.7px * var(--dashboard-proportion-scale));
+  --header-title-from-sidebar: calc(69.6px * var(--dashboard-proportion-scale));
+  /** Matches `Button` `icon-sm` (`size-7`) for gap calc */
+  --header-toggle-hit-size: 1.75rem;
+  --header-title-margin-after-toggle: calc(
+    var(--header-title-from-sidebar) - var(--header-toggle-from-sidebar) - var(--header-toggle-hit-size)
+  );
+  /** Dashboard: vertical gap from shortcut links row to KPI ribbon; main column inset from uncollapsed sidebar */
+  --dashboard-kpi-margin-from-shortcuts: calc(35.1px * var(--dashboard-proportion-scale));
+  --dashboard-main-padding-from-sidebar: calc(20px * var(--dashboard-proportion-scale));
+  --dashboard-kpi-card-width: calc(221.7px * var(--dashboard-proportion-scale));
+  --dashboard-kpi-card-height: calc(127.1px * var(--dashboard-proportion-scale));
+  --dashboard-top-row-card-height: calc(273px * var(--dashboard-proportion-scale));
+  --dashboard-mid-row-card-height: calc(314px * var(--dashboard-proportion-scale));
+  --page-padding: calc(32px * var(--dashboard-proportion-scale));
+  --page-padding-tablet: calc(24px * var(--dashboard-proportion-scale));
+  --page-padding-mobile: calc(20px * var(--dashboard-proportion-scale));
+  --grid-gap: calc(20px * var(--dashboard-proportion-scale));
+  --card-radius: calc(16px * var(--dashboard-proportion-scale));
+  --card-padding: calc(20px * var(--dashboard-proportion-scale));
+  --left-panel-width: calc(360px * var(--dashboard-proportion-scale));
+  --left-panel-narrow: calc(300px * var(--dashboard-proportion-scale));
+  --right-panel-width: calc(380px * var(--dashboard-proportion-scale));
+  --right-panel-wide: calc(420px * var(--dashboard-proportion-scale));
+  --action-bar-height: calc(80px * var(--dashboard-proportion-scale));
   --app-bg: #f8fafc;
   --surface: #ffffff;
   --cc-border: #e5e7eb;
@@ -120,6 +142,10 @@
   --cc-card-body-line-height: 1.5rem;
   --cc-card-meta-size: 0.95rem;
   --cc-card-meta-line-height: 1.4rem;
+}
+
+.dashboard-scale-1536 {
+  --dashboard-proportion-scale: 1.0666667;
 }
 
 .dark {
@@ -205,8 +231,8 @@
   }
 
   .main-area {
-    display: grid;
-    grid-template-rows: var(--header-height) minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     height: 100%;
     min-height: 0;
     min-width: 0;
@@ -214,8 +240,11 @@
     background: var(--app-bg);
   }
 
-  .main-area > * {
+  .main-area > :last-child {
+    flex: 1 1 0%;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .page-content {
@@ -1129,5 +1158,42 @@
 }
 
 .lifecycle-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.lifecycle-scroll-on-demand {
+  scrollbar-width: none;
+}
+
+.lifecycle-scroll-on-demand:hover,
+.lifecycle-scroll-on-demand:focus-within,
+.lifecycle-scroll-on-demand:active {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.lifecycle-scroll-on-demand::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.lifecycle-scroll-on-demand:hover::-webkit-scrollbar,
+.lifecycle-scroll-on-demand:focus-within::-webkit-scrollbar,
+.lifecycle-scroll-on-demand:active::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.lifecycle-scroll-on-demand::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.lifecycle-scroll-on-demand::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.lifecycle-scroll-on-demand::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }

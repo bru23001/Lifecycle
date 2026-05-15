@@ -1,35 +1,38 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { TopHeader } from "@/components/lifecycle-workspace/top-header";
 import { AuthenticatedAppShell } from "@/components/lifecycle-workspace/authenticated-app-shell";
 import { SettingsContent } from "@/components/settings/SettingsContent";
-import { computeActionState, validateStoragePath } from "@/lib/settings-validation";
+import {
+  ExportConfigurationModal,
+  ImportConfigurationWizardModal,
+  ResetToDefaultModal,
+  ValidationResultsDrawer,
+} from "@/components/settings/settings-quick-action-modals";
+import {
+  ResetUnsavedChangesModal,
+  SaveSettingsConfirmationModal,
+  UnsavedChangesLeaveModal,
+} from "@/components/settings/settings-save-guard-modals";
+import {
+  formatImpactLevel,
+  getChangedSettingsSlices,
+  shouldConfirmSaveForImpact,
+} from "@/lib/settings-dirty-summary";
+import { buildSettingsValidationReport, computeActionState } from "@/lib/settings-validation";
 import type {
   ExportSettings,
   GateRuleSetting,
-  LifecyclePhaseSetting,
   LocalStorageSettings,
   RolePermissionEntry,
   RolePermissionSetting,
   SettingsPageData,
   SettingsQuickAction,
-  SettingsSectionId,
   TemplateRegistryItem,
 } from "@/types/settings.types";
-
-function downloadBlob(filename: string, blob: Blob): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
 
 function snapshotForDirtyCheck(data: SettingsPageData) {
   return JSON.stringify({
@@ -48,7 +51,6 @@ export function SettingsPage({
   initial: SettingsPageData;
 }) {
   const router = useRouter();
-  const importFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [data, setData] = useState<SettingsPageData>(initial);
   const [baseline, setBaseline] = useState<SettingsPageData>(initial);
@@ -58,7 +60,29 @@ export function SettingsPage({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localStoragePathError, setLocalStoragePathError] = useState<string | null>(null);
 
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [validationDrawerOpen, setValidationDrawerOpen] = useState(false);
+
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  const [resetUnsavedOpen, setResetUnsavedOpen] = useState(false);
+  const [leaveGuardOpen, setLeaveGuardOpen] = useState(false);
+  const [pendingNavigationHref, setPendingNavigationHref] = useState<string | null>(null);
+
+  const validationReport = useMemo(() => buildSettingsValidationReport(data), [data]);
+
   const hasUnsavedChanges = snapshotForDirtyCheck(data) !== snapshotForDirtyCheck(baseline);
+  const hasDirtyRef = useRef(false);
+  hasDirtyRef.current = hasUnsavedChanges;
+  const anyBlockingModalRef = useRef(false);
+  anyBlockingModalRef.current =
+    leaveGuardOpen ||
+    saveConfirmOpen ||
+    resetUnsavedOpen ||
+    importModalOpen ||
+    exportModalOpen ||
+    resetModalOpen;
   const actionState = useMemo(
     () => computeActionState({ data, hasUnsavedChanges }),
     [data, hasUnsavedChanges],
@@ -72,15 +96,73 @@ export function SettingsPage({
     setData(nextData);
   };
 
-  const updateLifecyclePhase = (phaseId: string, updater: (phase: LifecyclePhaseSetting) => LifecyclePhaseSetting) => {
+  const navigationGuard = useMemo(
+    () => ({
+      shouldBlock: () => hasDirtyRef.current,
+      onBlockedNavigate: (href: string) => {
+        setPendingNavigationHref(href);
+        setLeaveGuardOpen(true);
+      },
+    }),
+    [],
+  );
+
+  const requestNavigate = useCallback(
+    (href: string) => {
+      if (hasDirtyRef.current) {
+        setPendingNavigationHref(href);
+        setLeaveGuardOpen(true);
+      } else {
+        router.push(href);
+      }
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasDirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
+  useEffect(() => {
+    const onDocumentClickCapture = (e: MouseEvent) => {
+      if (!hasDirtyRef.current) return;
+      if (anyBlockingModalRef.current) return;
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest("dialog")) return;
+      const anchor = target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      let url: URL;
+      try {
+        url = new URL(anchor.href, window.location.href);
+      } catch {
+        return;
+      }
+      if (url.origin !== window.location.origin) return;
+      const next = url.pathname + url.search;
+      const cur = window.location.pathname + window.location.search;
+      if (next === cur) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavigationHref(url.pathname + url.search + url.hash);
+      setLeaveGuardOpen(true);
+    };
+    document.addEventListener("click", onDocumentClickCapture, true);
+    return () => document.removeEventListener("click", onDocumentClickCapture, true);
+  }, []);
+
+  const patchLifecycle = (recipe: (c: SettingsPageData["lifecycleConfiguration"]) => SettingsPageData["lifecycleConfiguration"]) => {
     setData((prev) => ({
       ...prev,
-      lifecycleConfiguration: {
-        ...prev.lifecycleConfiguration,
-        phases: prev.lifecycleConfiguration.phases.map((phase) =>
-          phase.id === phaseId ? updater(phase) : phase,
-        ),
-      },
+      lifecycleConfiguration: recipe(prev.lifecycleConfiguration),
     }));
   };
 
@@ -96,10 +178,31 @@ export function SettingsPage({
     }));
   };
 
+  const patchTemplateRegistry = (recipe: (items: TemplateRegistryItem[]) => TemplateRegistryItem[]) => {
+    setData((prev) => ({
+      ...prev,
+      templateRegistry: recipe(prev.templateRegistry),
+    }));
+  };
+
   const updateGateRule = (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => {
     setData((prev) => ({
       ...prev,
       gateRules: prev.gateRules.map((rule) => (rule.id === ruleId ? updater(rule) : rule)),
+    }));
+  };
+
+  const updateRole = (roleId: string, updater: (role: RolePermissionSetting) => RolePermissionSetting) => {
+    setData((prev) => ({
+      ...prev,
+      rolesPermissions: prev.rolesPermissions.map((role) => (role.roleId === roleId ? updater(role) : role)),
+    }));
+  };
+
+  const patchRoles = (recipe: (roles: RolePermissionSetting[]) => RolePermissionSetting[]) => {
+    setData((prev) => ({
+      ...prev,
+      rolesPermissions: recipe(prev.rolesPermissions),
     }));
   };
 
@@ -128,9 +231,11 @@ export function SettingsPage({
     }));
   };
 
-  const handleSave = async () => {
+  const changedSlices = useMemo(() => getChangedSettingsSlices(data, baseline), [data, baseline]);
+
+  const performSave = useCallback(async (): Promise<boolean> => {
     setErrorMessage(null);
-    if (!actionState.canSave) return;
+    if (!actionState.canSave) return false;
     setIsSaving(true);
     try {
       const response = await fetch("/api/settings", {
@@ -141,17 +246,55 @@ export function SettingsPage({
       if (!response.ok) {
         const payload = (await response.json()) as { error?: string; blockers?: string[] };
         setErrorMessage(payload.error ?? payload.blockers?.join(" ") ?? "Failed to save settings.");
-        return;
+        return false;
       }
       const payload = (await response.json()) as { data: SettingsPageData };
       updateData(payload.data);
       setBaseline(payload.data);
+      return true;
     } catch {
       setErrorMessage("Failed to save settings.");
+      return false;
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [actionState.canSave, data]);
+
+  const handleSaveClick = useCallback(() => {
+    if (!actionState.canSave) return;
+    if (shouldConfirmSaveForImpact(changedSlices)) {
+      setSaveConfirmOpen(true);
+    } else {
+      void performSave();
+    }
+  }, [actionState.canSave, changedSlices, performSave]);
+
+  const handleResetClick = useCallback(() => {
+    if (!actionState.canReset) return;
+    setResetUnsavedOpen(true);
+  }, [actionState.canReset]);
+
+  const handleLeaveStay = useCallback(() => {
+    setLeaveGuardOpen(false);
+    setPendingNavigationHref(null);
+  }, []);
+
+  const handleLeaveDiscard = useCallback(() => {
+    const href = pendingNavigationHref;
+    setLeaveGuardOpen(false);
+    setPendingNavigationHref(null);
+    if (href) router.push(href);
+  }, [pendingNavigationHref, router]);
+
+  const handleLeaveSave = useCallback(async () => {
+    const href = pendingNavigationHref;
+    const ok = await performSave();
+    if (ok && href) {
+      setLeaveGuardOpen(false);
+      setPendingNavigationHref(null);
+      router.push(href);
+    }
+  }, [performSave, pendingNavigationHref, router]);
 
   const handleResetChanges = () => {
     setErrorMessage(null);
@@ -159,64 +302,7 @@ export function SettingsPage({
     setLocalStoragePathError(null);
   };
 
-  const handleSectionChange = (section: SettingsSectionId, href: string) => {
-    setErrorMessage(null);
-    setData((prev) => ({
-      ...prev,
-      activeSection: section,
-      navigationItems: prev.navigationItems.map((item) => ({
-        ...item,
-        active: item.section === section,
-      })),
-    }));
-    router.push(href);
-  };
-
-  const handleImportConfig = () => {
-    importFileInputRef.current?.click();
-  };
-
-  const handleImportFileSelected = (file: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        const response = await fetch("/api/settings/import", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ payload: parsed }),
-        });
-        if (!response.ok) {
-          throw new Error("Import failed.");
-        }
-        const payload = (await response.json()) as { data: SettingsPageData };
-        updateData(payload.data);
-        setBaseline(payload.data);
-        setErrorMessage(null);
-      } catch {
-        setErrorMessage("Configuration import failed. Validate the schema and retry.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleExportConfig = async () => {
-    try {
-      const response = await fetch("/api/settings/export", { method: "GET" });
-      if (!response.ok) throw new Error("Export failed.");
-      const blob = await response.blob();
-      downloadBlob("settings-configuration.json", blob);
-    } catch {
-      setErrorMessage("Configuration export failed.");
-    }
-  };
-
-  const handleResetDefaults = async () => {
-    const confirmed = window.confirm(
-      "This will reset your configuration defaults. This action cannot be undone. Continue?",
-    );
-    if (!confirmed) return;
+  const handleResetDefaults = async (): Promise<boolean> => {
     try {
       const response = await fetch("/api/settings/reset", {
         method: "POST",
@@ -228,161 +314,41 @@ export function SettingsPage({
       updateData(payload.data);
       setBaseline(payload.data);
       setErrorMessage(null);
+      return true;
     } catch {
       setErrorMessage("Reset to defaults failed.");
-    }
-  };
-
-  const handleValidateConfiguration = async () => {
-    try {
-      const response = await fetch("/api/settings/validate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        throw new Error("Validation endpoint unavailable.");
-      }
-      const payload = (await response.json()) as { valid: boolean; blockers: string[] };
-      setErrorMessage(payload.valid ? null : payload.blockers.join(" "));
-    } catch {
-      setErrorMessage("Unable to validate configuration at this time.");
+      return false;
     }
   };
 
   const handleQuickAction = (action: SettingsQuickAction) => {
     switch (action.actionType) {
       case "import_config":
-        handleImportConfig();
+        setImportModalOpen(true);
         return;
       case "export_config":
-        void handleExportConfig();
+        setExportModalOpen(true);
         return;
       case "reset_defaults":
-        void handleResetDefaults();
+        setResetModalOpen(true);
         return;
       case "validate_config":
-        void handleValidateConfiguration();
+        setValidationDrawerOpen(true);
         return;
       case "open_docs":
-        router.push(action.href ?? "/docs/settings");
+        requestNavigate(action.href ?? "/help/settings");
         return;
       default:
         return;
     }
   };
 
-  const handleChangeLocalStoragePath = (key: keyof LocalStorageSettings["paths"]) => {
-    const currentPath = data.localStorageSettings.paths[key];
-    const nextPath = window.prompt("Enter a new path", currentPath);
-    if (!nextPath) return;
-
-    const error = validateStoragePath(nextPath);
-    if (error) {
-      setLocalStoragePathError(error);
-      return;
-    }
-
-    setLocalStoragePathError(null);
-    setData((prev) => ({
-      ...prev,
-      localStorageSettings: {
-        ...prev.localStorageSettings,
-        paths: {
-          ...prev.localStorageSettings.paths,
-          [key]: nextPath,
-        },
-      },
-    }));
-  };
-
-  const handleAddPhase = () => {
-    const name = window.prompt("Phase name");
-    if (!name) return;
-    const description = window.prompt("Phase description", "New lifecycle phase") ?? "New lifecycle phase";
-    setData((prev) => {
-      const nextNumber = prev.lifecycleConfiguration.phases.length + 1;
-      const nextId = `phase-${Date.now()}`;
-      const nextPhase: LifecyclePhaseSetting = {
-        id: nextId,
-        phaseNumber: nextNumber,
-        name,
-        description,
-        keyDeliverables: ["Define deliverables"],
-        requiredArtifactIds: [],
-        status: "draft",
-        canEdit: true,
-        canReorder: true,
-      };
-      return {
-        ...prev,
-        lifecycleConfiguration: {
-          ...prev.lifecycleConfiguration,
-          phases: [...prev.lifecycleConfiguration.phases, nextPhase],
-          totalPhases: prev.lifecycleConfiguration.totalPhases + 1,
-        },
-      };
-    });
-  };
-
-  const handleEditPhase = (phaseId: string) => {
-    const target = data.lifecycleConfiguration.phases.find((phase) => phase.id === phaseId);
-    if (!target) return;
-    const nextDescription = window.prompt(`Update description for ${target.name}`, target.description);
-    if (!nextDescription) return;
-    updateLifecyclePhase(phaseId, (phase) => ({ ...phase, description: nextDescription }));
-  };
-
   const handleCreateRule = () => {
-    const code = window.prompt("Gate code", `G${data.gateRules.length + 1}`);
-    if (!code) return;
-    setData((prev) => ({
-      ...prev,
-      gateRules: [
-        ...prev.gateRules,
-        {
-          id: `gate-rule-${Date.now()}`,
-          gateCode: code.toUpperCase(),
-          gateName: `New ${code.toUpperCase()} Gate`,
-          relatedPhaseNumber: 1,
-          requiredInputIds: [],
-          requiredEvidenceCount: 1,
-          requiredApproverRoles: ["Governance Admin"],
-          decisionRule: "single_approver",
-          status: "draft",
-        },
-      ],
-    }));
+    requestNavigate("/settings/gates/new");
   };
 
   const handleCreateRole = () => {
-    const roleName = window.prompt("Role name");
-    if (!roleName) return;
-    setData((prev) => ({
-      ...prev,
-      rolesPermissions: [
-        ...prev.rolesPermissions,
-        {
-          roleId: `custom-role-${Date.now()}`,
-          roleName,
-          description: "Custom role",
-          assignedUsersCount: 0,
-          systemRole: false,
-          permissions: [
-            {
-              module: "settings",
-              view: true,
-              create: false,
-              edit: false,
-              delete: false,
-              approve: false,
-              export: false,
-              admin: false,
-            },
-          ],
-        },
-      ],
-    }));
+    requestNavigate("/settings/roles/new");
   };
 
   const handleUpdateExportSettings = (nextValue: ExportSettings) => {
@@ -400,7 +366,10 @@ export function SettingsPage({
   };
 
   return (
-    <AuthenticatedAppShell projectId={null} navActive="settings">
+    <AuthenticatedAppShell
+      projectId={null}
+      navActive={data.activeSection === "template_registry" ? "template_registry" : "settings"}
+    >
       <TopHeader
         title="Settings"
         userInitials={data.user.initials}
@@ -421,31 +390,74 @@ export function SettingsPage({
           isSaving={isSaving}
           blockers={actionState.blockers}
           onRetryError={() => setErrorMessage(null)}
-          onSectionChange={handleSectionChange}
-          onAddPhase={handleAddPhase}
-          onEditPhase={handleEditPhase}
-          onCreateTemplate={() => router.push("/projects/new?intent=create-template")}
+          onPatchLifecycle={patchLifecycle}
+          onCreateTemplate={() => requestNavigate("/settings/templates/new")}
           onCreateRule={handleCreateRule}
           onCreateRole={handleCreateRole}
-          onTestExport={() => setErrorMessage("Test export queued for backend processing.")}
           onUpdateExportSettings={handleUpdateExportSettings}
           onUpdateLocalStorageSettings={handleUpdateLocalStorageSettings}
-          onChangeLocalStoragePath={handleChangeLocalStoragePath}
           onEditTemplate={updateTemplateItem}
+          onPatchTemplateRegistry={patchTemplateRegistry}
           onEditGateRule={updateGateRule}
           onEditRolePermission={updateRolePermission}
+          onUpdateRole={updateRole}
+          onPatchRoles={patchRoles}
           onQuickAction={handleQuickAction}
-          onReset={handleResetChanges}
-          onSave={() => {
-            void handleSave();
+          onReset={handleResetClick}
+          onSave={handleSaveClick}
+          navigationGuard={navigationGuard}
+        />
+        <ImportConfigurationWizardModal
+          open={importModalOpen}
+          currentData={data}
+          onClose={() => setImportModalOpen(false)}
+          onImported={(next) => {
+            updateData(next);
+            setBaseline(next);
+            setErrorMessage(null);
+          }}
+          onError={(msg) => setErrorMessage(msg)}
+        />
+        <ExportConfigurationModal open={exportModalOpen} data={data} onClose={() => setExportModalOpen(false)} />
+        <ResetToDefaultModal
+          open={resetModalOpen}
+          section={data.activeSection}
+          systemOverview={data.systemOverview}
+          onClose={() => setResetModalOpen(false)}
+          onConfirmReset={handleResetDefaults}
+        />
+        <ValidationResultsDrawer
+          open={validationDrawerOpen}
+          report={validationReport}
+          onClose={() => setValidationDrawerOpen(false)}
+        />
+        <SaveSettingsConfirmationModal
+          open={saveConfirmOpen}
+          changedSlices={changedSlices}
+          impactLevel={formatImpactLevel(changedSlices)}
+          systemOverview={data.systemOverview}
+          isSaving={isSaving}
+          onClose={() => setSaveConfirmOpen(false)}
+          onConfirmSave={async () => {
+            const ok = await performSave();
+            if (ok) setSaveConfirmOpen(false);
           }}
         />
-        <input
-          ref={importFileInputRef}
-          type="file"
-          accept="application/json"
-          className="hidden"
-          onChange={(event) => handleImportFileSelected(event.target.files?.[0] ?? null)}
+        <ResetUnsavedChangesModal
+          open={resetUnsavedOpen}
+          changedSlices={changedSlices}
+          onClose={() => setResetUnsavedOpen(false)}
+          onConfirmReset={() => {
+            handleResetChanges();
+          }}
+        />
+        <UnsavedChangesLeaveModal
+          open={leaveGuardOpen}
+          targetHref={pendingNavigationHref}
+          isSaving={isSaving}
+          onStay={handleLeaveStay}
+          onDiscardAndLeave={handleLeaveDiscard}
+          onSaveAndLeave={handleLeaveSave}
         />
       </div>
     </AuthenticatedAppShell>

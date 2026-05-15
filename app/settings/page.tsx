@@ -1,7 +1,6 @@
-import { SettingsPage } from "@/components/settings/settings-page";
-import { loadSettingsPageData } from "@/lib/server/settings";
+import { redirect } from "next/navigation";
 
-export default async function SettingsRootPage() {
-  const initial = await loadSettingsPageData("lifecycle_configuration");
-  return <SettingsPage initial={initial} />;
+/** Canonical entry: section workspace lives under `/settings/lifecycle`. */
+export default function SettingsRootPage() {
+  redirect("/settings/lifecycle");
 }

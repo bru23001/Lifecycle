@@ -38,7 +38,7 @@ const PROJECT_SEGMENT_OVERRIDES: Record<string, SegmentedProjectProgress> = {
 
 function SegmentedProgressBar({ segments }: { segments: SegmentedProjectProgress }) {
   return (
-    <div className="flex h-4 w-full overflow-hidden rounded-full bg-slate-200">
+    <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-200">
       {segments.completed > 0 && (
         <div className="h-full bg-emerald-500" style={{ width: `${segments.completed}%` }} />
       )}
@@ -57,9 +57,9 @@ function SegmentedProgressBar({ segments }: { segments: SegmentedProjectProgress
 
 function LegendDot({ className, label }: { className: string; label: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className={["h-3.5 w-3.5 rounded-full", className].join(" ")} />
-      <span className="text-base text-slate-600 dark:text-slate-300">{label}</span>
+    <div className="flex items-center gap-2">
+      <span className={["h-3 w-3 rounded-full", className].join(" ")} />
+      <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
     </div>
   );
 }
@@ -90,34 +90,34 @@ export function LifecycleProgressOverview({
     lead?.projectId != null ? `/projects?selected=${lead.projectId}&tab=lifecycle-timeline` : null;
 
   return (
-    <article className="h-full rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
-      <header className="mb-10 flex flex-wrap items-center justify-between gap-3">
+    <article className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           {leadWorkspaceHref ? (
             <Link href={leadWorkspaceHref} className="block hover:opacity-90">
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
                 Lifecycle Progress Overview
               </h2>
             </Link>
           ) : (
-            <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
               Lifecycle Progress Overview
             </h2>
           )}
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
           {leadTimelineHref ? (
-            <Link href={leadTimelineHref} className="text-base font-semibold text-blue-600 hover:text-blue-700">
+            <Link href={leadTimelineHref} className="text-sm font-semibold text-blue-600 hover:text-blue-700">
               View full timeline
             </Link>
           ) : null}
-          <Link href="/projects" className="text-base font-semibold text-blue-600 hover:text-blue-700">
+          <Link href="/projects" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
             View all projects
           </Link>
         </div>
       </header>
 
-      <div className="space-y-9">
+      <div className="lifecycle-scroll-on-demand min-h-0 flex-1 space-y-4 overflow-auto pr-1">
         {lifecycleProgress.map((project) => (
           <Link
             key={project.projectId ?? project.projectName}
@@ -126,22 +126,22 @@ export function LifecycleProgressOverview({
                 ? `/projects/${project.projectId}/workspace?phase=${project.currentPhase}`
                 : "/projects"
             }
-            className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_56px] lg:items-center"
+            className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,210px)_1fr_44px] lg:items-center"
           >
-            <p className="truncate text-base font-medium text-slate-700 dark:text-slate-200">
+            <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
               {project.projectName}
             </p>
 
             <SegmentedProgressBar segments={buildSegments(project)} />
 
-            <p className="text-right text-base font-semibold text-slate-900 dark:text-slate-100">
+            <p className="text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
               {project.progressPercent}%
             </p>
           </Link>
         ))}
       </div>
 
-      <footer className="mt-12 flex flex-wrap items-center gap-x-10 gap-y-4">
+      <footer className="mt-4 flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2">
         <LegendDot className="bg-emerald-500" label="Completed" />
         <LegendDot className="bg-blue-600" label="In Progress" />
         <LegendDot className="bg-amber-400" label="Pending" />

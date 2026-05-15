@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { sectionIconMap } from "@/components/settings/shared";
 import { cn } from "@/lib/utils";
 import type { SettingsNavItem as SettingsNavItemType, SettingsSectionId } from "@/types/settings.types";
@@ -7,19 +9,17 @@ import type { SettingsNavItem as SettingsNavItemType, SettingsSectionId } from "
 export function SettingsNavItem({
   item,
   activeSection,
-  onSelect,
 }: {
   item: SettingsNavItemType;
   activeSection: SettingsSectionId;
-  onSelect: (section: SettingsSectionId, href: string) => void;
 }) {
   const Icon = sectionIconMap[item.section];
   const isActive = activeSection === item.section;
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.section, item.href)}
+    <Link
+      href={item.href}
+      scroll={false}
       aria-current={isActive ? "page" : undefined}
       className={cn(
         "flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
@@ -41,6 +41,6 @@ export function SettingsNavItem({
         <span className="block truncate text-sm font-semibold text-slate-900">{item.label}</span>
         <span className="mt-0.5 block text-xs leading-snug text-slate-500">{item.description}</span>
       </span>
-    </button>
+    </Link>
   );
 }

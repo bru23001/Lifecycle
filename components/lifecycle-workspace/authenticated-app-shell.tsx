@@ -39,6 +39,7 @@ export function AuthenticatedAppShell(props: {
    */
   continueWorkingHref?: string | null;
   workspaceHref?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   const {
@@ -52,6 +53,7 @@ export function AuthenticatedAppShell(props: {
     navPhaseScope,
     continueWorkingHref,
     workspaceHref,
+    className,
     children,
   } = props;
   const [collapsed, setCollapsed] = useState(false);
@@ -74,6 +76,7 @@ export function AuthenticatedAppShell(props: {
         className={cn(
           "app-shell max-h-dvh min-h-0",
           collapsed ? "app-shell--collapsed" : null,
+          className,
         )}
       >
         <AppSidebar

@@ -10,8 +10,10 @@ import type {
   EvidenceCenterData,
   EvidenceCenterSelectedEvidence,
 } from "@/types/evidence-center.types";
+import type { GateEvidenceTraceListRow } from "@/types/gate-evidence-traceability.types";
 import type { PhaseEvidenceTraceListRow } from "@/types/phase-evidence-traceability.types";
 
+import { GateEvidenceGapDrawer } from "@/components/traceability/gate-evidence-gap-drawer";
 import { PhaseEvidenceGapDrawer } from "@/components/traceability/phase-evidence-gap-drawer";
 import {
   ExportByGateEvidenceModal,
@@ -32,7 +34,11 @@ function CountBadge({ count }: { count: number }) {
 }
 
 function Card({ children }: { children: ReactNode }) {
-  return <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">{children}</section>;
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      {children}
+    </section>
+  );
 }
 
 function ColorDot({ color }: { color: CompletenessTone }) {
@@ -42,7 +48,11 @@ function ColorDot({ color }: { color: CompletenessTone }) {
     red: "bg-red-500",
   };
 
-  return <span className={cn("inline-flex h-3 w-3 rounded-full", colorClasses[color])} />;
+  return (
+    <span
+      className={cn("inline-flex h-3 w-3 rounded-full", colorClasses[color])}
+    />
+  );
 }
 
 function completenessDonutGradient(
@@ -76,24 +86,40 @@ function completenessDonutGradient(
   return `conic-gradient(${parts.join(", ")})`;
 }
 
-function DonutChart({ overallPercent, completePct, partialPct, missingPct, unlinkedPct }: {
+function DonutChart({
+  overallPercent,
+  completePct,
+  partialPct,
+  missingPct,
+  unlinkedPct,
+}: {
   overallPercent: number;
   completePct: number;
   partialPct: number;
   missingPct: number;
   unlinkedPct: number;
 }) {
-  const bg = completenessDonutGradient(completePct, partialPct, missingPct, unlinkedPct);
+  const bg = completenessDonutGradient(
+    completePct,
+    partialPct,
+    missingPct,
+    unlinkedPct,
+  );
   const clamped = Math.max(0, Math.min(100, overallPercent));
 
   return (
     <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full">
-      <div className="absolute inset-0 rounded-full" style={{ background: bg }} />
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{ background: bg }}
+      />
 
       <div className="absolute inset-[9px] rounded-full bg-white" />
 
       <div className="relative text-center">
-        <p className="text-xl font-semibold tracking-[0.08em] text-slate-950">{clamped}%</p>
+        <p className="text-xl font-semibold tracking-[0.08em] text-slate-950">
+          {clamped}%
+        </p>
         <p className="mt-0.5 text-xs font-medium text-slate-600">Complete</p>
       </div>
     </div>
@@ -119,10 +145,15 @@ function CoverageBar({ value }: { value: number }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="w-8 text-right text-xs font-semibold text-slate-700">{value}%</span>
+      <span className="w-8 text-right text-xs font-semibold text-slate-700">
+        {value}%
+      </span>
       <div className="h-1.5 w-12 overflow-hidden rounded-full bg-slate-200">
         <div
-          className={cn("h-full rounded-full", value === 0 ? "bg-slate-200" : barColor)}
+          className={cn(
+            "h-full rounded-full",
+            value === 0 ? "bg-slate-200" : barColor,
+          )}
           style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
         />
       </div>
@@ -185,11 +216,17 @@ function CoverageTable({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 text-sm last:border-b-0">
+                <tr
+                  key={row.id}
+                  className="border-b border-slate-100 text-sm last:border-b-0"
+                >
                   <td className="py-2 pr-3 font-semibold text-slate-900">
                     <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
                       {row.href ? (
-                        <Link href={row.href} className="text-slate-900 hover:text-blue-600 hover:underline">
+                        <Link
+                          href={row.href}
+                          className="text-slate-900 hover:text-blue-600 hover:underline"
+                        >
                           {row.label}
                         </Link>
                       ) : (
@@ -213,16 +250,22 @@ function CoverageTable({
                       ) : null}
                     </div>
                   </td>
-                  <td className="py-2 pr-3 text-center font-medium text-slate-700">{row.linked}</td>
-                  <td className="py-2 pr-3 text-center font-medium text-slate-700">{row.required}</td>
+                  <td className="py-2 pr-3 text-center font-medium text-slate-700">
+                    {row.linked}
+                  </td>
+                  <td className="py-2 pr-3 text-center font-medium text-slate-700">
+                    {row.required}
+                  </td>
                   <td className="py-2">
                     <div className="flex justify-end">
-                      {onCoverageGap && row.linkStatus && row.linkStatus !== "complete" ? (
+                      {onCoverageGap &&
+                      row.linkStatus &&
+                      row.linkStatus !== "complete" ? (
                         <button
                           type="button"
                           className="rounded-md p-0.5 ring-1 ring-transparent hover:bg-slate-50 hover:ring-slate-200"
                           onClick={() => onCoverageGap(row.id)}
-                          aria-label={`Open phase gap drawer for ${row.label}`}
+                          aria-label={`Open coverage gap details for ${row.label}`}
                         >
                           <CoverageBar value={row.coverage} />
                         </button>
@@ -262,12 +305,19 @@ function CoverageTable({
                 )}
                 aria-hidden
               />
-              <h2 className="min-w-0 flex-1 text-lg font-semibold text-slate-950">{title}</h2>
+              <h2 className="min-w-0 flex-1 text-lg font-semibold text-slate-950">
+                {title}
+              </h2>
             </button>
             <CountBadge count={count} />
           </header>
 
-          <div id={panelId} role="region" aria-labelledby={headingId} hidden={!expanded}>
+          <div
+            id={panelId}
+            role="region"
+            aria-labelledby={headingId}
+            hidden={!expanded}
+          >
             <div className="mt-3">{body}</div>
           </div>
         </>
@@ -305,7 +355,9 @@ function ExportAction({
       onClick={onClick}
       className={cn(
         "flex h-12 flex-col items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold shadow-sm",
-        disabled ? "cursor-not-allowed text-slate-400 opacity-60" : "text-blue-600 hover:bg-slate-50",
+        disabled
+          ? "cursor-not-allowed text-slate-400 opacity-60"
+          : "text-blue-600 hover:bg-slate-50",
       )}
     >
       {icon}
@@ -314,12 +366,34 @@ function ExportAction({
   );
 }
 
-export function EvidenceCompletenessCard({ selectedEvidence }: { selectedEvidence: EvidenceCenterSelectedEvidence }) {
+export function EvidenceCompletenessCard({
+  selectedEvidence,
+}: {
+  selectedEvidence: EvidenceCenterSelectedEvidence;
+}) {
   const c = selectedEvidence.completeness;
   const unlinkedPct = c.unlinked?.percent ?? 0;
-  const items: { id: string; label: string; percent: number; count: number; color: CompletenessTone }[] = [
-    { id: "complete", label: "Complete", percent: c.complete.percent, count: c.complete.count, color: "green" },
-    { id: "partial", label: "Partial", percent: c.partial.percent, count: c.partial.count, color: "amber" },
+  const items: {
+    id: string;
+    label: string;
+    percent: number;
+    count: number;
+    color: CompletenessTone;
+  }[] = [
+    {
+      id: "complete",
+      label: "Complete",
+      percent: c.complete.percent,
+      count: c.complete.count,
+      color: "green",
+    },
+    {
+      id: "partial",
+      label: "Partial",
+      percent: c.partial.percent,
+      count: c.partial.count,
+      color: "amber",
+    },
     {
       id: "missing",
       label: "Missing",
@@ -331,7 +405,9 @@ export function EvidenceCompletenessCard({ selectedEvidence }: { selectedEvidenc
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-slate-950">Evidence Completeness</h2>
+      <h2 className="text-lg font-semibold text-slate-950">
+        Evidence Completeness
+      </h2>
 
       <div className="mt-4 grid grid-cols-1 items-center gap-4 md:grid-cols-[110px_1fr]">
         <DonutChart
@@ -344,7 +420,10 @@ export function EvidenceCompletenessCard({ selectedEvidence }: { selectedEvidenc
 
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[16px_1fr_auto] items-center gap-2.5">
+            <div
+              key={item.id}
+              className="grid grid-cols-[16px_1fr_auto] items-center gap-2.5"
+            >
               <ColorDot color={item.color} />
               <p className="text-sm font-medium text-slate-700">{item.label}</p>
               <p className="text-sm font-semibold text-slate-900">
@@ -360,32 +439,75 @@ export function EvidenceCompletenessCard({ selectedEvidence }: { selectedEvidenc
   );
 }
 
-export function EvidenceByGateCard({ projectId, rows }: { projectId: string; rows: EvidenceByGate[] }) {
+function evidenceByGateToGapRow(
+  row: EvidenceByGate,
+  projectId: string,
+): GateEvidenceTraceListRow {
+  return {
+    gateCode: row.gateCode as GateEvidenceTraceListRow["gateCode"],
+    gateName: row.gateName,
+    gateIdParam: row.gateId.toLowerCase(),
+    gateStatus: row.gateStatus,
+    evidenceLinked: row.evidenceLinked,
+    requiredEvidence: row.requiredEvidence,
+    missingCount: row.missingCount,
+    coveragePercent: row.coveragePercent,
+    linkStatus: row.linkStatus,
+    decisionSummary: row.decisionSummary,
+    detailHref: row.detailHref,
+    reviewHref: row.href,
+    addEvidenceHref: row.addEvidenceHref,
+  };
+}
+
+export function EvidenceByGateCard({
+  projectId,
+  rows,
+}: {
+  projectId: string;
+  rows: EvidenceByGate[];
+}) {
+  const [gapRow, setGapRow] = useState<GateEvidenceTraceListRow | null>(null);
+
   const mapped = rows.map((row) => ({
     id: row.gateId,
     label: `${row.gateCode} – ${row.gateName}`,
     linked: row.evidenceLinked,
     required: row.requiredEvidence,
     coverage: row.coveragePercent,
-    href: `/projects/${projectId}/traceability/gate-evidence/${row.gateId}`,
+    href: row.detailHref,
     reviewHref: row.href,
+    linkStatus: row.linkStatus,
   }));
 
   return (
-    <CoverageTable
-      title="Evidence by Gate"
-      count={rows.length}
-      firstColumnLabel="Gate"
-      rows={mapped}
-      footerHref={`/projects/${projectId}/traceability/gate-evidence`}
-      footerLabel="View Gate Evidence Matrix"
-      linkedHeader="Evidence Linked"
-      collapsible
-    />
+    <>
+      <CoverageTable
+        title="Evidence by Gate"
+        count={rows.length}
+        firstColumnLabel="Gate"
+        rows={mapped}
+        footerHref={`/projects/${projectId}/traceability/gate-evidence`}
+        footerLabel="View Gate Evidence Matrix"
+        linkedHeader="Evidence Linked"
+        collapsible
+        onCoverageGap={(rowId) => {
+          const hit = rows.find((r) => r.gateId === rowId);
+          if (hit) setGapRow(evidenceByGateToGapRow(hit, projectId));
+        }}
+      />
+      <GateEvidenceGapDrawer
+        open={gapRow != null}
+        row={gapRow}
+        onClose={() => setGapRow(null)}
+      />
+    </>
   );
 }
 
-function evidenceByPhaseToGapRow(row: EvidenceByPhase): PhaseEvidenceTraceListRow {
+function evidenceByPhaseToGapRow(
+  row: EvidenceByPhase,
+): PhaseEvidenceTraceListRow {
   return {
     phaseNumber: row.phaseNumber,
     phaseName: row.phaseName,
@@ -402,7 +524,13 @@ function evidenceByPhaseToGapRow(row: EvidenceByPhase): PhaseEvidenceTraceListRo
   };
 }
 
-export function EvidenceByPhaseCard({ projectId, rows }: { projectId: string; rows: EvidenceByPhase[] }) {
+export function EvidenceByPhaseCard({
+  projectId,
+  rows,
+}: {
+  projectId: string;
+  rows: EvidenceByPhase[];
+}) {
   const [gapRow, setGapRow] = useState<PhaseEvidenceTraceListRow | null>(null);
 
   const mapped = rows.map((row) => ({
@@ -432,7 +560,11 @@ export function EvidenceByPhaseCard({ projectId, rows }: { projectId: string; ro
           if (hit) setGapRow(evidenceByPhaseToGapRow(hit));
         }}
       />
-      <PhaseEvidenceGapDrawer open={gapRow != null} row={gapRow} onClose={() => setGapRow(null)} />
+      <PhaseEvidenceGapDrawer
+        open={gapRow != null}
+        row={gapRow}
+        onClose={() => setGapRow(null)}
+      />
     </>
   );
 }
@@ -457,11 +589,13 @@ export function EvidenceExportBundleCard({
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-slate-950">Evidence Export Bundle</h2>
+      <h2 className="text-lg font-semibold text-slate-950">
+        Evidence Export Bundle
+      </h2>
 
       <p className="mt-3 text-sm leading-snug text-slate-600">
-        Configure exports with manifest, traceability, and checksum options. Downloads are JSON; ZIP packaging is not
-        wired yet.
+        Configure exports with manifest, traceability, and checksum options.
+        Downloads are JSON; ZIP packaging is not wired yet.
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -500,7 +634,9 @@ export function EvidenceExportBundleCard({
         <ExportAction
           label="Export by Gate"
           ariaLabel="Open export by gate modal"
-          disabled={!exportBundle.canExportByGate || data.evidenceByGate.length === 0}
+          disabled={
+            !exportBundle.canExportByGate || data.evidenceByGate.length === 0
+          }
           onClick={() => setGateOpen(true)}
           icon={<Download className="h-4 w-4 stroke-[2.2]" aria-hidden />}
         />
@@ -559,8 +695,14 @@ export function EvidenceCoveragePanel({
   return (
     <section className="flex w-full min-w-0 max-w-[720px] flex-col space-y-3">
       <EvidenceCompletenessCard selectedEvidence={selectedEvidence} />
-      <EvidenceByGateCard projectId={data.project.id} rows={data.evidenceByGate} />
-      <EvidenceByPhaseCard projectId={data.project.id} rows={data.evidenceByPhase} />
+      <EvidenceByGateCard
+        projectId={data.project.id}
+        rows={data.evidenceByGate}
+      />
+      <EvidenceByPhaseCard
+        projectId={data.project.id}
+        rows={data.evidenceByPhase}
+      />
       <EvidenceExportBundleCard
         exportBundle={data.exportBundle}
         data={data}

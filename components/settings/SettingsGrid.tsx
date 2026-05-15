@@ -7,8 +7,10 @@ import { PanelSkeleton } from "@/components/settings/shared";
 import type {
   ExportSettings,
   GateRuleSetting,
+  LifecycleConfigurationBlock,
   LocalStorageSettings,
   RolePermissionEntry,
+  RolePermissionSetting,
   SettingsPageData,
   SettingsQuickAction,
   SettingsSectionId,
@@ -22,19 +24,18 @@ export function SettingsGrid({
   exportSettings,
   localStorageSettings,
   localStoragePathError,
-  onSectionChange,
-  onAddPhase,
-  onEditPhase,
+  onPatchLifecycle,
   onCreateTemplate,
   onCreateRule,
   onCreateRole,
-  onTestExport,
   onUpdateExportSettings,
   onUpdateLocalStorageSettings,
-  onChangeLocalStoragePath,
   onEditTemplate,
+  onPatchTemplateRegistry,
   onEditGateRule,
   onEditRolePermission,
+  onUpdateRole,
+  onPatchRoles,
   onQuickAction,
 }: {
   isLoading: boolean;
@@ -43,17 +44,14 @@ export function SettingsGrid({
   exportSettings: ExportSettings;
   localStorageSettings: LocalStorageSettings;
   localStoragePathError: string | null;
-  onSectionChange: (section: SettingsSectionId, href: string) => void;
-  onAddPhase: () => void;
-  onEditPhase: (phaseId: string) => void;
+  onPatchLifecycle: (recipe: (c: LifecycleConfigurationBlock) => LifecycleConfigurationBlock) => void;
   onCreateTemplate: () => void;
   onCreateRule: () => void;
   onCreateRole: () => void;
-  onTestExport: () => void;
   onUpdateExportSettings: (nextValue: ExportSettings) => void;
   onUpdateLocalStorageSettings: (nextValue: LocalStorageSettings) => void;
-  onChangeLocalStoragePath: (key: keyof LocalStorageSettings["paths"]) => void;
   onEditTemplate: (templateId: string, updater: (item: TemplateRegistryItem) => TemplateRegistryItem) => void;
+  onPatchTemplateRegistry: (recipe: (items: TemplateRegistryItem[]) => TemplateRegistryItem[]) => void;
   onEditGateRule: (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => void;
   onEditRolePermission: (
     roleId: string,
@@ -61,6 +59,8 @@ export function SettingsGrid({
     action: keyof Omit<RolePermissionEntry, "module">,
     checked: boolean,
   ) => void;
+  onUpdateRole: (roleId: string, updater: (role: RolePermissionSetting) => RolePermissionSetting) => void;
+  onPatchRoles: (recipe: (roles: RolePermissionSetting[]) => RolePermissionSetting[]) => void;
   onQuickAction: (action: SettingsQuickAction) => void;
 }) {
   return (
@@ -69,11 +69,7 @@ export function SettingsGrid({
         {isLoading ? (
           <PanelSkeleton heightClass="h-52" />
         ) : (
-          <SettingsNavigationPanel
-            data={data}
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-          />
+          <SettingsNavigationPanel data={data} activeSection={activeSection} />
         )}
       </div>
 
@@ -87,18 +83,18 @@ export function SettingsGrid({
             exportSettings={exportSettings}
             localStorageSettings={localStorageSettings}
             localStoragePathError={localStoragePathError}
-            onAddPhase={onAddPhase}
-            onEditPhase={onEditPhase}
+            onPatchLifecycle={onPatchLifecycle}
             onCreateTemplate={onCreateTemplate}
             onCreateRule={onCreateRule}
             onCreateRole={onCreateRole}
-            onTestExport={onTestExport}
             onUpdateExportSettings={onUpdateExportSettings}
             onUpdateLocalStorageSettings={onUpdateLocalStorageSettings}
-            onChangeLocalStoragePath={onChangeLocalStoragePath}
             onEditTemplate={onEditTemplate}
+            onPatchTemplateRegistry={onPatchTemplateRegistry}
             onEditGateRule={onEditGateRule}
             onEditRolePermission={onEditRolePermission}
+            onUpdateRole={onUpdateRole}
+            onPatchRoles={onPatchRoles}
           />
         )}
       </div>

@@ -9,11 +9,9 @@ import type { SettingsPageData, SettingsSectionId } from "@/types/settings.types
 export function SettingsNavigationPanel({
   data,
   activeSection,
-  onSectionChange,
 }: {
   data: SettingsPageData;
   activeSection: SettingsSectionId;
-  onSectionChange: (section: SettingsSectionId, href: string) => void;
 }) {
   return (
     <section className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
@@ -22,7 +20,7 @@ export function SettingsNavigationPanel({
       <ul className="mt-4 space-y-2">
         {data.navigationItems.map((item) => (
           <li key={item.id}>
-            <SettingsNavItem item={item} activeSection={activeSection} onSelect={onSectionChange} />
+            <SettingsNavItem item={item} activeSection={activeSection} />
           </li>
         ))}
       </ul>

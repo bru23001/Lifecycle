@@ -27,14 +27,14 @@ function ToneIcon({
   return (
     <div
       className={[
-        "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
         toneClasses[tone],
       ].join(" ")}
     >
       {icon === "clock" ? (
-        <Clock3 className="h-5 w-5 stroke-[2.3]" />
+        <Clock3 className="h-4 w-4 stroke-[2.3]" />
       ) : (
-        <FileText className="h-5 w-5 stroke-[2.3]" />
+        <FileText className="h-4 w-4 stroke-[2.3]" />
       )}
     </div>
   );
@@ -49,7 +49,7 @@ function DueBadge({ label, tone }: { label: string; tone: "warning" | "info" | "
   };
 
   return (
-    <span className={["rounded-full px-5 py-2 text-sm font-semibold", toneClasses[tone]].join(" ")}>
+    <span className={["rounded-full px-3 py-1 text-xs font-semibold", toneClasses[tone]].join(" ")}>
       {label}
     </span>
   );
@@ -57,15 +57,15 @@ function DueBadge({ label, tone }: { label: string; tone: "warning" | "info" | "
 
 export function MyNextActions({ nextActions }: { nextActions: DashboardNextAction[] }) {
   return (
-    <article className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
-      <header className="flex items-center justify-between px-7 py-6">
-        <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">My Next Actions</h2>
-        <Link href="/projects" className="text-base font-semibold text-blue-600 hover:text-blue-700">
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-[var(--cc-border)] dark:bg-card">
+      <header className="flex items-center justify-between px-5 py-4">
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">My Next Actions</h2>
+        <Link href="/projects" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
           View all actions
         </Link>
       </header>
 
-      <div>
+      <div className="lifecycle-scroll-on-demand min-h-0 flex-1 overflow-auto">
         {nextActions.map((action, index) => {
           const tone = actionTone(action);
           const icon = action.title.toLowerCase().includes("review gate") ? "clock" : "file";
@@ -74,7 +74,7 @@ export function MyNextActions({ nextActions }: { nextActions: DashboardNextActio
               key={action.id}
               href={action.targetHref}
               className={[
-                "grid grid-cols-[44px_1fr_auto] items-center gap-5 px-7 py-5",
+                "grid grid-cols-[36px_1fr_auto] items-center gap-3 px-5 py-3.5",
                 index !== 0 && "border-t border-slate-100",
               ]
                 .filter(Boolean)
@@ -82,10 +82,10 @@ export function MyNextActions({ nextActions }: { nextActions: DashboardNextActio
             >
               <ToneIcon tone={tone} icon={icon} />
               <div className="min-w-0">
-                <p className="truncate text-base font-semibold text-slate-950 dark:text-slate-100">
+                <p className="truncate text-sm font-semibold text-slate-950 dark:text-slate-100">
                   {action.title}
                 </p>
-                <p className="mt-1 truncate text-base text-slate-500 dark:text-slate-300">
+                <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-300">
                   {action.projectName}
                 </p>
               </div>

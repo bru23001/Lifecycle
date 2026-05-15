@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 
+import { ensureLifecycleConfigurationShape } from "@/lib/lifecycle-settings-defaults";
+import { ensureGateRulesList } from "@/lib/gate-rules-defaults";
+import { ensureRolesList } from "@/lib/role-settings-defaults";
+import { ensureTemplateRegistryList } from "@/lib/template-registry-defaults";
+import { ensureExportSettingsShape, ensureLocalStorageSettingsShape } from "@/lib/server/settings-seed-builders";
 import { recordAudit } from "@/lib/server/audit";
 import { loadSettingsPageData, saveSettingsPageData } from "@/lib/server/settings";
 import { computeActionState } from "@/lib/settings-validation";
-import type { SettingsActivity, SettingsPageData, SettingsSectionId } from "@/types/settings.types";
+import type {
+  ExportSettings,
+  LifecycleConfigurationBlock,
+  LocalStorageSettings,
+  SettingsActivity,
+  SettingsPageData,
+  SettingsSectionId,
+} from "@/types/settings.types";
 
 function isSection(value: string | null): value is SettingsSectionId {
   return (
@@ -44,7 +56,18 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const incoming = (await request.json()) as SettingsPageData;
+  const raw = (await request.json()) as SettingsPageData;
+  const incoming: SettingsPageData = {
+    ...raw,
+    lifecycleConfiguration: ensureLifecycleConfigurationShape(
+      raw.lifecycleConfiguration as unknown as LifecycleConfigurationBlock,
+    ),
+    templateRegistry: ensureTemplateRegistryList(raw.templateRegistry ?? []),
+    gateRules: ensureGateRulesList(raw.gateRules ?? []),
+    rolesPermissions: ensureRolesList(raw.rolesPermissions ?? []),
+    exportSettings: ensureExportSettingsShape(raw.exportSettings as ExportSettings | undefined),
+    localStorageSettings: ensureLocalStorageSettingsShape(raw.localStorageSettings as LocalStorageSettings | undefined),
+  };
   const actionState = computeActionState({ data: incoming, hasUnsavedChanges: true });
   if (actionState.blockers.length > 0) {
     return NextResponse.json(

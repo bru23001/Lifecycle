@@ -1,4 +1,4 @@
-import type { CoverageStatus } from "@/types/traceability.types";
+import type { CoverageStatus, GateTraceStatus } from "@/types/traceability.types";
 
 export type EvidenceItem = {
   id: string;
@@ -69,8 +69,20 @@ export type EvidenceByGate = {
   gateName: string;
   evidenceLinked: number;
   requiredEvidence: number;
+  missingCount: number;
   coveragePercent: number;
+  /** Strict template-vs-evidence coverage for gate gap drawer / matrix. */
+  linkStatus: CoverageStatus;
+  /** Gate decision readiness derived from latest gate decision + lifecycle phase. */
+  gateStatus: GateTraceStatus;
+  /** Human-readable latest gate decision summary. */
+  decisionSummary: string;
   status: "complete" | "partial" | "missing" | "not_started";
+  /** Gate evidence drill-down (traceability). */
+  detailHref: string;
+  /** Evidence Center quick-link to add/filter evidence for this gate. */
+  addEvidenceHref: string;
+  /** Gate review route. */
   href: string;
 };
 

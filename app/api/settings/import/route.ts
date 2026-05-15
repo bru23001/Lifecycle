@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server";
 
+import { ensureLifecycleConfigurationShape } from "@/lib/lifecycle-settings-defaults";
+import { ensureGateRulesList } from "@/lib/gate-rules-defaults";
+import { ensureRolesList } from "@/lib/role-settings-defaults";
+import { ensureTemplateRegistryList } from "@/lib/template-registry-defaults";
+import { ensureExportSettingsShape, ensureLocalStorageSettingsShape } from "@/lib/server/settings-seed-builders";
 import { loadSettingsPageData, saveSettingsPageData } from "@/lib/server/settings";
 import { validateSettingsPageData } from "@/lib/settings-validation";
-import type { SettingsActivity, SettingsPageData } from "@/types/settings.types";
+import type {
+  ExportSettings,
+  GateRuleSetting,
+  LifecycleConfigurationBlock,
+  LocalStorageSettings,
+  RolePermissionSetting,
+  SettingsActivity,
+  SettingsPageData,
+  TemplateRegistryItem,
+} from "@/types/settings.types";
 
 type PartialImport = Partial<
   Pick<
@@ -34,12 +48,22 @@ export async function POST(request: Request) {
   const merged: SettingsPageData = {
     ...current,
     activeSection: body.payload.activeSection ?? current.activeSection,
-    lifecycleConfiguration: body.payload.lifecycleConfiguration ?? current.lifecycleConfiguration,
-    templateRegistry: body.payload.templateRegistry ?? current.templateRegistry,
-    gateRules: body.payload.gateRules ?? current.gateRules,
-    rolesPermissions: body.payload.rolesPermissions ?? current.rolesPermissions,
-    exportSettings: body.payload.exportSettings ?? current.exportSettings,
-    localStorageSettings: body.payload.localStorageSettings ?? current.localStorageSettings,
+    lifecycleConfiguration: ensureLifecycleConfigurationShape(
+      (body.payload.lifecycleConfiguration ?? current.lifecycleConfiguration) as LifecycleConfigurationBlock,
+    ),
+    templateRegistry: ensureTemplateRegistryList(
+      (body.payload.templateRegistry ?? current.templateRegistry) as TemplateRegistryItem[],
+    ),
+    gateRules: ensureGateRulesList((body.payload.gateRules ?? current.gateRules) as GateRuleSetting[]),
+    rolesPermissions: ensureRolesList(
+      (body.payload.rolesPermissions ?? current.rolesPermissions) as RolePermissionSetting[],
+    ),
+    exportSettings: ensureExportSettingsShape(
+      (body.payload.exportSettings ?? current.exportSettings) as ExportSettings,
+    ),
+    localStorageSettings: ensureLocalStorageSettingsShape(
+      (body.payload.localStorageSettings ?? current.localStorageSettings) as LocalStorageSettings,
+    ),
     recentActivity: [importActivity, ...current.recentActivity].slice(0, 20),
   };
 

@@ -10,8 +10,10 @@ import { LocalStorageSettingsPanel } from "@/components/settings/LocalStorageSet
 import type {
   ExportSettings,
   GateRuleSetting,
+  LifecycleConfigurationBlock,
   LocalStorageSettings,
   RolePermissionEntry,
+  RolePermissionSetting,
   SettingsPageData,
   SettingsSectionId,
   TemplateRegistryItem,
@@ -23,34 +25,32 @@ export function SettingsDetailPanel({
   exportSettings,
   localStorageSettings,
   localStoragePathError,
-  onAddPhase,
-  onEditPhase,
+  onPatchLifecycle,
   onCreateTemplate,
   onCreateRule,
   onCreateRole,
-  onTestExport,
   onUpdateExportSettings,
   onUpdateLocalStorageSettings,
-  onChangeLocalStoragePath,
   onEditTemplate,
+  onPatchTemplateRegistry,
   onEditGateRule,
   onEditRolePermission,
+  onUpdateRole,
+  onPatchRoles,
 }: {
   data: SettingsPageData;
   activeSection: SettingsSectionId;
   exportSettings: ExportSettings;
   localStorageSettings: LocalStorageSettings;
   localStoragePathError: string | null;
-  onAddPhase: () => void;
-  onEditPhase: (phaseId: string) => void;
+  onPatchLifecycle: (recipe: (c: LifecycleConfigurationBlock) => LifecycleConfigurationBlock) => void;
   onCreateTemplate: () => void;
   onCreateRule: () => void;
   onCreateRole: () => void;
-  onTestExport: () => void;
   onUpdateExportSettings: (nextValue: ExportSettings) => void;
   onUpdateLocalStorageSettings: (nextValue: LocalStorageSettings) => void;
-  onChangeLocalStoragePath: (key: keyof LocalStorageSettings["paths"]) => void;
   onEditTemplate: (templateId: string, updater: (item: TemplateRegistryItem) => TemplateRegistryItem) => void;
+  onPatchTemplateRegistry: (recipe: (items: TemplateRegistryItem[]) => TemplateRegistryItem[]) => void;
   onEditGateRule: (ruleId: string, updater: (rule: GateRuleSetting) => GateRuleSetting) => void;
   onEditRolePermission: (
     roleId: string,
@@ -58,16 +58,18 @@ export function SettingsDetailPanel({
     action: keyof Omit<RolePermissionEntry, "module">,
     checked: boolean,
   ) => void;
+  onUpdateRole: (roleId: string, updater: (role: RolePermissionSetting) => RolePermissionSetting) => void;
+  onPatchRoles: (recipe: (roles: RolePermissionSetting[]) => RolePermissionSetting[]) => void;
 }) {
   switch (activeSection) {
     case "lifecycle_configuration":
       return (
         <>
           <LifecycleConfigurationPanel
-            phases={data.lifecycleConfiguration.phases}
-            lastUpdatedLabel={data.lifecycleConfiguration.lastUpdatedLabel}
-            onAddPhase={onAddPhase}
-            onEditPhase={onEditPhase}
+            lifecycleConfiguration={data.lifecycleConfiguration}
+            gateRules={data.gateRules}
+            templateRegistry={data.templateRegistry}
+            onPatchLifecycle={onPatchLifecycle}
           />
           <LifecycleSummaryPanel
             totalPhases={data.lifecycleConfiguration.totalPhases}
@@ -84,6 +86,7 @@ export function SettingsDetailPanel({
           items={data.templateRegistry}
           onCreateTemplate={onCreateTemplate}
           onUpdateTemplate={onEditTemplate}
+          onPatchTemplateRegistry={onPatchTemplateRegistry}
         />
       );
     case "gate_rules":
@@ -94,17 +97,18 @@ export function SettingsDetailPanel({
           data={data.rolesPermissions}
           onCreateRole={onCreateRole}
           onUpdatePermission={onEditRolePermission}
+          onUpdateRole={onUpdateRole}
+          onPatchRoles={onPatchRoles}
         />
       );
     case "export_settings":
-      return <ExportSettingsPanel value={exportSettings} onChange={onUpdateExportSettings} onTestExport={onTestExport} />;
+      return <ExportSettingsPanel value={exportSettings} onChange={onUpdateExportSettings} />;
     case "local_storage_settings":
       return (
         <LocalStorageSettingsPanel
           value={localStorageSettings}
           pathError={localStoragePathError}
           onChange={onUpdateLocalStorageSettings}
-          onChangePath={onChangeLocalStoragePath}
         />
       );
     default:

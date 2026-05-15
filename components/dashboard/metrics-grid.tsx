@@ -60,7 +60,7 @@ export function MetricsGrid({
       className={
         stacked
           ? "grid h-full grid-rows-5 gap-3 max-[1200px]:grid-cols-1 max-[1200px]:grid-rows-none"
-          : "command-grid card-grid-12"
+          : "grid grid-cols-5 gap-[var(--grid-gap)]"
       }
     >
       {metrics.map((metric) => {
@@ -70,21 +70,25 @@ export function MetricsGrid({
             key={metric.id}
             href={metric.targetHref}
             className={`cc-card-standard metric-card flex items-start gap-[12px] dark:border-[var(--cc-border)] dark:bg-card ${
-              stacked ? "h-full min-h-0 w-full p-3.5" : "span-2"
+              stacked
+                ? "h-full min-h-0 w-full p-3.5"
+                : "h-[var(--dashboard-kpi-card-height)] min-w-0 p-3"
             }`}
           >
             <div
-              className={`grid size-[36px] shrink-0 place-items-center rounded-[10px] ${metricToneClass(metric.tone)}`}
+              className={`grid size-[32px] shrink-0 place-items-center rounded-[9px] ${metricToneClass(metric.tone)}`}
             >
-              <Icon className="size-[17px]" aria-hidden />
+              <Icon className="size-[15px]" aria-hidden />
             </div>
-            <div className="min-w-0 flex-1 leading-tight">
-              <p className="cc-card-meta font-semibold">{metric.label}</p>
-              <p className="mt-[8px] text-[22px] font-bold leading-none tracking-tight">
+            <div className="min-h-0 min-w-0 flex-1">
+              <p className="text-[11px] font-semibold leading-[1.2] text-slate-500 dark:text-slate-300">
+                {metric.label}
+              </p>
+              <p className="mt-1 text-[20px] font-bold leading-none tracking-tight">
                 {metric.value}
               </p>
               <p
-                className={`cc-card-meta mt-[8px] font-semibold ${metricNoteToneClass(metric.tone)}`}
+                className={`mt-1 text-[11px] font-semibold leading-[1.2] ${metricNoteToneClass(metric.tone)}`}
               >
                 {metric.note}
               </p>

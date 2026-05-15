@@ -120,7 +120,8 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Idea Title",
           type: "text",
           required: true,
-          placeholder: "Example: Local Lifecycle Platform",
+          placeholder:
+            "Type a short, specific name for the idea (3+ characters) — e.g. Heavy equipment rental billing portal",
         },
       ],
     },
@@ -135,13 +136,16 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Idea Sponsor",
           type: "text",
           required: true,
-          placeholder: "Example: Victor / Product Owner / Internal Sponsor",
+          placeholder:
+            "Who owns this idea? Name and role — e.g. Jamie Nguyen, Product Owner (North region)",
         },
         {
           name: "dateSubmitted",
           label: "Date Submitted",
           type: "date",
           required: true,
+          description:
+            "Pick the date you submitted this form. Use the picker or type YYYY-MM-DD (example: 2026-05-15).",
         },
       ],
     },
@@ -157,7 +161,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Describe the idea in 2–5 sentences. Keep it simple and concrete.",
+            "Write 2–5 sentences: what you want to build or change, who it is for, and the outcome you expect.",
         },
       ],
     },
@@ -173,7 +177,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "What problem does this solve, or what opportunity does it create?",
+            "State the pain or opportunity in plain language: what is wrong today, who feels it, and what happens if nothing changes?",
         },
       ],
     },
@@ -189,7 +193,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "List users, customers, internal teams, stakeholders, or beneficiaries.",
+            "List everyone who uses, pays for, supports, or is affected by the change — e.g. dispatchers, fleet managers, AR clerks, customers.",
         },
       ],
     },
@@ -205,7 +209,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Describe the current workflow, tool, workaround, manual process, or gap.",
+            "Describe how work is done today: tools (ERP, spreadsheets, email), steps, handoffs, and where time or errors pile up.",
         },
       ],
     },
@@ -221,7 +225,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Examples: saves time, reduces errors, creates revenue, improves compliance, improves user experience.",
+            "List concrete benefits you expect — e.g. cut invoice cycle from 10 days to 2, fewer billing disputes, faster month-end close.",
         },
       ],
     },
@@ -237,7 +241,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Describe a possible app, module, automation, dashboard, workflow, or integration.",
+            "High-level only: what software could do (portal, mobile app, batch job, integration). Avoid detailed design — just the direction.",
         },
       ],
     },
@@ -252,6 +256,8 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Urgency or Timing",
           type: "select",
           required: true,
+          description:
+            "Choose the urgency level, then explain your choice in the box below. Use Time-Critical only for hard deadlines (regulatory, contract, launch).",
           options: [
             { label: "Low", value: "Low" },
             { label: "Medium", value: "Medium" },
@@ -266,7 +272,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Explain any deadline, market timing, customer pressure, compliance need, or reason urgency is unknown.",
+            "Explain why you picked that urgency: cite dates, drivers, or say clearly why timing is still unknown.",
         },
       ],
     },
@@ -282,7 +288,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Examples: budget, time, skills, data availability, compliance, integrations, technical limitations.",
+            "List real limits you already know — budget cap, fixed go-live date, must use existing ERP, no mobile app, data only in legacy DB, etc.",
         },
       ],
     },
@@ -298,7 +304,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Examples: unclear demand, technical risk, cost risk, adoption risk, legal risk, security risk.",
+            "List worries or unknowns — e.g. adoption risk, integration unknowns, compliance grey areas, staffing, vendor dependency.",
         },
       ],
     },
@@ -314,7 +320,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "List existing products, internal tools, spreadsheets, manual processes, or competitor solutions.",
+            "What exists today? Internal tools, vendor products, spreadsheets, or competitor apps — and why they are not enough.",
         },
       ],
     },
@@ -329,6 +335,8 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Initial Complexity Estimate",
           type: "select",
           required: true,
+          description:
+            "Pick the best match for size and risk. Use Unknown if you genuinely cannot estimate yet — then explain in the rationale box.",
           options: [
             { label: "Low", value: "Low" },
             { label: "Medium", value: "Medium" },
@@ -343,7 +351,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Explain why this idea appears low, medium, high, enterprise, or unknown complexity.",
+            "Justify your estimate: teams touched, integrations, data sensitivity, regulation, geography, or unknowns that could grow scope.",
         },
       ],
     },
@@ -358,6 +366,8 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Recommendation",
           type: "select",
           required: true,
+          description:
+            "Choose the next lifecycle step. Accept only if the idea is clear enough to start structured problem definition (A-0.1).",
           options: [
             {
               label: "Accept for Problem Definition",
@@ -374,7 +384,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Explain why this recommendation is appropriate at this stage.",
+            "Say why that recommendation fits now — what is proven vs missing, and what you would do next if accepted.",
         },
       ],
     },
@@ -389,6 +399,8 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Approval Status",
           type: "select",
           required: true,
+          description:
+            "Pick the real status of this document. Draft = still writing; Submitted = ready for review; Approved = reviewer accepted for G1.",
           options: [
             { label: "Draft", value: "Draft" },
             { label: "Submitted", value: "Submitted" },
@@ -404,7 +416,7 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           type: "textarea",
           required: true,
           placeholder:
-            "Record approval rationale, return reason, deferral reason, or rejection rationale.",
+            "For the status you chose: add reviewer notes — what was approved, what must change (if Returned), or why Deferred/Rejected.",
         },
       ],
     },
@@ -419,18 +431,23 @@ export const ideaCaptureTemplate: LifecycleTemplate<
           label: "Reviewer Name",
           type: "text",
           required: true,
+          placeholder: "Full name of the person who reviewed — e.g. Jordan Okonkwo",
         },
         {
           name: "reviewerRole",
           label: "Reviewer Role",
           type: "text",
           required: true,
+          placeholder:
+            "Their role in the decision — e.g. Portfolio Owner, Engineering Manager, Governance reviewer",
         },
         {
           name: "reviewDate",
           label: "Review Date",
           type: "date",
           required: true,
+          description:
+            "Date the reviewer recorded the decision above. Use YYYY-MM-DD (example: 2026-05-22).",
         },
       ],
     },

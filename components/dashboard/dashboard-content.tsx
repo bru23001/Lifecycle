@@ -2,10 +2,10 @@ import Link from "next/link";
 import { FolderKanban, Plus } from "lucide-react";
 
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { cn } from "@/lib/utils";
 import { DashboardSettingsAlerts } from "@/components/dashboard/dashboard-settings-alerts";
 import { GateStatusSummary } from "@/components/dashboard/gate-status-summary";
 import { LifecycleProgressOverview } from "@/components/dashboard/lifecycle-progress-overview";
-import { MetricsGrid } from "@/components/dashboard/metrics-grid";
 import { MyNextActions } from "@/components/dashboard/my-next-actions";
 import { ProjectsSnapshot } from "@/components/dashboard/projects-snapshot";
 import { RecentDecisions } from "@/components/dashboard/recent-decisions";
@@ -14,7 +14,14 @@ import { TipBar } from "@/components/dashboard/tip-bar";
 import { NextRequiredActionBar } from "@/components/lifecycle-workspace/next-required-action-bar";
 import type { DashboardData } from "@/types/dashboard.types";
 
-export function DashboardContent({ data }: { data: DashboardData }) {
+export function DashboardContent({
+  data,
+  omitDashboardIntro = false,
+}: {
+  data: DashboardData;
+  /** When true, intro (lede + shortcut links) is rendered by the dashboard route. */
+  omitDashboardIntro?: boolean;
+}) {
   const hasProjects = data.projectSnapshots.length > 0;
   const reportsHubHref =
     data.gateSummaryProjectId != null ? `/projects/${data.gateSummaryProjectId}/reports` : null;
@@ -22,11 +29,18 @@ export function DashboardContent({ data }: { data: DashboardData }) {
     data.projectSnapshots.find((p) => p.projectId === data.gateSummaryProjectId)?.name ?? undefined;
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] flex-1 px-5 pb-6 pt-2 min-[901px]:px-8">
+    <div
+      className={cn(
+        "mx-auto w-full max-w-[1920px] flex-1 pl-[var(--dashboard-main-padding-from-sidebar)] pr-5 pb-6 min-[901px]:pr-8",
+        omitDashboardIntro ? "pt-5" : "pt-2",
+      )}
+    >
       <div className="flex flex-col gap-5">
-        <section className="command-grid card-grid-12">
-          <DashboardPageHeader userName={data.user.name} reportsHubHref={reportsHubHref} />
-        </section>
+        {!omitDashboardIntro ? (
+          <section className="command-grid card-grid-12">
+            <DashboardPageHeader reportsHubHref={reportsHubHref} />
+          </section>
+        ) : null}
 
         {!hasProjects ? (
           <section className="command-grid card-grid-12">
@@ -57,16 +71,12 @@ export function DashboardContent({ data }: { data: DashboardData }) {
         ) : null}
 
         <section className="command-grid items-stretch">
-          <div className="col-span-2 h-full max-[1200px]:col-span-12">
-            <MetricsGrid metrics={data.metrics} stacked />
-          </div>
-
-          <div className="col-span-10 grid h-full gap-[var(--grid-gap)] max-[1200px]:col-span-12">
+          <div className="col-span-12 grid h-full gap-[var(--grid-gap)]">
             <div className="grid grid-cols-2 gap-[var(--grid-gap)] max-[900px]:grid-cols-1">
-              <div className="h-full">
+              <div className="h-[var(--dashboard-top-row-card-height)] max-[900px]:h-full">
                 <LifecycleProgressOverview lifecycleProgress={data.lifecycleProgress} />
               </div>
-              <div className="h-full">
+              <div className="h-[var(--dashboard-top-row-card-height)] max-[900px]:h-full">
                 <GateStatusSummary
                   gateStatuses={data.gateStatuses}
                   projectId={data.gateSummaryProjectId}
@@ -77,40 +87,39 @@ export function DashboardContent({ data }: { data: DashboardData }) {
             </div>
 
             <div className="grid grid-cols-3 gap-[var(--grid-gap)] max-[900px]:grid-cols-1">
-              <div className="h-full">
+              <div className="h-[var(--dashboard-mid-row-card-height)] max-[900px]:h-full">
                 <MyNextActions nextActions={data.nextActions} />
               </div>
-              <div className="h-full">
+              <div className="h-[var(--dashboard-mid-row-card-height)] max-[900px]:h-full">
                 <RecentDecisions
                   recentDecisions={data.recentDecisions}
                   projectApprovalHistoryHref={data.recentDecisionsProjectApprovalHistoryHref}
                   leadProjectAuditTrailHref={data.leadProjectAuditTrailHref}
                 />
               </div>
-              <div className="h-full">
+              <div className="h-[var(--dashboard-mid-row-card-height)] max-[900px]:h-full">
                 <ProjectsSnapshot projectSnapshots={data.projectSnapshots} />
               </div>
             </div>
           </div>
         </section>
 
-        {hasProjects && data.gateSummaryProjectId ? (
-          <section className="command-grid card-grid-12">
-            <div className="col-span-12">
+        <section className="command-grid card-grid-12">
+          {hasProjects && data.gateSummaryProjectId ? (
+            <div className="col-span-6 max-[900px]:col-span-12">
               <ReportsHubWidget projectId={data.gateSummaryProjectId} projectName={leadProjectName} />
             </div>
-          </section>
-        ) : null}
+          ) : null}
+          <div className={hasProjects && data.gateSummaryProjectId ? "col-span-6 max-[900px]:col-span-12" : "col-span-12"}>
+            <TipBar tip={data.tip} />
+          </div>
+        </section>
 
         {data.settingsAlerts.length > 0 ? (
           <section className="command-grid card-grid-12">
             <DashboardSettingsAlerts alerts={data.settingsAlerts} />
           </section>
         ) : null}
-
-        <section className="command-grid card-grid-12">
-          <TipBar tip={data.tip} />
-        </section>
 
         {hasProjects && data.continueWorking.continueNextHref ? (
           <NextRequiredActionBar
