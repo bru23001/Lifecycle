@@ -4,9 +4,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function prismaDatasourceUrl(): string | undefined {
+  const url = process.env.DATABASE_URL?.trim();
+  return url ? url : undefined;
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    ...(prismaDatasourceUrl()
+      ? { datasources: { db: { url: prismaDatasourceUrl() } } }
+      : {}),
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]

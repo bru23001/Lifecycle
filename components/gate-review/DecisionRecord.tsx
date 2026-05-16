@@ -73,6 +73,7 @@ export function DecisionRecord({
               active={draftDecision === "approve"}
               onClick={() => onOpenDecisionModal("approve")}
               className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="gate-decision-approve"
             />
             <DecisionChoiceButton
               label="Conditional Approve"
@@ -160,21 +161,24 @@ function DecisionChoiceButton({
   active,
   onClick,
   className,
+  "data-testid": dataTestId,
 }: {
   label: string;
   icon: ComponentType<{ className?: string }>;
   active: boolean;
   onClick: () => void;
   className: string;
+  "data-testid"?: string;
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
       data-active={active}
+      data-testid={dataTestId}
       onClick={onClick}
       className={cn(
-        "inline-flex h-12 items-center justify-center gap-3 rounded-md px-6 text-base font-bold text-white shadow-sm",
+        "inline-flex h-12 w-full items-center justify-center gap-3 rounded-md px-6 text-base font-bold text-white shadow-sm",
         className,
         active && "ring-4 ring-white/40 ring-offset-2 ring-offset-background dark:ring-offset-card",
       )}

@@ -41,7 +41,9 @@ Copy `.env.example` to `.env` and set `SEED_FULL_GLOBAL_RESET=0` when you want r
 - `npm run seed-smoke` — verify seeded `demo` project has requirements/features/trace links (run after `seed`)
 - `npm run validate` — `lint` → `typecheck` → `build` (repeatable local/CI gate)
 - `npm run test` / `npm run test:cov` — Vitest (coverage targets core modules; see `vitest.config.ts`)
-- `npm run ci` — full pipeline: `validate` → `check-templates` → `phase-model-check` → **`test:cov`** → `prisma migrate deploy` → `db-phase-sanity` → `seed` → `seed-smoke` → `data-integrity-check`
+- `npm run test:e2e` / `npm run test:e2e:ci` — Playwright lifecycle suite (14-phase / G1–G10); see `docs/runbooks/e2e-lifecycle.md`
+- `npm run seed:e2e-lifecycle` — reset `e2e-lifecycle` project gate-ready artifacts (`E2E_DATABASE_URL`, default `file:./e2e.db`)
+- `npm run ci` — full pipeline: `validate` → `check-templates` → `phase-model-check` → **`test:cov`** → `prisma migrate deploy` → `db-phase-sanity` → `seed` → `seed-smoke` → `data-integrity-check` → **`ci:e2e`**
 - `npm run data-integrity-check` — verify `demo` trace links point at real requirement/feature rows
 - `npm run route-smoke` — HTTP checks against a **running** server (`BASE_URL`, default `http://127.0.0.1:3001`)
 - `npm run release-snapshot` — write `vault/releases/<timestamp>/release-report.json` (local only; folder is gitignored)

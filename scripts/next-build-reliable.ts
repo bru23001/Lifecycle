@@ -1,10 +1,11 @@
 /**
- * Runs `prisma generate && next build` once; on known transient Next.js cache/chunk
- * failures, runs `npm run clean` and retries exactly once.
+ * Removes `.next`, then runs `prisma generate && next build` once; on known transient Next.js
+ * cache/chunk failures, runs `npm run clean` and retries exactly once.
  *
  * Usage: npm run build (see package.json). For a single attempt without retry: npm run build:direct
  */
 import { execSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,6 +68,16 @@ function isTransientNextBuildFailure(output: string): boolean {
     return true;
   }
 
+  // Stale/partial `.next` (interrupted build) or FS races (e.g. cloud sync on `~/Documents`)
+  // can make "Finalizing page optimization" look for `_ssgManifest.js` under the wrong build id.
+  if (
+    /ENOENT: no such file or directory/.test(output) &&
+    /\.next[/\\]static[/\\]/.test(output) &&
+    /_ssgManifest\.js/.test(output)
+  ) {
+    return true;
+  }
+
   return false;
 }
 
@@ -76,6 +87,11 @@ function printTail(output: string, maxChars = 14_000): void {
 }
 
 function main(): void {
+  // Always drop prior `.next` so BUILD_ID and `static/<id>/` stay in sync (avoids ENOENT on
+  // manifests after interrupted builds; `node_modules/.cache` is left for faster prisma/tsc).
+  const nextOut = path.join(root, ".next");
+  fs.rmSync(nextOut, { recursive: true, force: true });
+
   const first = captureBuild();
   if (first.ok) {
     execSync("npx tsx scripts/assert-no-next-dev-ui-in-prod-bundle.ts", {

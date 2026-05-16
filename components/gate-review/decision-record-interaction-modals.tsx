@@ -205,6 +205,7 @@ export function ApproveGateConfirmationModal({
             className="bg-emerald-600 text-white hover:bg-emerald-700"
             disabled={pending || !canConfirm}
             onClick={() => onConfirm(modalNotes)}
+            data-testid="gate-confirm-approval"
           >
             {pending ? "Recording…" : "Confirm approval"}
           </Button>
